@@ -53,6 +53,7 @@ export const DICT = {
     'panel.collapse': '패널 접기', 'panel.expand': '패널 펼치기',
     'ui.nodata': '규칙 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
     'eastsea': '동해',
+    'sh.title': '표시할 시설', 'sh.nearest': '가까운 대피소·쉼터', 'sh.walk': '도보 {n}분', 'sh.none': '5km 안에 표시할 시설이 없습니다',
   },
   en: {
     'brand.sub': 'Your situation, your safety — on one page',
@@ -107,6 +108,7 @@ export const DICT = {
     'panel.collapse': 'Collapse panel', 'panel.expand': 'Expand panel',
     'ui.nodata': 'Could not load rules. Please try again shortly.',
     'eastsea': 'East Sea',
+    'sh.title': 'Facilities', 'sh.nearest': 'Nearest shelters', 'sh.walk': '{n} min walk', 'sh.none': 'No facilities within 5 km',
   },
 };
 let lang = localStorage.getItem('safepic.lang') || ((navigator.language || 'ko').startsWith('ko') ? 'ko' : 'en');

@@ -1,5 +1,6 @@
 // SafePic — app.js (ES module, no build step)
 import { t, getLang, setLang, applyStatic } from './i18n.js';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js';
 let loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; } catch (e) { console.warn('rules.js not available', e); }
 
@@ -16,7 +17,9 @@ const state = {
   rules: null, meta: null, tab: 'now',
   wxsel: new Set(JSON.parse(localStorage.getItem('safepic.wxsel') || '["t","feels","rain","pm10","pm25"]')),
   lastResult: null,
+  shelters: { avail: [], active: new Set(JSON.parse(localStorage.getItem('safepic.shelters') || 'null') || seasonalKinds()) },
 };
+function seasonalKinds() { const m = new Date().getMonth() + 1; return ['civil_defense', ...(m >= 6 && m <= 9 ? ['heat'] : m === 12 || m <= 2 ? ['cold'] : [])]; }
 
 /* ---------- data ---------- */
 async function getJSON(url, fallback = null) {
@@ -60,7 +63,7 @@ function initMap() {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'bottom-right');
   map.on('style.load', () => {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
-    localizeLabels(); addAdminLayers();
+    localizeLabels(); addAdminLayers(); initShelterUI();
     map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 3000, essential: true, curve: 1.3 });
     map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); });
   });
@@ -154,7 +157,33 @@ function resetNation() {
   Object.assign(state, { level: 'nation', sido: null, sgg: null, emd: null });
   setLevelFilters(); map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 900 }); renderAll();
 }
-function renderAll() { renderCrumb(); renderRegion(); renderLive(); }
+function renderAll() { renderCrumb(); renderRegion(); renderLive(); syncShelterLayers(); }
+async function initShelterUI() {
+  state.shelters.avail = await initShelters(map);
+  const box = $('#shsel'); if (!state.shelters.avail.length) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `<button type="button" class="wxsel-t mono" id="shselT">${t('sh.title')}</button>` + state.shelters.avail.map(k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${getLang() === 'en' ? k.en : k.ko}</span></label>`).join('');
+  $('#shselT').addEventListener('click', () => box.classList.toggle('is-open'));
+  $$('input', box).forEach(i => i.addEventListener('change', () => { i.checked ? state.shelters.active.add(i.value) : state.shelters.active.delete(i.value); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); syncShelterLayers(); renderRegion(); }));
+  document.addEventListener('click', e => { if (!e.target.closest('#shsel')) box.classList.remove('is-open'); });
+  syncShelterLayers();
+}
+function syncShelterLayers() {
+  if (!map || !state.shelters.avail.length) return;
+  const kinds = state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : [];
+  setShelters(kinds, state.sido);
+}
+async function renderNearest() {
+  const box = $('#nearBox'); if (!box) return;
+  const e = state.emd && state.idx.byEmd.get(state.emd);
+  if (!e || !state.shelters.avail.length) { box.hidden = true; return; }
+  const kinds = [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k));
+  const list = await nearestShelters([e.lon, e.lat], kinds, state.sido, 3);
+  if (state.emd !== e.code) return;
+  box.hidden = false;
+  box.innerHTML = `<h3>${t('sh.nearest')}</h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() === 'en' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
+  $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5 }); new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(x.c).setHTML(`<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}</small>`).addTo(map); }));
+}
 
 /* ---------- names / live lookups ---------- */
 function nameOf() {
@@ -227,6 +256,7 @@ function renderRegion() {
   if (state.level === 'sgg') kids = state.idx.emd.filter(x => String(x.sgg) === state.sgg).map(x => ({ name: x.name, go: () => selectEmd(x.code) }));
   kids.sort((a, b) => a.name.localeCompare(b.name, 'ko')).forEach(k => { const b = document.createElement('button'); b.textContent = k.name; b.onclick = k.go; ch.appendChild(b); });
   $('#btnFindHere').hidden = state.level !== 'emd';
+  renderNearest();
 }
 function renderLive() { /* live strip retired; weather lives in the region card */ }
 function fmtTime(iso) { if (!iso) return ''; const d = new Date(iso); if (isNaN(d)) return String(iso); const p = x => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
@@ -287,7 +317,7 @@ function initLang() {
   const paint = () => $$('.lang-btn').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
   paint();
   $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, () => {
-    paint(); renderAll(); syncWizardLoc();
+    paint(); renderAll(); syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
     if (map && map.getLayer('eastsea-label')) map.setLayoutProperty('eastsea-label', 'text-field', getLang() === 'en' ? 'East Sea' : '동해\nEast Sea');
     if (state.lastResult) renderResult(state.lastResult.res, state.lastResult.inp);
     if ($('#rulesTable').dataset.done) { delete $('#rulesTable').dataset.done; if (state.tab === 'about') renderRulesTable(); }
@@ -304,6 +334,7 @@ function applyPreset(sit) {
 function initCards() {
   $$('#sitCards .card').forEach(b => b.addEventListener('click', () => {
     const sit = b.dataset.sit;
+    if (sit === 'evacuating') { ['civil_defense', 'flood', 'temp_housing'].forEach(k => state.shelters.active.add(k)); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
     if (sit === 'evacuating' || sit === 'before_rain') { $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden'); $('#searchInput').focus(); return; }
     applyPreset(sit); setTab('find'); syncWizardLoc();
     if (sit === 'no_news') setTimeout(() => $('#wizard').requestSubmit(), 50);

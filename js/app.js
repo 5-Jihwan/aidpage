@@ -125,7 +125,7 @@ function setLevelFilters() {
 function fitTo(features) {
   if (!features.length) return;
   const b = bboxOf(features), mobile = matchMedia('(max-width:900px)').matches;
-  map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 120, bottom: innerHeight * 0.58, left: 20, right: 20 } : { top: 90, bottom: 60, left: 60, right: 60 }, duration: 900 });
+  map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 120, bottom: innerHeight * 0.58, left: 20, right: 20 } : { top: 90, bottom: 60, left: ($('#panel').classList.contains('is-collapsed') ? 0 : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 60, right: 80 }, duration: 900 });
 }
 
 /* ---------- selection ---------- */
@@ -215,7 +215,7 @@ function renderRegion() {
   $('#regionKv').innerHTML = kv.map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('');
   $('#regionKv').style.display = kv.length ? '' : 'none';
   $('#regionNote').innerHTML = state.level === 'emd'
-    ? `<b>${t('note.need')}</b><br>${ws.length ? t('note.warn', { w: ws.map(w => w.type + w.level).join(', ') }) : t('note.calm')}<br><small class="muted">${t('note.grid')}</small>`
+    ? (ws.length ? `<b>${t('note.warn', { w: ws.map(w => w.type + w.level).join(', ') })}</b>` : `<small class="muted">${t('note.calm')}</small>`)
     : `<small class="muted">${state.level === 'sido' ? t('note.pickSgg') : t('note.pickEmd')}</small>`;
   const ch = $('#regionChildren'); ch.innerHTML = '';
   let kids = [];
@@ -224,18 +224,13 @@ function renderRegion() {
   kids.sort((a, b) => a.name.localeCompare(b.name, 'ko')).forEach(k => { const b = document.createElement('button'); b.textContent = k.name; b.onclick = k.go; ch.appendChild(b); });
   $('#btnFindHere').hidden = state.level !== 'emd';
 }
-function renderLive() {
-  if (!state.sgg) { $('#livePlace').textContent = t('live.empty'); $('#liveWx').innerHTML = ''; $('#liveWarn').innerHTML = ''; $('#liveUpd').textContent = ''; return; }
-  const n = nameOf(), ws = warningsFor(state.sgg, state.sido), items = wxItems(state.sgg);
-  $('#livePlace').textContent = [n.sggName, n.emdName].filter(Boolean).join(' ');
-  $('#liveWx').innerHTML = items.map(i => `<span class="${i.cls}">${i.label} <b>${i.v}${i.unit}</b></span>`).join('<span class="sep">|</span>');
-  $('#liveWarn').innerHTML = ws.map(x => `<span class="pill ${/주의보/.test(x.level) ? 'adv' : ''}">${x.type}${x.level}</span>`).join('');
-  const u = (state.live.weather || {}).updated; $('#liveUpd').textContent = u ? fmtTime(u) : '';
-}
+function renderLive() { /* live strip retired; weather lives in the region card */ }
 function fmtTime(iso) { if (!iso) return ''; const d = new Date(iso); if (isNaN(d)) return String(iso); const p = x => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 
 /* ---------- weather selector ---------- */
 function initWxSel() {
+  $('#wxselT').addEventListener('click', () => $('#wxsel').classList.toggle('is-open'));
+  document.addEventListener('click', e => { if (!e.target.closest('#wxsel')) $('#wxsel').classList.remove('is-open'); });
   $$('#wxsel input').forEach(i => { i.checked = state.wxsel.has(i.value); i.addEventListener('change', () => { i.checked ? state.wxsel.add(i.value) : state.wxsel.delete(i.value); localStorage.setItem('safepic.wxsel', JSON.stringify([...state.wxsel])); renderRegion(); renderLive(); }); });
 }
 

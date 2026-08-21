@@ -36,14 +36,6 @@
   </div>
 </header>
 
-<div class="live" id="live">
-  <div class="live-inner">
-    <span class="live-place" id="livePlace" data-i18n="live.empty">지역을 고르면 오늘 날씨·특보·미세먼지가 여기 표시됩니다</span>
-    <span class="live-wx" id="liveWx"></span>
-    <span class="live-warn" id="liveWarn"></span>
-    <span class="live-upd" id="liveUpd"></span>
-  </div>
-</div>
 
 <main class="stage">
   <aside class="panel" id="panel">
@@ -62,7 +54,6 @@
             <button class="card" data-sit="injury"><span class="card-ic">🩹</span><b data-i18n="sit.injury">가족이 다쳤어요</b><small data-i18n="sit.injury.s">의연금·심리지원</small></button>
             <button class="card" data-sit="no_news"><span class="card-ic">⏳</span><b data-i18n="sit.nonews">신고했는데 소식이 없어요</b><small data-i18n="sit.nonews.s">절차와 기한</small></button>
           </div>
-          <p class="fine" data-i18n="landing.next">다음: 지구본에서 우리 동네를 고르면 오늘 날씨·특보에 맞춰 필요한 것부터 보여드립니다.</p>
         </div>
 
         <div id="nowRegion" hidden>
@@ -170,7 +161,7 @@
       <ul id="searchList" class="search-list" hidden></ul>
     </div>
     <div class="wxsel" id="wxsel" aria-label="표시할 날씨 항목">
-      <span class="wxsel-t mono" data-i18n="wx.title">표시할 날씨</span>
+      <button type="button" class="wxsel-t mono" id="wxselT" data-i18n="wx.title">표시할 날씨</button>
       <label><input type="checkbox" value="t" checked><span data-i18n="wx.t">기온</span></label>
       <label><input type="checkbox" value="feels" checked><span data-i18n="wx.feels">체감</span></label>
       <label><input type="checkbox" value="rain" checked><span data-i18n="wx.rain">강수</span></label>

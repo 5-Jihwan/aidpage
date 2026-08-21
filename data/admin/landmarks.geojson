@@ -1,0 +1,1 @@
+{"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [131.8647, 37.2414]}, "properties": {"ko": "독도", "en": "Dokdo"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [130.865, 37.5]}, "properties": {"ko": "울릉도", "en": "Ulleungdo"}}]}

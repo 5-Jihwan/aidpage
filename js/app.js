@@ -69,8 +69,8 @@ function initMap() {
 function localizeLabels() {
   const ko = ['coalesce', ['get', 'name:ko'], ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
   const enRaw = ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
-  const en = ['case', ['in', 'Japan', ['to-string', enRaw]], 'East Sea', enRaw];
-  const koFixed = ['case', ['in', 'Japan', ['to-string', ko]], '동해', ['in', '日本海', ['to-string', ko]], '동해', ko];
+  const en = ['case', ['in', 'Japan', ['to-string', enRaw]], 'East Sea', ['in', 'Liancourt', ['to-string', enRaw]], 'Dokdo', enRaw];
+  const koFixed = ['case', ['in', 'Japan', ['to-string', ko]], '동해', ['in', '日本海', ['to-string', ko]], '동해', ['in', 'Liancourt', ['to-string', ko]], '독도', ['in', '竹島', ['to-string', ko]], '독도', ko];
   const both = ['format', koFixed, {}, '\n', {}, en, { 'font-scale': 0.8, 'text-color': '#6b7a90' }];
   const field = getLang() === 'en' ? en : ['case', ['==', ['to-string', koFixed], ['to-string', en]], koFixed, both];
   for (const l of map.getStyle().layers || []) {
@@ -92,6 +92,10 @@ function addAdminLayers() {
   fill('emd-fill', 'emd', '#0f9d7a'); line('emd-line', 'emd', '#0b6e55', 0.8);
   const lbl = (id, src, minzoom, maxzoom) => map.addLayer({ id, type: 'symbol', source: src, layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.4 }, minzoom, ...(maxzoom ? { maxzoom } : {}) });
   lbl('sgg-label', 'sgg', 8, 11.5); lbl('emd-label', 'emd', 11.5);
+  // 독도·울릉도: 저배율에서도 항상 보이도록 전용 마커+라벨
+  map.addSource('landmarks', { type: 'geojson', data: 'data/admin/landmarks.geojson' });
+  map.addLayer({ id: 'landmark-dot', type: 'circle', source: 'landmarks', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3, 9, 6], 'circle-color': '#1a5fc4', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 }, minzoom: 3.5, maxzoom: 11 });
+  map.addLayer({ id: 'landmark-label', type: 'symbol', source: 'landmarks', layout: { 'text-field': getLang() === 'en' ? ['get', 'en'] : ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'en'], { 'font-scale': 0.8, 'text-color': '#6b7a90' }], 'text-size': 12, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top' }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.4 }, minzoom: 3.5 });
   setLevelFilters();
 
   const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; $('#map').appendChild(tip);

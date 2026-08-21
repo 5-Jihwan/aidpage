@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SafePic · 내 상황에 맞는 안전, 한 장으로</title>
+<meta name="description" content="내 위치와 내 상황을 넣으면, 지금 할 일과 받을 수 있는 재난 지원이 한 화면에. 수요자 중심 재난 지원 큐레이션.">
+<meta property="og:title" content="SafePic">
+<meta property="og:description" content="내 동네 오늘의 위험과, 내 상황에 맞는 지원을 한 화면에.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a5fc4'/><circle cx='50' cy='50' r='22' fill='none' stroke='%23fff' stroke-width='8'/><circle cx='50' cy='50' r='7' fill='%239a7328'/></svg>">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="top">
+  <button class="icon-btn" id="btnPanel" data-i18n-title="panel.collapse" aria-label="패널 접기/펼치기"><span class="bars"></span></button>
+  <a class="brand" href="#" id="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">SafePic</span>
+    <span class="brand-sub" data-i18n="brand.sub">내 상황에 맞는 안전, 한 장으로</span>
+  </a>
+  <nav class="crumb" id="crumb" aria-label="지역 선택"></nav>
+  <nav class="tabs" aria-label="화면">
+    <button class="tab is-active" data-tab="now"><i>01</i><span data-i18n="tab.now">지금 내 동네</span></button>
+    <button class="tab" data-tab="find"><i>02</i><span data-i18n="tab.find">지원 찾기</span></button>
+    <button class="tab" data-tab="where"><i>03</i><span data-i18n="tab.where">어디에 먼저</span></button>
+    <button class="tab tab-about" data-tab="about"><span data-i18n="tab.about">방법·한계</span></button>
+  </nav>
+  <div class="lang" role="group" aria-label="언어">
+    <button class="lang-btn" data-lang="ko">한국어</button><button class="lang-btn" data-lang="en">EN</button>
+  </div>
+</header>
+
+<div class="live" id="live">
+  <div class="live-inner">
+    <span class="live-place" id="livePlace" data-i18n="live.empty">지역을 고르면 오늘 날씨·특보·미세먼지가 여기 표시됩니다</span>
+    <span class="live-wx" id="liveWx"></span>
+    <span class="live-warn" id="liveWarn"></span>
+    <span class="live-upd" id="liveUpd"></span>
+  </div>
+</div>
+
+<main class="stage">
+  <aside class="panel" id="panel">
+    <div class="panel-grip" aria-hidden="true"></div>
+    <div class="panel-scroll" id="panelScroll">
+
+      <section class="view is-active" data-view="now">
+        <div id="nowLanding">
+          <h1 class="h1" data-i18n="landing.h1">지금 어떤 상황이세요?</h1>
+          <p class="lead" data-i18n="landing.lead">법령이 아니라 상황으로 시작합니다. 입력은 서버로 가지 않고 이 브라우저 안에서만 계산됩니다.</p>
+          <div class="cards" id="sitCards">
+            <button class="card" data-sit="house_flood"><span class="card-ic">🏠</span><b data-i18n="sit.house">집이 잠겼어요</b><small data-i18n="sit.house.s">침수·파손 지원금, 10일 신고</small></button>
+            <button class="card" data-sit="shop_flood"><span class="card-ic">🏪</span><b data-i18n="sit.shop">가게가 잠겼어요</b><small data-i18n="sit.shop.s">소상공인 지원·융자</small></button>
+            <button class="card" data-sit="evacuating"><span class="card-ic">🚨</span><b data-i18n="sit.evac">지금 대피 중이에요</b><small data-i18n="sit.evac.s">가까운 대피소·특보</small></button>
+            <button class="card" data-sit="before_rain"><span class="card-ic">🌧️</span><b data-i18n="sit.before">비 오기 전이에요</b><small data-i18n="sit.before.s">우리 동네 위험·보험</small></button>
+            <button class="card" data-sit="injury"><span class="card-ic">🩹</span><b data-i18n="sit.injury">가족이 다쳤어요</b><small data-i18n="sit.injury.s">의연금·심리지원</small></button>
+            <button class="card" data-sit="no_news"><span class="card-ic">⏳</span><b data-i18n="sit.nonews">신고했는데 소식이 없어요</b><small data-i18n="sit.nonews.s">절차와 기한</small></button>
+          </div>
+          <p class="fine" data-i18n="landing.next">다음: 지구본에서 우리 동네를 고르면 오늘 날씨·특보에 맞춰 필요한 것부터 보여드립니다.</p>
+        </div>
+
+        <div id="nowRegion" hidden>
+          <div class="region-head">
+            <div><div class="eyebrow mono" id="regionPath"></div><h2 class="h2" id="regionName"></h2></div>
+            <button class="btn btn-primary" id="btnFindHere" data-i18n="region.find">이 위치로 지원 찾기 →</button>
+          </div>
+          <div class="level-guide" id="levelGuide"></div>
+          <div class="wx-card" id="wxCard"></div>
+          <div class="warn-card" id="warnCard"></div>
+          <div class="kv" id="regionKv"></div>
+          <div class="note" id="regionNote"></div>
+          <div class="children" id="regionChildren"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view="find">
+        <form id="wizard" class="wizard" autocomplete="off">
+          <h1 class="h1" data-i18n="wiz.h1">나는 뭘 받을 수 있나</h1>
+          <p class="lead" data-i18n="wiz.lead">다섯 가지만 고르면 됩니다. 결과는 해당 가능성이며 최종 판단은 관할 지자체입니다.</p>
+          <fieldset class="q"><legend data-i18n="wiz.q1">1. 위치</legend>
+            <div class="q-loc" id="qLoc"></div>
+            <label class="chk"><input type="checkbox" name="special_zone" id="qSpecial"> <span data-i18n="wiz.sz">특별재난지역으로 선포된 곳이에요</span> <small data-i18n="wiz.sz.s">(모르면 비워두세요)</small></label>
+          </fieldset>
+          <fieldset class="q"><legend data-i18n="wiz.q2">2. 나는</legend>
+            <div class="opts">
+              <label><input type="radio" name="housing" value="own"><span data-i18n="h.own">자가 주택</span></label>
+              <label><input type="radio" name="housing" value="rent"><span data-i18n="h.rent">전·월세 세입자</span></label>
+              <label><input type="radio" name="housing" value="shop"><span data-i18n="h.shop">상가·공장(소상공인)</span></label>
+              <label><input type="radio" name="housing" value="farm"><span data-i18n="h.farm">농지·축사·온실</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="q"><legend><span data-i18n="wiz.q3">3. 피해는</span> <small data-i18n="wiz.multi">(해당하는 것 모두)</small></legend>
+            <div class="opts">
+              <label><input type="checkbox" name="damage" value="flood"><span data-i18n="d.flood">방바닥 위로 물이 찼어요</span></label>
+              <label><input type="checkbox" name="damage" value="half"><span data-i18n="d.half">벽·기둥·지붕이 부서졌어요(반파)</span></label>
+              <label><input type="checkbox" name="damage" value="full"><span data-i18n="d.full">집이 무너지거나 떠내려갔어요(전파·유실)</span></label>
+              <label><input type="checkbox" name="damage" value="goods"><span data-i18n="d.goods">가재도구·집기만 젖었어요</span></label>
+              <label><input type="checkbox" name="damage" value="injury"><span data-i18n="d.injury">사람이 다쳤어요</span></label>
+              <label><input type="checkbox" name="damage" value="death"><span data-i18n="d.death">가족이 사망·실종됐어요</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="q"><legend><span data-i18n="wiz.q4">4. 우리 집은</span> <small data-i18n="wiz.multi">(해당하는 것 모두)</small></legend>
+            <div class="opts">
+              <label><input type="checkbox" name="household" value="basic"><span data-i18n="f.basic">기초생활수급</span></label>
+              <label><input type="checkbox" name="household" value="near_poor"><span data-i18n="f.near">차상위</span></label>
+              <label><input type="checkbox" name="household" value="single_parent"><span data-i18n="f.single">한부모</span></label>
+              <label><input type="checkbox" name="household" value="senior"><span data-i18n="f.senior">65세 이상</span></label>
+              <label><input type="checkbox" name="household" value="disabled"><span data-i18n="f.dis">장애</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="q"><legend data-i18n="wiz.q5">5. 재난이 끝난 날</legend>
+            <input type="date" name="event_end" id="qEnd">
+            <small class="muted" data-i18n="wiz.q5.s">피해신고 기한(재난 종료일부터 10일)을 계산합니다. 모르면 비워두세요.</small>
+          </fieldset>
+          <label class="chk proxy"><input type="checkbox" id="qProxy"> <span data-i18n="wiz.proxy">다른 분을 대신해서 확인하고 있어요</span> <small data-i18n="wiz.proxy.s">(결과를 인쇄·공유하기 좋게 보여드립니다)</small></label>
+          <div class="actions">
+            <button type="submit" class="btn btn-primary btn-lg" data-i18n="wiz.go">결과 보기</button>
+            <button type="reset" class="btn btn-ghost" id="btnReset" data-i18n="wiz.reset">처음부터</button>
+          </div>
+        </form>
+        <article id="result" class="result" hidden></article>
+      </section>
+
+      <section class="view" data-view="where">
+        <h1 class="h1" data-i18n="where.h1">어디에 먼저 써야 하나</h1>
+        <p class="lead" data-i18n="where.lead">야구의 WPA처럼 — 같은 1억 원으로 어느 격자의 안전 확률이 가장 많이 오르는지를 봅니다.</p>
+        <div class="pending"><b data-i18n="where.pend">시범 지역(서울 관악구) 격자 데이터 준비 중</b><p data-i18n="where.pend.p"></p><p class="fine" data-i18n="where.pend.f"></p></div>
+        <details class="formula"><summary data-i18n="where.formula">계산 방식 미리보기</summary>
+          <p class="mono">SE<sub>i</sub> = σ(b₀ + b₁·C<sub>i</sub> − b₂·H<sub>i</sub> − b₃·E<sub>i</sub> − b₄·V<sub>i</sub>)<br>SPA<sub>i</sub>(a) = SE′<sub>i</sub> − SE<sub>i</sub> &nbsp; · &nbsp; Eff<sub>i</sub>(a) = ΔE[Loss]<sub>i</sub> / Cost(a)</p>
+        </details>
+      </section>
+
+      <section class="view" data-view="about">
+        <h1 class="h1" data-i18n="about.h1">방법과 한계</h1>
+        <h3 data-i18n="about.why">왜 만들었나</h3>
+        <p>재난 지원은 법 → 대통령령 별표 → 부처 고시 → 17개 기관 간접지원 → 의연금 규정 → 보험법의 다섯 층으로 흩어져 있고, 38종을 내 조건으로 한 번에 보여주는 공적 화면이 없습니다(2026-08 조사). 피해신고는 재난 종료일부터 10일 안에 해야 하는데(대통령령 제9조②), 이 기한을 가장 모르기 쉬운 사람이 가장 취약한 사람입니다.</p>
+        <p>행정학에서는 이를 <b>행정 부담(administrative burden)</b> — 알아내는 비용, 따르는 비용, 심리적 비용 — 으로 설명합니다(Herd &amp; Moynihan 2018). SafePic은 그 비용을 시민 대신 시스템이 지게 하려는 시도입니다.</p>
+        <h3 data-i18n="about.not">무엇을 하지 않나</h3>
+        <ul>
+          <li>심사하지 않습니다. 모든 결과는 "해당 가능성"이며 최종 판단은 관할 지자체입니다.</li>
+          <li>개인정보를 수집하지 않습니다. 입력은 브라우저 안에서만 계산되고 공유 URL에만 담깁니다.</li>
+          <li>확인되지 않은 숫자를 보여주지 않습니다. 모든 금액 옆에 근거 조문·기준일·출처가 붙습니다.</li>
+        </ul>
+        <h3 data-i18n="about.data">데이터와 갱신</h3>
+        <ul>
+          <li>행정경계: 통계청 SGIS 기반 행정동 경계(vuski/admdongkor, CC BY 4.0), 단순화. <span id="aboutAdmin" class="mono"></span></li>
+          <li>날씨·특보: 기상청 단기예보·특보 API. 미세먼지: 에어코리아. 재난문자: 재난안전데이터공유플랫폼. 30분 주기 수집.</li>
+          <li>지원 규칙: 「재난 및 안전관리 기본법」 §66, 「자연재난 구호 및 복구 비용 부담기준 등에 관한 규정」(2025-11-27 개정) 별표1·§9·§12, 「의연금품 관리·운영 규정」, 풍수해·지진재해보험 지원기준. <a href="#" id="linkRules" data-i18n="about.rules">규칙 전체 보기</a></li>
+        </ul>
+        <h3 data-i18n="about.borrow">참고한 것</h3>
+        <p>익명 질문형 진입은 미국 DisasterAssistance.gov, "한 숫자 + 근거 펼침"은 First Street, 비용편익 슬라이더는 WRI Aqueduct에서 배웠습니다. 지도 타일: OpenFreeMap · © OpenStreetMap.</p>
+        <p class="fine">개인 프로젝트 · 비영리 · <a href="https://github.com/5-Jihwan/safepic" target="_blank" rel="noopener">GitHub</a> · <a href="https://5-jihwan.github.io" target="_blank" rel="noopener">5-Jihwan</a> · <span class="mono" id="buildDate"></span></p>
+        <div id="rulesTable" class="rules-table" hidden></div>
+      </section>
+
+    </div>
+  </aside>
+
+  <div class="mapwrap">
+    <div id="map" class="map" role="application" aria-label="지도"></div>
+    <div class="search" id="search">
+      <input id="searchInput" type="search" data-i18n-ph="search.ph" placeholder="동·읍·면 이름으로 찾기 (예: 신림동, 진안읍)" autocomplete="off" aria-label="지역 검색">
+      <ul id="searchList" class="search-list" hidden></ul>
+    </div>
+    <div class="wxsel" id="wxsel" aria-label="표시할 날씨 항목">
+      <span class="wxsel-t mono" data-i18n="wx.title">표시할 날씨</span>
+      <label><input type="checkbox" value="t" checked><span data-i18n="wx.t">기온</span></label>
+      <label><input type="checkbox" value="feels" checked><span data-i18n="wx.feels">체감</span></label>
+      <label><input type="checkbox" value="rain" checked><span data-i18n="wx.rain">강수</span></label>
+      <label><input type="checkbox" value="reh"><span data-i18n="wx.reh">습도</span></label>
+      <label><input type="checkbox" value="wind"><span data-i18n="wx.wind">바람</span></label>
+      <label><input type="checkbox" value="pm10" checked><span data-i18n="wx.pm10">미세먼지</span></label>
+      <label><input type="checkbox" value="pm25" checked><span data-i18n="wx.pm25">초미세먼지</span></label>
+    </div>
+    <div class="map-hint" id="mapHint" data-i18n="hint.start">지구본에서 대한민국을 누르거나, 동 이름을 검색하세요</div>
+  </div>
+</main>
+
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

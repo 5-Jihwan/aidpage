@@ -1,0 +1,425 @@
+{
+  "meta": {
+    "title": "현금성 직접지원 (재난지원금·세입자보조·소상공인·생계구호)",
+    "asof": "2026-08-21",
+    "sources": [
+      {
+        "name": "재난 및 안전관리 기본법 제66조",
+        "url": "https://www.law.go.kr/법령/재난및안전관리기본법/제66조"
+      },
+      {
+        "name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정 (대통령령 제35875호, 시행 2025-11-28)",
+        "url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945"
+      },
+      {
+        "name": "행정안전부 보도자료·중대본 결정 (2026-08-19 적용 단가)",
+        "url": "https://www.mois.go.kr"
+      },
+      {
+        "name": "서산시 2025.7 호우 피해 지원 안내(특별재난지역)",
+        "url": "https://www.seosan.go.kr"
+      },
+      {
+        "name": "대한민국 정책브리핑 2025.9 (주택 전파 정부지원 2,200~3,950만원)",
+        "url": "https://www.korea.kr"
+      }
+    ]
+  },
+  "rules": [
+    {
+      "id": "cash.house_flood",
+      "group": "cash",
+      "label": "주택 침수 재난지원금",
+      "summary": "주거용 건물 침수(바닥 이상) 세대에 세대당 정액 지급. 가재도구 피해 포함.",
+      "amount_krw": 3500000,
+      "amount_text": "세대당 350만원",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "own",
+          "rent"
+        ],
+        "damage": [
+          "flood",
+          "goods"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "landslide"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 (시장·군수·구청장)",
+      "docs": [
+        "자연재난 피해신고서(별지 제1호서식)",
+        "피해 사진",
+        "신분증",
+        "주민등록표등본(행정정보 공동이용으로 대체 가능)"
+      ],
+      "basis": "규정 제4조①2호가목·별표1 제2호가목 (주택 침수: 국토교통부 고시 금액, 지원 100%) + 국토부 고시 단가",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": "2026-08-19",
+      "confidence": "verified",
+      "notes": "대통령령에는 금액이 없고 부담률(100%)만 규정, 단가는 국토부 고시. 2025.7·8 호우 때 중대본 한시 상향 700만원(기본 350 + 추가 350). 세입자(임차)도 실거주 세대면 대상. 350만원 적용 시점은 미확인(2026-08-19 중대본 적용 확인)."
+    },
+    {
+      "id": "cash.house_full",
+      "group": "cash",
+      "label": "주택 전파·유실 재난지원금",
+      "summary": "주택 전파 또는 유실 시 연면적 기준 복구비의 30%를 지원금으로, 60~70%는 융자, 나머지 자부담.",
+      "amount_krw": null,
+      "amount_text": "지원금 2,000만~3,600만원 (연면적 구간별) + 융자 60~70%",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "own"
+        ],
+        "damage": [
+          "full"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 (시장·군수·구청장)",
+      "docs": [
+        "자연재난 피해신고서",
+        "피해 사진",
+        "건축물대장 또는 소유 증빙",
+        "신분증"
+      ],
+      "basis": "규정 제4조①2호가목·별표1 제2호가목 (주택 전파·유실: 국토교통부 고시 금액, 연면적 기준, 지원 30%·융자 60~70%·자부담 0~10%; 내진설계 주택은 융자 70%)",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": "2025-07-31",
+      "confidence": "reported",
+      "notes": "금액 구간은 2025.7 서산시 안내(특별재난지역) 기준 2,000~3,600만원. 2025.9 정책브리핑은 전파 정부지원 2,200~3,950만원으로 보도 — 연면적 구간·시점에 따라 상이하므로 범위로만 표시. 부담률(30/60~70/0~10)은 별표1로 검증됨. 소유자(자가)만 지원금 대상, 세입자는 cash.tenant_subsidy."
+    },
+    {
+      "id": "cash.house_half",
+      "group": "cash",
+      "label": "주택 반파 재난지원금",
+      "summary": "주택 반파 시 전파 기준액의 50%를 같은 부담률(지원 30%·융자·자부담)로 지원.",
+      "amount_krw": null,
+      "amount_text": "지원금 1,000만~1,800만원 (전파의 50%) + 융자",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "own"
+        ],
+        "damage": [
+          "half"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 (시장·군수·구청장)",
+      "docs": [
+        "자연재난 피해신고서",
+        "피해 사진",
+        "건축물대장 또는 소유 증빙",
+        "신분증"
+      ],
+      "basis": "규정 별표1 제2호가목 및 비고2 (반파는 전파 기준액의 50%)",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": "2025-07-31",
+      "confidence": "reported",
+      "notes": "금액 구간은 2025.7 서산시 안내 기준. 반파=전파의 50%는 별표1 비고2로 검증."
+    },
+    {
+      "id": "cash.tenant_subsidy",
+      "group": "cash",
+      "label": "주택 전파·반파 세입자 보조금",
+      "summary": "전파·반파·유실 주택에 거주하던 세입자에게 입주보증금 또는 6개월 임대료 상당을 보조.",
+      "amount_krw": 6000000,
+      "amount_text": "세대당 최대 600만원 (입주보증금 또는 6개월 임대료)",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "rent"
+        ],
+        "damage": [
+          "full",
+          "half"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 (시장·군수·구청장)",
+      "docs": [
+        "자연재난 피해신고서",
+        "임대차계약서",
+        "주민등록표등본",
+        "신분증"
+      ],
+      "basis": "규정 별표1 제2호가목 (세입자 보조: 행정안전부 고시 금액) + 행안부 고시",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": "2025-07-31",
+      "confidence": "reported",
+      "notes": "600만원은 2025.7 서산시 안내(특별재난지역) 기준. 행안부 고시 금액은 변동 가능."
+    },
+    {
+      "id": "cash.small_biz_stability",
+      "group": "cash",
+      "label": "소상공인 경영안정 지원금",
+      "summary": "침수 등 피해 소상공인 사업장(업체) 당 정액 지급. 사업자등록 필요.",
+      "amount_krw": 3000000,
+      "amount_text": "업체당 300만원",
+      "unit": "업체",
+      "conditions": {
+        "housing": [
+          "shop"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 (시장·군수·구청장)",
+      "docs": [
+        "자연재난 피해신고서",
+        "사업자등록증",
+        "피해 사진",
+        "신분증"
+      ],
+      "basis": "규정 제4조①1호라목·별표1 제1호라목 (소상공인 경영안정 지원: 중소벤처기업부 고시 금액, 지원 100%) + 중기부 고시",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2023-06-08",
+      "rate_asof": "2026-08-19",
+      "confidence": "verified",
+      "notes": "2023-06 신설(당초 200만원), 현행 300만원. 2025.7·8 호우 때 중대본 한시 상향 1,000만원. 소상공인은 의연금 규정상 제외(성금 배분으로 별도 지급된 사례 있음)."
+    },
+    {
+      "id": "cash.small_biz_facility",
+      "group": "cash",
+      "label": "소상공인·중소기업 사업장 시설 복구 지원",
+      "summary": "2025-11-27 신설. 사업장 건축물·기계설비 복구비를 지원+융자+자부담으로 분담.",
+      "amount_krw": null,
+      "amount_text": "건축물: 지원 30%·융자 60%·자부담 10% / 기계·설비: 지원 35%·융자 55%·자부담 10% (단가 고시 미확인)",
+      "unit": "업체",
+      "conditions": {
+        "housing": [
+          "shop"
+        ],
+        "damage": [
+          "half",
+          "full"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "any"
+        ]
+      },
+      "channel": "apply",
+      "deadline_days_after_event": 10,
+      "where": "시·군·구 (소상공인 담당 부서) / 읍·면·동 주민센터",
+      "docs": [
+        "자연재난 피해신고서",
+        "사업자등록증",
+        "시설 피해 사진·견적서",
+        "건축물대장"
+      ],
+      "basis": "규정 제4조①2호사목·별표1 제2호사목 (대통령령 제35875호, 2025-11-27 일부개정)",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": "2025-11-28",
+      "confidence": "verified",
+      "notes": "부담률은 개정 영으로 검증. 기준 단가(고시) 및 상한액은 미확인이라 금액을 표시하지 않음."
+    },
+    {
+      "id": "cash.relief_living",
+      "group": "cash",
+      "label": "생계안정 구호비 (임시거처 이재민 급식·생계지원)",
+      "summary": "주택 피해로 임시거처에 머무는 이재민에게 세대원 수별 일일 급식비·생계지원금 지급.",
+      "amount_krw": null,
+      "amount_text": "세대원 수별 일일 급식비·생계지원금 (현행 단가 미확인)",
+      "unit": "인",
+      "conditions": {
+        "housing": [
+          "own",
+          "rent"
+        ],
+        "damage": [
+          "full",
+          "half",
+          "flood"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 / 임시거처 운영 지자체",
+      "docs": [
+        "이재민 등록(지자체 작성)",
+        "주민등록표등본"
+      ],
+      "basis": "규정 제4조①1호·별표1 제1호 (생계안정 구호: 급식비·생계지원금)",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": null,
+      "confidence": "estimate",
+      "notes": "별표1에 항목은 있으나 단가(1인 1일 급식비 등)는 행안부 고시·지침으로 정해져 현행 금액 미확인. 금액 산정에서 제외."
+    },
+    {
+      "id": "cash.death_missing",
+      "group": "cash",
+      "label": "사망·실종 위로금 (재난지원금)",
+      "summary": "자연재난으로 사망·실종한 경우 유족에게 지급하는 위로금.",
+      "amount_krw": null,
+      "amount_text": "세대주 2,000만원 / 세대원 1,000만원 (보도 기준)",
+      "unit": "인",
+      "conditions": {
+        "damage": [
+          "death"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "heat",
+          "cold",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 (시장·군수·구청장)",
+      "docs": [
+        "자연재난 피해신고서",
+        "사망진단서 또는 실종 신고 증빙",
+        "가족관계증명서"
+      ],
+      "basis": "규정 제4조①1호가목·별표1 제1호가목 (사망·실종 위로금)",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": null,
+      "confidence": "reported",
+      "notes": "세대주·세대원 구분 금액은 언론·지자체 안내 기준이며 이번 검증에서 별표1 원문 금액 대조 미완료. 금액 합산에서 제외(amount_krw null). 의연금 사망·실종 2,000만원은 relief_fund.death 별도."
+    },
+    {
+      "id": "cash.injury",
+      "group": "cash",
+      "label": "부상 위로금 (재난지원금)",
+      "summary": "자연재난으로 부상(장해등급 해당)한 경우 지급하는 위로금.",
+      "amount_krw": null,
+      "amount_text": "세대주 1,000만원 / 세대원 500만원 (보도 기준)",
+      "unit": "인",
+      "conditions": {
+        "damage": [
+          "injury"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "heat",
+          "cold",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 (시장·군수·구청장)",
+      "docs": [
+        "자연재난 피해신고서",
+        "진단서(장해등급)",
+        "신분증"
+      ],
+      "basis": "규정 제4조①1호가목·별표1 제1호가목 (부상 위로금)",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": null,
+      "confidence": "reported",
+      "notes": "금액은 보도 기준, 별표1 원문 대조 미완료. 합산 제외."
+    },
+    {
+      "id": "cash.farm_recovery",
+      "group": "cash",
+      "label": "농작물·농경지·농림시설 복구비",
+      "summary": "농경지 유실·매몰, 농작물 피해, 비닐하우스·축사 등 시설 피해에 대한 복구비(지원+융자+자부담).",
+      "amount_krw": null,
+      "amount_text": "피해 유형·면적별 복구 단가(농식품부 고시) × 부담률 — 금액 미산정",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "landslide",
+          "cold",
+          "heat",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 / 시·군 농업 부서",
+      "docs": [
+        "자연재난 피해신고서",
+        "농지대장·경영체 등록 확인서",
+        "피해 사진"
+      ],
+      "basis": "규정 제4조①2호·별표1 제2호 (농경지·농작물·농림시설 복구: 농림축산식품부 고시 단가)",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": null,
+      "confidence": "estimate",
+      "notes": "항목별 단가·부담률이 세분화되어 있어 본 사이트에서는 해당 가능성만 안내. 농작물 재해보험 가입 여부에 따라 조정될 수 있음."
+    }
+  ]
+}

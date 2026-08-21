@@ -1,0 +1,280 @@
+{
+  "meta": {
+    "title": "의연금 (희망브리지 전국재해구호협회 · 의연금품 관리·운영 규정)",
+    "asof": "2026-08-21",
+    "sources": [
+      {
+        "name": "재해구호법 제23조~제26조 (의연금품의 모집·배분)",
+        "url": "https://www.law.go.kr/법령/재해구호법"
+      },
+      {
+        "name": "의연금품 관리·운영 규정 제7조 (2024-08-27 개정, 지급기준 2배 상향)",
+        "url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정"
+      },
+      {
+        "name": "희망브리지 전국재해구호협회",
+        "url": "https://www.relief.or.kr"
+      }
+    ]
+  },
+  "rules": [
+    {
+      "id": "relief_fund.house_full",
+      "group": "relief_fund",
+      "label": "의연금 — 주택 전파·유실",
+      "summary": "실거주 주택이 전파·유실된 세대에 의연금 지급. 재난지원금과 별도·중복 수령.",
+      "amount_krw": 10000000,
+      "amount_text": "세대당 1,000만원",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "own",
+          "rent"
+        ],
+        "damage": [
+          "full"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 (피해신고 → 지자체 집계 → 협회 지급)",
+      "docs": [
+        "피해사실확인서(지자체 조사 결과)",
+        "본인 명의 계좌"
+      ],
+      "basis": "의연금품 관리·운영 규정 제7조 (2024-08-27 개정)",
+      "basis_url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정",
+      "effective_from": "2024-08-27",
+      "rate_asof": "2024-08-27",
+      "confidence": "verified",
+      "notes": "별도 신청 없이 지자체 피해조사 결과로 지급. 2024-08-27 개정으로 종전 500만원에서 2배 상향."
+    },
+    {
+      "id": "relief_fund.house_half",
+      "group": "relief_fund",
+      "label": "의연금 — 주택 반파",
+      "summary": "실거주 주택이 반파된 세대에 의연금 지급.",
+      "amount_krw": 5000000,
+      "amount_text": "세대당 500만원",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "own",
+          "rent"
+        ],
+        "damage": [
+          "half"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터",
+      "docs": [
+        "피해사실확인서(지자체 조사 결과)",
+        "본인 명의 계좌"
+      ],
+      "basis": "의연금품 관리·운영 규정 제7조 (2024-08-27 개정)",
+      "basis_url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정",
+      "effective_from": "2024-08-27",
+      "rate_asof": "2024-08-27",
+      "confidence": "verified",
+      "notes": "종전 250만원 → 500만원."
+    },
+    {
+      "id": "relief_fund.house_flood",
+      "group": "relief_fund",
+      "label": "의연금 — 주택 침수",
+      "summary": "실거주 주택이 침수된 세대에 의연금 지급. 세입자 포함.",
+      "amount_krw": 2000000,
+      "amount_text": "세대당 200만원",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "own",
+          "rent"
+        ],
+        "damage": [
+          "flood",
+          "goods"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "landslide"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터",
+      "docs": [
+        "피해사실확인서(지자체 조사 결과)",
+        "본인 명의 계좌"
+      ],
+      "basis": "의연금품 관리·운영 규정 제7조 (2024-08-27 개정)",
+      "basis_url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정",
+      "effective_from": "2024-08-27",
+      "rate_asof": "2024-08-27",
+      "confidence": "verified",
+      "notes": "종전 100만원 → 200만원. 소상공인 사업장은 규정상 제외(성금 특별배분 사례만 있음)."
+    },
+    {
+      "id": "relief_fund.house_minor_quake",
+      "group": "relief_fund",
+      "label": "의연금 — 주택 소파 (지진)",
+      "summary": "지진으로 주택이 소파된 세대에 의연금 지급.",
+      "amount_krw": 2000000,
+      "amount_text": "세대당 200만원",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "own",
+          "rent"
+        ],
+        "damage": [
+          "goods"
+        ],
+        "hazard": [
+          "quake"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터",
+      "docs": [
+        "피해사실확인서(지자체 조사 결과)",
+        "본인 명의 계좌"
+      ],
+      "basis": "의연금품 관리·운영 규정 제7조 (2024-08-27 개정)",
+      "basis_url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정",
+      "effective_from": "2024-08-27",
+      "rate_asof": "2024-08-27",
+      "confidence": "verified",
+      "notes": "소파는 지진 피해에만 적용. 본 사이트 입력값에 '소파'가 없어 지진+경미 피해(goods)로 근사 매칭."
+    },
+    {
+      "id": "relief_fund.death",
+      "group": "relief_fund",
+      "label": "의연금 — 사망·실종",
+      "summary": "자연재난으로 사망·실종한 사람의 유족에게 지급.",
+      "amount_krw": 20000000,
+      "amount_text": "1인당 2,000만원",
+      "unit": "인",
+      "conditions": {
+        "damage": [
+          "death"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "heat",
+          "cold",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터",
+      "docs": [
+        "피해사실확인서",
+        "가족관계증명서",
+        "사망진단서"
+      ],
+      "basis": "의연금품 관리·운영 규정 제7조 (2024-08-27 개정)",
+      "basis_url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정",
+      "effective_from": "2024-08-27",
+      "rate_asof": "2024-08-27",
+      "confidence": "verified",
+      "notes": "종전 1,000만원 → 2,000만원."
+    },
+    {
+      "id": "relief_fund.injury_severe",
+      "group": "relief_fund",
+      "label": "의연금 — 부상 (장해 1~7급)",
+      "summary": "장해등급 1~7급에 해당하는 부상자에게 지급.",
+      "amount_krw": 10000000,
+      "amount_text": "1인당 1,000만원",
+      "unit": "인",
+      "conditions": {
+        "damage": [
+          "injury"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "heat",
+          "cold",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터",
+      "docs": [
+        "피해사실확인서",
+        "장해진단서"
+      ],
+      "basis": "의연금품 관리·운영 규정 제7조 (2024-08-27 개정)",
+      "basis_url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정",
+      "effective_from": "2024-08-27",
+      "rate_asof": "2024-08-27",
+      "confidence": "verified",
+      "notes": "부상 등급을 입력받지 않으므로 1~7급(1,000만원)과 8~14급(500만원)을 모두 표시하고 합산에는 낮은 쪽(500만원)만 반영.",
+      "exclusive_group": "relief_fund.injury"
+    },
+    {
+      "id": "relief_fund.injury_minor",
+      "group": "relief_fund",
+      "label": "의연금 — 부상 (장해 8~14급)",
+      "summary": "장해등급 8~14급에 해당하는 부상자에게 지급.",
+      "amount_krw": 5000000,
+      "amount_text": "1인당 500만원",
+      "unit": "인",
+      "conditions": {
+        "damage": [
+          "injury"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "quake",
+          "landslide",
+          "heat",
+          "cold",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터",
+      "docs": [
+        "피해사실확인서",
+        "장해진단서"
+      ],
+      "basis": "의연금품 관리·운영 규정 제7조 (2024-08-27 개정)",
+      "basis_url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정",
+      "effective_from": "2024-08-27",
+      "rate_asof": "2024-08-27",
+      "confidence": "verified",
+      "notes": "합산에는 이 항목(보수적 하한)만 반영. sum_exclusive_with: relief_fund.injury_severe",
+      "exclusive_group": "relief_fund.injury"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "source": "vuski/admdongkor (https://github.com/vuski/admdongkor), derived from 통계청 SGIS 행정동 경계",
+  "source_file": "https://raw.githubusercontent.com/vuski/admdongkor/master/ver20260701/HangJeongDong_ver20260701.geojson",
+  "version": "20260701",
+  "license": "CC BY 4.0 (admdongkor) / 공공누리 제1유형 (SGIS)",
+  "crs": "EPSG:4326",
+  "level": "행정동 (administrative dong), not 법정동; 리 not included",
+  "simplify": {
+    "emd": "20%",
+    "sgg": "25%",
+    "sido": "12%",
+    "gwanak": "60%",
+    "method": "mapshaper visvalingam keep-shapes planar"
+  },
+  "built": "2026-08-21",
+  "counts": {
+    "sido": 16,
+    "sgg": 256,
+    "emd": 3558
+  },
+  "sizes_bytes": {
+    "emd_index.json": 602464,
+    "gwanak_boundary.geojson": 3875,
+    "kr_emd.geojson": 4276371,
+    "kr_sgg.geojson": 1743256,
+    "kr_sido.geojson": 408295,
+    "meta.json": 923,
+    "sgg_index.json": 32464
+  }
+}

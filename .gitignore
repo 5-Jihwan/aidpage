@@ -1,0 +1,7 @@
+*.pyc
+.DS_Store
+.work_admin/
+Thumbs.db
+__pycache__/
+data/live/.hot
+data/live/*.tmp

@@ -1,0 +1,94 @@
+{
+  "meta": {
+    "title": "지원 기준 변경 이력",
+    "asof": "2026-08-21",
+    "sources": [
+      {"name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정 연혁", "url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945"},
+      {"name": "행정안전부 보도자료", "url": "https://www.mois.go.kr"},
+      {"name": "의연금품 관리·운영 규정 연혁", "url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정"}
+    ]
+  },
+  "entries": [
+    {
+      "date": "2018-09-18",
+      "title": "폭염 법정 자연재난 편입 (한파는 2018-12 시행)",
+      "affects": ["heat_cold.*"],
+      "change": "재난 및 안전관리 기본법 제3조 개정으로 폭염·한파가 자연재난에 포함. 쉼터·취약계층 보호가 법정 대응체계로 편입.",
+      "basis": "재난 및 안전관리 기본법 제3조 제1호 가목",
+      "basis_url": "https://www.law.go.kr/법령/재난및안전관리기본법/제3조",
+      "confidence": "verified"
+    },
+    {
+      "date": "2020-08",
+      "title": "주택 침수 지원금 100만원 → 200만원",
+      "affects": ["cash.house_flood"],
+      "change": "2020년 8월 집중호우 계기로 침수 주택 재난지원금 단가를 세대당 100만원에서 200만원으로 상향(국토부 고시 단가).",
+      "basis": "규정 별표1 제2호가목 + 국토부 고시",
+      "basis_url": "https://www.mois.go.kr",
+      "confidence": "reported"
+    },
+    {
+      "date": "2023-06-08",
+      "title": "침수 200만원 → 300만원, 주택 전·반파 면적비례 전환, 소상공인 지원 신설",
+      "affects": ["cash.house_flood", "cash.house_full", "cash.house_half", "cash.small_biz_stability"],
+      "change": "침수 지원금 300만원으로 상향. 주택 전파·반파 지원을 정액에서 연면적 기준(구간별)으로 전환. 소상공인 경영안정 지원(업체당 200만원→이후 300만원) 신설.",
+      "basis": "규정 개정(2023) 및 국토부·중기부 고시",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "confidence": "reported"
+    },
+    {
+      "date": "2024-08-27",
+      "title": "의연금 지급기준 2배 상향",
+      "affects": ["relief_fund.*"],
+      "change": "주택 전파 500→1,000만원, 반파 250→500만원, 침수 100→200만원, 사망·실종 1,000→2,000만원, 부상 1~7급 500→1,000만원, 8~14급 250→500만원.",
+      "basis": "의연금품 관리·운영 규정 제7조 개정",
+      "basis_url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정",
+      "confidence": "verified"
+    },
+    {
+      "date": "2024-11-19",
+      "title": "영 개정 — 국고지원 기준 상향·학자금 관련 지원 반영",
+      "affects": ["indirect.student_loan_defer", "cash.*"],
+      "change": "자연재난 복구비 국고지원 기준 조정(지원 비율 30% 상향 방향) 및 학자금 관련 지원 항목 반영. 세부 조문 대조 미완료.",
+      "basis": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정 2024-11-19 개정",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "confidence": "reported"
+    },
+    {
+      "date": "2025-07",
+      "title": "2025.7·8 호우 한시 상향 (중대본 결정)",
+      "affects": ["cash.house_flood", "cash.small_biz_stability"],
+      "change": "침수 주택 350만원 → 700만원, 소상공인 300만원 → 1,000만원으로 한시 상향(해당 재난 한정). 항구 기준 아님.",
+      "basis": "중앙재난안전대책본부 결정 · 행안부 보도자료",
+      "basis_url": "https://www.mois.go.kr",
+      "confidence": "verified"
+    },
+    {
+      "date": "2025-11-27",
+      "title": "영 개정(대통령령 제35875호, 시행 2025-11-28) — 소상공인·중소기업 사업장 시설복구 신설",
+      "affects": ["cash.small_biz_facility"],
+      "change": "제4조①2호사목·별표1 제2호사목 신설: 사업장 건축물 지원30/융자60/자부담10, 기계·설비 지원35/융자55/자부담10.",
+      "basis": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정 2025-11-27 일부개정",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "confidence": "verified"
+    },
+    {
+      "date": "unknown",
+      "title": "주택 침수 지원금 300만원 → 350만원 (적용 시점 미확인)",
+      "affects": ["cash.house_flood"],
+      "change": "현행 단가 350만원은 2026-08-19 중대본 적용으로 확인되나, 300→350만원 인상 고시 시점은 미확인(2024~2025 사이 추정).",
+      "basis": "국토부 고시 단가 · 중대본 2026-08-19",
+      "basis_url": "https://www.mois.go.kr",
+      "confidence": "estimate"
+    },
+    {
+      "date": "2026-07-22",
+      "title": "중앙합동 재난피해자 지원센터 신설",
+      "affects": ["indirect.disaster_victim_center"],
+      "change": "대규모 재난 시 범정부 오프라인 원스톱 상담·접수 창구 운영 개시.",
+      "basis": "행정안전부 2026-07-22 발표",
+      "basis_url": "https://www.mois.go.kr",
+      "confidence": "reported"
+    }
+  ]
+}

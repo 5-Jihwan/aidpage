@@ -1,0 +1,55 @@
+name: live-data
+
+on:
+  schedule:
+    # Baseline every 30 min (UTC). GitHub minimum is 5 min; see data/live/README.md
+    # for switching to "*/10 * * * *" during active 호우/태풍/대설 경보 (.hot flag).
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-data
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch live data
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
+          HRFCO_KEY: ${{ secrets.HRFCO_KEY }}
+        run: python scripts/fetch_live.py
+
+      - name: Report cadence hint
+        run: |
+          if [ -f data/live/.hot ]; then
+            echo "::warning title=HOT::Active 호우/태풍/대설 경보 - consider switching cron to */10 (see data/live/README.md)"
+          fi
+
+      - name: Commit if changed
+        run: |
+          git config user.name "live-bot"
+          git config user.email "live-bot@users.noreply.github.com"
+          git add data/live/weather.json data/live/alerts.json data/live/air.json
+          [ -f data/live/air_stations.json ] && git add data/live/air_stations.json || true
+          if git diff --cached --quiet; then
+            echo "no changes"
+            exit 0
+          fi
+          git commit -m "live $(date -u +%FT%H:%M)"
+          # retry once in case something else pushed meanwhile
+          git push || (git pull --rebase && git push)

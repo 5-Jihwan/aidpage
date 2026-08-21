@@ -1,0 +1,155 @@
+{
+  "meta": {
+    "title": "풍수해·지진재해보험 보험료 국고지원 (사전 대비 항목)",
+    "asof": "2026-08-21",
+    "sources": [
+      {"name": "풍수해·지진재해보험법 제7조(보험료의 지원)", "url": "https://www.law.go.kr/법령/풍수해·지진재해보험법"},
+      {"name": "행정안전부 2026-06-29 풍수해·지진재해보험 안내 (지원율)", "url": "https://www.mois.go.kr"},
+      {"name": "풍수해·지진재해보험 안내", "url": "https://www.mois.go.kr/frt/sub/a06/b08/pungsuhaeIns/screen.do"}
+    ],
+    "note": "재난 발생 전 가입해야 하는 사전 대비 항목. 재난 발생 후 지원이 아니라 평시 가입 시 보험료 일부를 국고·지방비로 지원. 가입 창구: 7개 민간 손보사(DB·현대·삼성·KB·NH농협·메리츠·한화) 및 읍·면·동."
+  },
+  "rules": [
+    {
+      "id": "insurance.house_general",
+      "group": "insurance",
+      "label": "풍수해·지진재해보험 — 주택 (일반)",
+      "summary": "주택 소유자·세입자가 가입하는 풍수해·지진재해보험 보험료의 55% 이상을 정부가 지원.",
+      "amount_krw": null,
+      "amount_text": "보험료 55%~ 국고지원 (지자체 추가 시 최대 92%)",
+      "unit": "세대",
+      "conditions": {
+        "housing": ["own", "rent"],
+        "hazard": ["rain", "typhoon", "quake", "landslide", "any"]
+      },
+      "channel": "apply",
+      "deadline_days_after_event": null,
+      "where": "손해보험사 (DB·현대·삼성·KB·NH농협·메리츠·한화) / 읍·면·동 주민센터",
+      "docs": ["신분증", "건축물대장 또는 임대차계약서"],
+      "basis": "풍수해·지진재해보험법 제7조(보험료의 지원) · 시행령 제9조",
+      "basis_url": "https://www.law.go.kr/법령/풍수해·지진재해보험법/제7조",
+      "effective_from": "2026-01-01",
+      "rate_asof": "2026-06-29",
+      "confidence": "verified",
+      "notes": "세입자는 가재도구(동산) 단독 가입 가능. 보험금은 재난지원금·의연금과 별개로 중복 수령(재난지원금 일부 조정 가능)."
+    },
+    {
+      "id": "insurance.house_single_parent_near_poor",
+      "group": "insurance",
+      "label": "풍수해·지진재해보험 — 주택 (한부모·차상위)",
+      "summary": "한부모가족·차상위계층은 보험료 77.5% 이상 지원.",
+      "amount_krw": null,
+      "amount_text": "보험료 77.5%~ 국고지원",
+      "unit": "세대",
+      "conditions": {
+        "housing": ["own", "rent"],
+        "household": ["single_parent", "near_poor"],
+        "hazard": ["rain", "typhoon", "quake", "landslide", "any"]
+      },
+      "channel": "apply",
+      "deadline_days_after_event": null,
+      "where": "손해보험사 / 읍·면·동 주민센터",
+      "docs": ["신분증", "한부모가족증명서 또는 차상위 확인서"],
+      "basis": "풍수해·지진재해보험법 제7조 · 시행령 제9조 (저소득층 지원율)",
+      "basis_url": "https://www.law.go.kr/법령/풍수해·지진재해보험법/제7조",
+      "effective_from": "2026-01-01",
+      "rate_asof": "2026-06-29",
+      "confidence": "verified",
+      "notes": ""
+    },
+    {
+      "id": "insurance.house_basic",
+      "group": "insurance",
+      "label": "풍수해·지진재해보험 — 주택 (기초생활수급)",
+      "summary": "기초생활수급자는 보험료 86.5% 이상 지원.",
+      "amount_krw": null,
+      "amount_text": "보험료 86.5%~ 국고지원",
+      "unit": "세대",
+      "conditions": {
+        "housing": ["own", "rent"],
+        "household": ["basic"],
+        "hazard": ["rain", "typhoon", "quake", "landslide", "any"]
+      },
+      "channel": "apply",
+      "deadline_days_after_event": null,
+      "where": "손해보험사 / 읍·면·동 주민센터",
+      "docs": ["신분증", "수급자 증명서"],
+      "basis": "풍수해·지진재해보험법 제7조 · 시행령 제9조 (저소득층 지원율)",
+      "basis_url": "https://www.law.go.kr/법령/풍수해·지진재해보험법/제7조",
+      "effective_from": "2026-01-01",
+      "rate_asof": "2026-06-29",
+      "confidence": "verified",
+      "notes": ""
+    },
+    {
+      "id": "insurance.house_vulnerable_zone_full",
+      "group": "insurance",
+      "label": "풍수해·지진재해보험 — 재해취약지역 저소득층 (전액)",
+      "summary": "재해취약지역(침수흔적·산사태취약·자연재해위험개선지구 등) 내 저소득층 주택은 보험료 100% 지원.",
+      "amount_krw": null,
+      "amount_text": "보험료 100% 지원",
+      "unit": "세대",
+      "conditions": {
+        "housing": ["own", "rent"],
+        "household": ["basic", "near_poor", "single_parent"],
+        "hazard": ["rain", "typhoon", "quake", "landslide", "any"]
+      },
+      "channel": "apply",
+      "deadline_days_after_event": null,
+      "where": "읍·면·동 주민센터 (지자체 일괄 가입)",
+      "docs": ["신분증", "수급자·차상위·한부모 증명"],
+      "basis": "풍수해·지진재해보험법 제7조 · 행안부 재해취약지역 보험료 전액지원 사업",
+      "basis_url": "https://www.mois.go.kr",
+      "effective_from": "2026-01-01",
+      "rate_asof": "2026-06-29",
+      "confidence": "verified",
+      "notes": "재해취약지역 해당 여부는 지자체 판단. 본 사이트의 격자 위험도로는 확정 불가 → '확인 권장'으로만 표시."
+    },
+    {
+      "id": "insurance.greenhouse",
+      "group": "insurance",
+      "label": "풍수해·지진재해보험 — 온실(비닐하우스)",
+      "summary": "농·임업용 온실 보험료 70% 이상 지원.",
+      "amount_krw": null,
+      "amount_text": "보험료 70%~ 국고지원",
+      "unit": "세대",
+      "conditions": {
+        "housing": ["farm"],
+        "hazard": ["rain", "typhoon", "cold", "any"]
+      },
+      "channel": "apply",
+      "deadline_days_after_event": null,
+      "where": "손해보험사 / NH농협",
+      "docs": ["신분증", "농업경영체 등록 확인서"],
+      "basis": "풍수해·지진재해보험법 제7조 · 시행령 제9조",
+      "basis_url": "https://www.law.go.kr/법령/풍수해·지진재해보험법/제7조",
+      "effective_from": "2026-01-01",
+      "rate_asof": "2026-06-29",
+      "confidence": "verified",
+      "notes": "농작물 자체는 농작물재해보험(농식품부) 별도."
+    },
+    {
+      "id": "insurance.small_biz",
+      "group": "insurance",
+      "label": "풍수해·지진재해보험 — 소상공인 상가·공장",
+      "summary": "소상공인 상가·공장(건물·시설·재고) 보험료 55% 이상 지원.",
+      "amount_krw": null,
+      "amount_text": "보험료 55%~ 국고지원 (지자체 추가 시 최대 92%)",
+      "unit": "업체",
+      "conditions": {
+        "housing": ["shop"],
+        "hazard": ["rain", "typhoon", "quake", "landslide", "any"]
+      },
+      "channel": "apply",
+      "deadline_days_after_event": null,
+      "where": "손해보험사 / 소상공인시장진흥공단",
+      "docs": ["사업자등록증", "신분증"],
+      "basis": "풍수해·지진재해보험법 제7조 · 시행령 제9조",
+      "basis_url": "https://www.law.go.kr/법령/풍수해·지진재해보험법/제7조",
+      "effective_from": "2026-01-01",
+      "rate_asof": "2026-06-29",
+      "confidence": "verified",
+      "notes": "의연금 제외 대상인 소상공인에게 실질적 보전 수단."
+    }
+  ]
+}

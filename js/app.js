@@ -60,22 +60,24 @@ function initMap() {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'bottom-right');
   map.on('style.load', () => {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
-    fixSeaNames(); addAdminLayers();
+    localizeLabels(); addAdminLayers();
     map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 3000, essential: true, curve: 1.3 });
     map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); });
   });
 }
-/* 동해 표기: 기본 타일의 해양 명칭 레이어에서 'Sea of Japan' 계열을 숨기고 자체 라벨을 얹는다 */
-function fixSeaNames() {
-  const layers = map.getStyle().layers || [];
-  for (const l of layers) {
-    if (l.type !== 'symbol' || !/water|marine|ocean|sea/i.test(l.id + ' ' + (l['source-layer'] || ''))) continue;
-    const hide = ['any', ['in', 'Japan', ['to-string', ['coalesce', ['get', 'name:en'], '']]], ['in', 'Japan', ['to-string', ['coalesce', ['get', 'name'], '']]], ['in', '日本海', ['to-string', ['coalesce', ['get', 'name'], '']]], ['in', '日本海', ['to-string', ['coalesce', ['get', 'name:ja'], '']]]];
-    const prev = map.getFilter(l.id);
-    map.setFilter(l.id, prev ? ['all', prev, ['!', hide]] : ['!', hide]);
+/* 지명 표기: 기본 타일의 모든 라벨을 한국어(+영어) 또는 영어만으로 통일. 동해는 영어 줄도 East Sea로. */
+function localizeLabels() {
+  const ko = ['coalesce', ['get', 'name:ko'], ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
+  const enRaw = ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
+  const en = ['case', ['in', 'Japan', ['to-string', enRaw]], 'East Sea', enRaw];
+  const koFixed = ['case', ['in', 'Japan', ['to-string', ko]], '동해', ['in', '日本海', ['to-string', ko]], '동해', ko];
+  const both = ['format', koFixed, {}, '\n', {}, en, { 'font-scale': 0.8, 'text-color': '#6b7a90' }];
+  const field = getLang() === 'en' ? en : ['case', ['==', ['to-string', koFixed], ['to-string', en]], koFixed, both];
+  for (const l of map.getStyle().layers || []) {
+    if (l.type !== 'symbol' || !l.layout || !l.layout['text-field']) continue;
+    if (['sgg-label', 'emd-label'].includes(l.id)) continue;
+    try { map.setLayoutProperty(l.id, 'text-field', field); } catch (e) { /* ignore */ }
   }
-  map.addSource('eastsea', { type: 'geojson', data: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [134.2, 38.9] }, properties: {} }] } });
-  map.addLayer({ id: 'eastsea-label', type: 'symbol', source: 'eastsea', layout: { 'text-field': getLang() === 'en' ? 'East Sea' : '동해\nEast Sea', 'text-size': 13, 'text-font': ['Noto Sans Italic'], 'text-letter-spacing': 0.1 }, paint: { 'text-color': '#4a7fc1', 'text-halo-color': '#fff', 'text-halo-width': 1 }, minzoom: 3.5 });
 }
 function addAdminLayers() {
   const empty = { type: 'FeatureCollection', features: [] };
@@ -268,6 +270,14 @@ function setTab(tab) {
 }
 function initPanel() {
   const p = $('#panel');
+  const saved = +localStorage.getItem('safepic.panelW'); if (saved >= 320) document.documentElement.style.setProperty('--panel-w', saved + 'px');
+  const rz = $('#panelResize'); let dragging = false;
+  const onMove = e => { if (!dragging) return; const x = (e.touches ? e.touches[0].clientX : e.clientX); const w = Math.min(Math.max(x, 320), Math.min(innerWidth - 360, 820)); document.documentElement.style.setProperty('--panel-w', w + 'px'); };
+  const onUp = () => { if (!dragging) return; dragging = false; document.body.classList.remove('is-resizing'); localStorage.setItem('safepic.panelW', parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w'))); map && map.resize(); };
+  rz.addEventListener('mousedown', e => { dragging = true; document.body.classList.add('is-resizing'); e.preventDefault(); });
+  rz.addEventListener('touchstart', () => { dragging = true; }, { passive: true });
+  addEventListener('mousemove', onMove); addEventListener('touchmove', onMove, { passive: true }); addEventListener('mouseup', onUp); addEventListener('touchend', onUp);
+  rz.addEventListener('dblclick', () => { document.documentElement.style.setProperty('--panel-w', '460px'); localStorage.removeItem('safepic.panelW'); map && map.resize(); });
   $('#btnPanel').addEventListener('click', () => { p.classList.toggle('is-collapsed'); p.classList.remove('is-tall'); setTimeout(() => map && map.resize(), 280); });
   const g = $('.panel-grip'); let y0 = 0;
   g.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });

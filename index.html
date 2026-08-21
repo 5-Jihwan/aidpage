@@ -34,9 +34,6 @@
     <button class="tab" data-tab="where"><i>03</i><span data-i18n="tab.where">어디에 먼저</span></button>
     <button class="tab tab-about" data-tab="about"><span data-i18n="tab.about">방법·한계</span></button>
   </nav>
-  <div class="lang" role="group" aria-label="언어">
-    <button class="lang-btn" data-lang="ko">한국어</button><button class="lang-btn" data-lang="en">EN</button>
-  </div>
 </header>
 
 
@@ -168,6 +165,7 @@
       <input id="searchInput" type="search" data-i18n-ph="search.ph" placeholder="동·읍·면 이름으로 찾기 (예: 신림동, 진안읍)" autocomplete="off" aria-label="지역 검색">
       <ul id="searchList" class="search-list" hidden></ul>
     </div>
+    <div class="mapstack" id="mapstack">
     <div class="wxsel" id="wxsel" aria-label="표시할 날씨 항목">
       <button type="button" class="wxsel-t mono" id="wxselT" data-i18n="wx.title">표시할 날씨</button>
       <label><input type="checkbox" value="t" checked><span data-i18n="wx.t">기온</span></label>
@@ -179,9 +177,27 @@
       <label><input type="checkbox" value="pm25" checked><span data-i18n="wx.pm25">초미세먼지</span></label>
     </div>
     <div class="wxsel shsel" id="shsel" hidden aria-label="표시할 시설"></div>
+      <div class="lang pill" role="group" aria-label="언어">
+        <button class="lang-btn" data-lang="ko">한국어</button><button class="lang-btn" data-lang="en">EN</button>
+      </div>
+      <div class="size pill" role="group" aria-label="글씨 크기">
+        <button class="size-btn" data-size="normal" data-i18n="size.normal" data-i18n-title="size.normal">보통</button><button class="size-btn" data-size="big" data-i18n="size.big">큰 글씨</button>
+      </div>
+    </div>
     <div class="map-hint" id="mapHint" data-i18n="hint.start">지구본에서 대한민국을 누르거나, 동 이름을 검색하세요</div>
   </div>
 </main>
+
+<div class="welcome" id="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="welcomeH">
+  <div class="welcome-box">
+    <h2 id="welcomeH" data-i18n="welcome.h">글씨 크기를 골라 주세요</h2>
+    <p data-i18n="welcome.p">언제든 지도 오른쪽 위에서 바꿀 수 있어요.</p>
+    <div class="welcome-opts">
+      <button type="button" class="welcome-opt" data-size="normal"><b style="font-size:1.05rem" data-i18n="size.normal">보통</b></button>
+      <button type="button" class="welcome-opt" data-size="big"><b style="font-size:1.45rem" data-i18n="size.big">큰 글씨</b></button>
+    </div>
+  </div>
+</div>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script type="module" src="js/app.js"></script>

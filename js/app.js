@@ -348,6 +348,18 @@ function initPanel() {
   g.addEventListener('touchend', e => { const dy = e.changedTouches[0].clientY - y0; if (dy < -30) { if (p.classList.contains('is-collapsed')) p.classList.remove('is-collapsed'); else p.classList.add('is-tall'); } else if (dy > 30) { if (p.classList.contains('is-tall')) p.classList.remove('is-tall'); else p.classList.add('is-collapsed'); } setTimeout(() => map && map.resize(), 280); });
   g.addEventListener('click', () => { p.classList.toggle('is-tall'); p.classList.remove('is-collapsed'); });
 }
+function initSize() {
+  const root = document.documentElement, KEY = 'safepic.size';
+  const apply = v => { root.classList.toggle('big', v === 'big'); $$('.size-btn').forEach(b => b.classList.toggle('is-on', b.dataset.size === v)); setTimeout(() => map && map.resize(), 50); };
+  const set = v => { localStorage.setItem(KEY, v); apply(v); };
+  const saved = localStorage.getItem(KEY);
+  apply(saved || 'normal');
+  $$('.size-btn').forEach(b => b.addEventListener('click', () => set(b.dataset.size)));
+  if (!saved) {
+    const w = $('#welcome'); w.hidden = false;
+    $$('.welcome-opt').forEach(b => b.addEventListener('click', () => { set(b.dataset.size); w.hidden = true; }));
+  }
+}
 function initLang() {
   const paint = () => $$('.lang-btn').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
   paint();
@@ -463,7 +475,7 @@ function renderRulesTable() {
   $$('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
   $('#brand').addEventListener('click', e => { e.preventDefault(); setTab('now'); resetNation(); });
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
-  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initWxSel(); initHome();
+  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initWxSel(); initHome();
   await loadCore(); renderCrumb(); renderLive();
   initMap();
   map.once('idle', () => { if (location.hash) applyShare(location.hash); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => selectEmd(getHome()), 1200); });

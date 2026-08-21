@@ -1,5 +1,6 @@
 // SafePic — app.js (ES module, no build step)
 import { t, getLang, setLang, applyStatic } from './i18n.js';
+import { initGrid, hasGrid, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js';
 import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js';
 let loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; } catch (e) { console.warn('rules.js not available', e); }
@@ -63,7 +64,7 @@ function initMap() {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'bottom-right');
   map.on('style.load', () => {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
-    localizeLabels(); addAdminLayers(); initShelterUI();
+    localizeLabels(); addAdminLayers(); initShelterUI(); initGrid(map); initGridClick();
     map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 3000, essential: true, curve: 1.3 });
     map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); });
   });
@@ -157,7 +158,27 @@ function resetNation() {
   Object.assign(state, { level: 'nation', sido: null, sgg: null, emd: null });
   setLevelFilters(); map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 900 }); renderAll();
 }
-function renderAll() { renderCrumb(); renderRegion(); renderLive(); syncShelterLayers(); }
+function renderAll() { renderCrumb(); renderRegion(); renderLive(); syncShelterLayers(); syncGrid(); }
+/* ---------- pilot grid (탭③ + 탭① 겹침) ---------- */
+let gridAttr = localStorage.getItem('safepic.gridAttr') || 'slope_mean';
+async function syncGrid() {
+  const box = $('#gridBox'), where = $('#whereGrid');
+  if (!state.sgg || !(await hasGrid(state.sgg))) { hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; return; }
+  const attrs = gridAttrs(state.sgg); if (!attrs.some(a => a.id === gridAttr)) gridAttr = attrs[0] && attrs[0].id;
+  const leg = showGrid(state.sgg, gridAttr);
+  const html = `<div class="grid-attrs">${attrs.map(a => `<button type="button" class="chip ${a.id === gridAttr ? 'is-on' : ''}" data-a="${a.id}">${getLang() === 'en' ? a.en : a.ko}</button>`).join('')}</div>` +
+    (leg ? `<div class="legend">${leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('')}<span><i style="background:#d9dee7"></i>${t('grid.nodata')}</span></div>` : '') +
+    `<div class="fine">${t('grid.note')}</div>`;
+  for (const el of [box, where]) { if (!el) continue; el.hidden = false; el.innerHTML = `<h3>${t('grid.title')}</h3>` + html; $$('.chip', el).forEach(b => b.addEventListener('click', () => { gridAttr = b.dataset.a; localStorage.setItem('safepic.gridAttr', gridAttr); syncGrid(); })); }
+  $('#wherePending').hidden = true;
+}
+function initGridClick() {
+  map.on('click', 'grid-fill', e => {
+    const p = e.features[0].properties, attrs = gridAttrs(state.sgg);
+    const rows = attrs.map(a => `<tr><td>${getLang() === 'en' ? a.en : a.ko}</td><td class="mono">${gridFmt(a, p[a.id] == null ? null : +p[a.id])}</td></tr>`).join('');
+    new maplibregl.Popup({ closeButton: true, offset: 6, maxWidth: '280px' }).setLngLat(e.lngLat).setHTML(`<b>${p.emd_name || ''}</b> <small class="mono">${p.h3}</small><table class="cell-table">${rows}</table>`).addTo(map);
+  });
+}
 async function initShelterUI() {
   state.shelters.avail = await initShelters(map);
   const box = $('#shsel'); if (!state.shelters.avail.length) { box.hidden = true; return; }

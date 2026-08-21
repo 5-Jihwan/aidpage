@@ -53,6 +53,7 @@ export const DICT = {
     'panel.collapse': '패널 접기', 'panel.expand': '패널 펼치기',
     'ui.nodata': '규칙 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
     'eastsea': '동해',
+    'grid.title': '격자 분석 (시범)', 'grid.nodata': '데이터 없음', 'grid.note': 'H3 격자(약 0.1 km²). 값이 있는 항목만 표시하며, 회색은 아직 데이터가 없는 셀입니다.',
     'sh.title': '표시할 시설', 'sh.nearest': '가까운 대피소·쉼터', 'sh.walk': '도보 {n}분', 'sh.none': '5km 안에 표시할 시설이 없습니다',
   },
   en: {
@@ -108,6 +109,7 @@ export const DICT = {
     'panel.collapse': 'Collapse panel', 'panel.expand': 'Expand panel',
     'ui.nodata': 'Could not load rules. Please try again shortly.',
     'eastsea': 'East Sea',
+    'grid.title': 'Grid analysis (pilot)', 'grid.nodata': 'No data', 'grid.note': 'H3 cells (~0.1 km²). Only attributes with data are shown; grey cells have no data yet.',
     'sh.title': 'Facilities', 'sh.nearest': 'Nearest shelters', 'sh.walk': '{n} min walk', 'sh.none': 'No facilities within 5 km',
   },
 };

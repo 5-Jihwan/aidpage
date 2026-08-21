@@ -208,3 +208,11 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
 .near-ic{font-size:1.2rem} .near-main{flex:1;min-width:0} .near-main b{display:block;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .near-main small{color:var(--mute)}
 .near-walk{color:var(--accent2);font-weight:500;white-space:nowrap}
 @media (max-width:900px){ .shsel{top:112px} }
+
+/* grid */
+.grid-attrs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font-size:.85rem;color:var(--mute)}
+.chip.is-on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.78rem;color:var(--mute);font-family:var(--mono)}
+.legend span{display:inline-flex;align-items:center;gap:4px} .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.08)}
+.cell-table{border-collapse:collapse;margin-top:6px;font-size:.85rem} .cell-table td{padding:2px 8px 2px 0;border-bottom:1px dashed var(--line)} .cell-table td:last-child{text-align:right}

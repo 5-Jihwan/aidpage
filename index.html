@@ -67,6 +67,7 @@
           <div class="kv" id="regionKv"></div>
           <div class="note" id="regionNote"></div>
           <div class="near" id="nearBox" hidden></div>
+          <div class="near" id="gridBox" hidden></div>
           <div class="children" id="regionChildren"></div>
         </div>
       </section>
@@ -122,7 +123,8 @@
       <section class="view" data-view="where">
         <h1 class="h1" data-i18n="where.h1">어디에 먼저 써야 하나</h1>
         <p class="lead" data-i18n="where.lead">야구의 WPA처럼 — 같은 1억 원으로 어느 격자의 안전 확률이 가장 많이 오르는지를 봅니다.</p>
-        <div class="pending"><b data-i18n="where.pend">시범 지역(서울 관악구) 격자 데이터 준비 중</b><p data-i18n="where.pend.p"></p><p class="fine" data-i18n="where.pend.f"></p></div>
+        <div class="near" id="whereGrid" hidden></div>
+        <div class="pending" id="wherePending"><b data-i18n="where.pend">시범 지역(서울 관악구) 격자 데이터 준비 중</b><p data-i18n="where.pend.p"></p><p class="fine" data-i18n="where.pend.f"></p></div>
         <details class="formula"><summary data-i18n="where.formula">계산 방식 미리보기</summary>
           <p class="mono">SE<sub>i</sub> = σ(b₀ + b₁·C<sub>i</sub> − b₂·H<sub>i</sub> − b₃·E<sub>i</sub> − b₄·V<sub>i</sub>)<br>SPA<sub>i</sub>(a) = SE′<sub>i</sub> − SE<sub>i</sub> &nbsp; · &nbsp; Eff<sub>i</sub>(a) = ΔE[Loss]<sub>i</sub> / Cost(a)</p>
         </details>

@@ -189,7 +189,7 @@ async function syncGrid() {
 function initGridClick() {
   map.on('click', 'grid-fill', e => {
     const p = e.features[0].properties, attrs = gridAttrs(state.sgg);
-    const rows = attrs.map(a => `<tr><td>${getLang() === 'en' ? a.en : a.ko}</td><td class="mono">${gridFmt(a, p[a.id] == null ? null : +p[a.id])}</td></tr>`).join('');
+    const rows = attrs.map(a => `<tr><td>${getLang() === 'en' ? a.en : a.ko}</td><td class="mono">${gridFmt(a, p[a.id] == null ? null : +p[a.id])}</td></tr>`).join('') + (p.flood_years ? `<tr><td>${getLang() === 'en' ? 'Flood years' : '침수 연도'}</td><td class="mono">${String(p.flood_years).replace(/[\[\]"]/g, '')}</td></tr>` : '');
     new maplibregl.Popup({ closeButton: true, offset: 6, maxWidth: '280px' }).setLngLat(e.lngLat).setHTML(`<b>${p.emd_name || ''}</b> <small class="mono">${p.h3}</small><table class="cell-table">${rows}</table>`).addTo(map);
   });
 }

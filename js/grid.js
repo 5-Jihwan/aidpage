@@ -5,9 +5,9 @@ export const ATTRS = [
   { id: 'flood_hist_n', ko: '침수 이력(회)', en: 'Flood history', unit: '', ramp: ['#eef2f8', '#0f4a9e'] },
   { id: 'flood_depth_max_m', ko: '최대 침수심', en: 'Max flood depth', unit: 'm', ramp: ['#eef2f8', '#0f4a9e'] },
   { id: 'semi_basement_r', ko: '반지하 비율', en: 'Semi-basement share', unit: '%', ramp: ['#eef2f8', '#c2447e'], pct: true },
-  { id: 'elderly_alone_r', ko: '고령 1인가구 비율', en: 'Elderly living alone', unit: '%', ramp: ['#eef2f8', '#c2447e'], pct: true },
+  { id: 'elderly_alone_r', ko: '고령 1인세대 비율 (행정동)', en: 'Elderly living alone (dong)', unit: '%', ramp: ['#eef2f8', '#c2447e'], pct: true },
   { id: 'bldg_age30_r', ko: '30년 이상 건물 비율', en: 'Buildings 30y+', unit: '%', ramp: ['#eef2f8', '#9a7328'], pct: true },
-  { id: 'pop', ko: '인구', en: 'Population', unit: '', ramp: ['#eef2f8', '#14202e'] },
+  { id: 'pop', ko: '인구 (행정동 전체)', en: 'Population (whole dong)', unit: '', ramp: ['#eef2f8', '#14202e'] },
 ];
 const cache = new Map(); let map = null, current = null, attr = null;
 

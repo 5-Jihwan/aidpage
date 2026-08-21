@@ -703,9 +703,13 @@ def main():
     air = safe(fetch_air, sgg, prev_air)
     weather["calls"] = _calls
     air["calls"] = _calls
-    save_json(WEATHER_PATH, weather)
-    save_json(ALERTS_PATH, alerts)
-    save_json(AIR_PATH, air)
+    statuses = [weather.get("status"), air.get("status")] + [alerts[k].get("status") for k in ("warnings", "messages", "river", "landslide")]
+    if all(st in ("no_key", "todo", None) for st in statuses) and os.path.exists(WEATHER_PATH):
+        log("all sections no_key: leaving placeholder files untouched (no commit churn)")
+    else:
+        save_json(WEATHER_PATH, weather)
+        save_json(ALERTS_PATH, alerts)
+        save_json(AIR_PATH, air)
 
     # adaptive cadence flag: active 호우/태풍/대설 경보 -> data/live/.hot
     hot = any(i.get("level") == "경보" and i.get("type") in ("호우", "태풍", "대설")

@@ -44,6 +44,7 @@
 
       <section class="view is-active" data-view="now">
         <div id="nowLanding">
+          <div class="home-row" id="homeRow" hidden><button type="button" class="btn btn-primary" id="btnGoHome"></button><button type="button" class="btn btn-ghost" id="btnForgetHome" data-i18n="home.forget">저장 해제</button></div>
           <h1 class="h1" data-i18n="landing.h1">지금 어떤 상황이세요?</h1>
           <p class="lead" data-i18n="landing.lead">법령이 아니라 상황으로 시작합니다. 입력은 서버로 가지 않고 이 브라우저 안에서만 계산됩니다.</p>
           <div class="cards" id="sitCards">
@@ -61,6 +62,7 @@
             <div><div class="eyebrow mono" id="regionPath"></div><h2 class="h2" id="regionName"></h2></div>
             <button class="btn btn-primary" id="btnFindHere" data-i18n="region.find">이 위치로 지원 찾기 →</button>
           </div>
+          <div class="region-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSaveHome"></button><button type="button" class="btn btn-ghost btn-sm" id="btnResetSel" data-i18n="sel.reset">선택 초기화</button></div>
           <div class="level-guide" id="levelGuide"></div>
           <div class="wx-card" id="wxCard"></div>
           <div class="warn-card" id="warnCard"></div>

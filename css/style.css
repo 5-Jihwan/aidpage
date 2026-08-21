@@ -216,3 +216,9 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
 .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.78rem;color:var(--mute);font-family:var(--mono)}
 .legend span{display:inline-flex;align-items:center;gap:4px} .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.08)}
 .cell-table{border-collapse:collapse;margin-top:6px;font-size:.85rem} .cell-table td{padding:2px 8px 2px 0;border-bottom:1px dashed var(--line)} .cell-table td:last-child{text-align:right}
+
+/* home / reset */
+.home-row{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.region-tools{display:flex;gap:6px;margin:-4px 0 12px}
+.btn-sm{padding:6px 10px;font-size:.82rem;font-weight:600}
+.btn-ghost.is-on{border-color:var(--gold);color:var(--gold)}

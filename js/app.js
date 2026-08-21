@@ -158,7 +158,20 @@ function resetNation() {
   Object.assign(state, { level: 'nation', sido: null, sgg: null, emd: null });
   setLevelFilters(); map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 900 }); renderAll();
 }
-function renderAll() { renderCrumb(); renderRegion(); renderLive(); syncShelterLayers(); syncGrid(); }
+function renderAll() { renderCrumb(); renderRegion(); renderLive(); syncShelterLayers(); syncGrid(); renderHome(); }
+/* ---------- saved home (localStorage only) ---------- */
+const getHome = () => localStorage.getItem('safepic.home');
+function renderHome() {
+  const h = getHome(), e = h && state.idx.byEmd.get(h), row = $('#homeRow');
+  if (row) { row.hidden = !e; if (e) $('#btnGoHome').textContent = t('home.go', { name: `${e.sgg_name} ${e.name}` }); }
+  const sb = $('#btnSaveHome'); if (sb) { const on = state.emd && state.emd === h; sb.textContent = on ? t('home.saved') : t('home.save'); sb.classList.toggle('is-on', !!on); sb.hidden = state.level !== 'emd'; }
+}
+function initHome() {
+  $('#btnGoHome').addEventListener('click', () => { const h = getHome(); if (h) selectEmd(h); });
+  $('#btnForgetHome').addEventListener('click', () => { localStorage.removeItem('safepic.home'); renderHome(); });
+  $('#btnSaveHome').addEventListener('click', () => { if (!state.emd) return; if (getHome() === state.emd) localStorage.removeItem('safepic.home'); else localStorage.setItem('safepic.home', state.emd); renderHome(); });
+  $('#btnResetSel').addEventListener('click', () => { resetNation(); $('#wizard').reset(); syncWizardLoc(); });
+}
 /* ---------- pilot grid (탭③ + 탭① 겹침) ---------- */
 let gridAttr = localStorage.getItem('safepic.gridAttr') || 'slope_mean';
 async function syncGrid() {
@@ -449,8 +462,9 @@ function renderRulesTable() {
   $$('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
   $('#brand').addEventListener('click', e => { e.preventDefault(); setTab('now'); resetNation(); });
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
-  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initWxSel();
+  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initWxSel(); initHome();
   await loadCore(); renderCrumb(); renderLive();
   initMap();
-  map.once('idle', () => { if (location.hash) applyShare(location.hash); });
+  map.once('idle', () => { if (location.hash) applyShare(location.hash); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => selectEmd(getHome()), 1200); });
+  renderHome();
 })();

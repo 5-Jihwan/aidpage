@@ -6,3 +6,4 @@ __pycache__/
 data/live/.hot
 data/live/*.tmp
 .work_shelters/
+.work_grid/

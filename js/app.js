@@ -133,7 +133,7 @@ function setLevelFilters() {
 function fitTo(features) {
   if (!features.length) return;
   const b = bboxOf(features), mobile = matchMedia('(max-width:900px)').matches;
-  map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 120, bottom: innerHeight * 0.58, left: 20, right: 20 } : { top: 90, bottom: 60, left: ($('#panel').classList.contains('is-collapsed') ? 0 : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 60, right: 80 }, duration: 900 });
+  map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 150, bottom: innerHeight * 0.52, left: 24, right: 24 } : { top: 90, bottom: 60, left: ($('#panel').classList.contains('is-collapsed') ? 0 : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 60, right: 80 }, duration: 900 });
 }
 
 /* ---------- selection ---------- */
@@ -153,6 +153,7 @@ async function selectEmd(code) {
   const fs = featuresWhere(state.geo.emd, 'code', code); if (fs.length) fitTo(fs); else map.flyTo({ center: [e.lon, e.lat], zoom: 13 });
   if (map.getSource('emd')) { state.geo.emd.features.forEach(f => map.setFeatureState({ source: 'emd', id: f.properties.code }, { sel: false })); map.setFeatureState({ source: 'emd', id: String(code) }, { sel: true }); }
   renderAll(); syncWizardLoc();
+  if (matchMedia('(max-width:900px)').matches) { $('#panel').classList.remove('is-collapsed'); }
 }
 function resetNation() {
   Object.assign(state, { level: 'nation', sido: null, sgg: null, emd: null });
@@ -344,7 +345,7 @@ function initPanel() {
   $('#btnPanel').addEventListener('click', () => { p.classList.toggle('is-collapsed'); p.classList.remove('is-tall'); setTimeout(() => map && map.resize(), 280); });
   const g = $('.panel-grip'); let y0 = 0;
   g.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });
-  g.addEventListener('touchend', e => { const dy = e.changedTouches[0].clientY - y0; if (dy < -30) { p.classList.remove('is-collapsed'); p.classList.add('is-tall'); } else if (dy > 30) { p.classList.remove('is-tall'); p.classList.add('is-collapsed'); } });
+  g.addEventListener('touchend', e => { const dy = e.changedTouches[0].clientY - y0; if (dy < -30) { if (p.classList.contains('is-collapsed')) p.classList.remove('is-collapsed'); else p.classList.add('is-tall'); } else if (dy > 30) { if (p.classList.contains('is-tall')) p.classList.remove('is-tall'); else p.classList.add('is-collapsed'); } setTimeout(() => map && map.resize(), 280); });
   g.addEventListener('click', () => { p.classList.toggle('is-tall'); p.classList.remove('is-collapsed'); });
 }
 function initLang() {

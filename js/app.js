@@ -88,12 +88,12 @@ function addAdminLayers() {
   map.addSource('sido', { type: 'geojson', data: state.geo.sido || empty, promoteId: 'code' });
   map.addSource('sgg', { type: 'geojson', data: state.geo.sgg || empty, promoteId: 'code' });
   map.addSource('emd', { type: 'geojson', data: state.geo.emd || empty, promoteId: 'code' });
-  const op = ['case', ['boolean', ['feature-state', 'hover'], false], 0.42, ['boolean', ['feature-state', 'sel'], false], 0.34, 0.16];
+  const op = ['case', ['boolean', ['feature-state', 'hover'], false], 0.32, ['boolean', ['feature-state', 'sel'], false], 0.26, 0];
   const fill = (id, src, color) => map.addLayer({ id, type: 'fill', source: src, paint: { 'fill-color': color, 'fill-opacity': op } });
   const line = (id, src, color, w) => map.addLayer({ id, type: 'line', source: src, paint: { 'line-color': color, 'line-width': w } });
-  fill('sido-fill', 'sido', '#1a5fc4'); line('sido-line', 'sido', '#0f4a9e', 1.2);
-  fill('sgg-fill', 'sgg', '#9a7328'); line('sgg-line', 'sgg', '#6f5119', 1);
-  fill('emd-fill', 'emd', '#0f9d7a'); line('emd-line', 'emd', '#0b6e55', 0.8);
+  fill('sido-fill', 'sido', '#1a5fc4'); line('sido-line', 'sido', '#7f95b8', 1);
+  fill('sgg-fill', 'sgg', '#9a7328'); line('sgg-line', 'sgg', '#b39868', 0.9);
+  fill('emd-fill', 'emd', '#0f9d7a'); line('emd-line', 'emd', '#7fb9a8', 0.8);
   const lbl = (id, src, minzoom, maxzoom) => map.addLayer({ id, type: 'symbol', source: src, layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.4 }, minzoom, ...(maxzoom ? { maxzoom } : {}) });
   lbl('sgg-label', 'sgg', 8, 11.5); lbl('emd-label', 'emd', 11.5);
   // 독도·울릉도: 저배율에서도 항상 보이도록 전용 마커+라벨
@@ -128,7 +128,13 @@ function setLevelFilters() {
   const emdF = state.sgg ? ['==', ['get', 'sgg_code'], String(state.sgg)] : ['==', 1, 0];
   ['sgg-fill', 'sgg-line', 'sgg-label'].forEach(l => map.setFilter(l, sggF));
   ['emd-fill', 'emd-line', 'emd-label'].forEach(l => map.setFilter(l, emdF));
-  map.setPaintProperty('sido-fill', 'fill-opacity', state.sido ? 0.04 : ['case', ['boolean', ['feature-state', 'hover'], false], 0.42, 0.16]);
+  map.setPaintProperty('sido-fill', 'fill-opacity', state.sido ? 0 : ['case', ['boolean', ['feature-state', 'hover'], false], 0.32, 0]);
+  // highlight only the deepest selection (emd > sgg); nothing selected = no fill
+  const want = state.emd ? { src: 'emd', id: String(state.emd) } : state.sgg ? { src: 'sgg', id: String(state.sgg) } : null;
+  const prev = state._sel;
+  if (prev && (!want || prev.src !== want.src || prev.id !== want.id)) { try { map.setFeatureState({ source: prev.src, id: prev.id }, { sel: false }); } catch (e) { /* source may be reloading */ } }
+  if (want) { try { map.setFeatureState({ source: want.src, id: want.id }, { sel: true }); } catch (e) { /* ignore */ } }
+  state._sel = want;
 }
 function fitTo(features) {
   if (!features.length) return;
@@ -355,9 +361,12 @@ function initSize() {
   const saved = localStorage.getItem(KEY);
   apply(saved || 'normal');
   $$('.size-btn').forEach(b => b.addEventListener('click', () => set(b.dataset.size)));
-  if (!saved) {
-    const w = $('#welcome'); w.hidden = false;
-    $$('.welcome-opt').forEach(b => b.addEventListener('click', () => { set(b.dataset.size); w.hidden = true; }));
+  if (!saved && !localStorage.getItem('safepic.sizeCoach')) {
+    const c = $('#sizeCoach'); c.hidden = false;
+    const done = () => { c.hidden = true; localStorage.setItem('safepic.sizeCoach', '1'); };
+    $('#sizeCoachX').addEventListener('click', done);
+    $$('.size-btn').forEach(b => b.addEventListener('click', done, { once: true }));
+    setTimeout(done, 8000);
   }
 }
 function initLang() {

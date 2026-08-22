@@ -271,7 +271,7 @@ function renderRegion() {
   if (state.sgg) {
     const items = wxItems(state.sgg);
     if (items.length) {
-      const srcs = [weatherFor(state.sgg) && t('wx.src'), airFor(state.sgg) && t('air.src')].filter(Boolean).join(' · ');
+      const srcs = [state.emd && t('wx.basis', { name: nameOf().sggName }), weatherFor(state.sgg) && t('wx.src'), airFor(state.sgg) && t('air.src')].filter(Boolean).join(' · ');
       wx.innerHTML = items.map(i => `<div class="wx-item ${i.cls}"><div class="k">${i.label}</div><div class="v">${i.v}<small>${i.unit}</small></div></div>`).join('') + `<div class="wx-src">${srcs} · ${fmtTime((state.live.weather || {}).updated || (state.live.air || {}).updated)}</div>`;
     } else {
       const st = state.live.weather && state.live.weather.status;
@@ -296,7 +296,7 @@ function renderRegion() {
   if (state.level === 'sido') kids = state.idx.sgg.filter(s => String(s.sido) === state.sido).map(s => ({ name: s.name, go: () => selectSgg(s.code) }));
   if (state.level === 'sgg') kids = state.idx.emd.filter(x => String(x.sgg) === state.sgg).map(x => ({ name: x.name, go: () => selectEmd(x.code) }));
   kids.sort((a, b) => a.name.localeCompare(b.name, 'ko')).forEach(k => { const b = document.createElement('button'); b.textContent = k.name; b.onclick = k.go; ch.appendChild(b); });
-  $('#btnFindHere').hidden = state.level !== 'emd';
+  $('#btnFindHere').hidden = !state.sgg;
   renderNearest();
 }
 function renderLive() { /* live strip retired; weather lives in the region card */ }
@@ -400,16 +400,16 @@ function initCards() {
 /* ---------- wizard ---------- */
 function syncWizardLoc() {
   const n = nameOf(), box = $('#qLoc');
-  box.innerHTML = state.emd ? `<b>${n.sidoName} ${n.sggName} ${n.emdName}</b><button type="button" class="btn btn-ghost" id="btnChangeLoc">${t('wiz.change')}</button>` : `<span class="muted">${t('wiz.loc.empty')}</span>`;
+  box.innerHTML = state.sgg ? `<b>${[n.sidoName, n.sggName, state.emd && n.emdName].filter(Boolean).join(' ')}</b><button type="button" class="btn btn-ghost" id="btnChangeLoc">${t('wiz.change')}</button>` : `<span class="muted">${t('wiz.loc.empty')}</span>`;
   const b = $('#btnChangeLoc'); if (b) b.onclick = () => { setTab('now'); $('#searchInput').focus(); };
 }
 function readWizard() {
   const fd = new FormData($('#wizard'));
-  return { housing: fd.get('housing') || null, damage: fd.getAll('damage'), household: fd.getAll('household'), special_zone: $('#qSpecial').checked ? true : null, event_end: fd.get('event_end') || null, today: new Date().toISOString().slice(0, 10), hazard: 'rain', proxy: $('#qProxy').checked, emd: state.emd };
+  return { housing: fd.get('housing') || null, damage: fd.getAll('damage'), household: fd.getAll('household'), special_zone: $('#qSpecial').checked ? true : null, event_end: fd.get('event_end') || null, today: new Date().toISOString().slice(0, 10), hazard: 'rain', proxy: $('#qProxy').checked, emd: state.emd, sgg: state.sgg };
 }
 function encodeShare(inp) {
   const p = new URLSearchParams();
-  if (inp.emd) p.set('emd', inp.emd); if (inp.housing) p.set('h', inp.housing);
+  if (inp.emd) p.set('emd', inp.emd); else if (inp.sgg) p.set('sgg', inp.sgg); if (inp.housing) p.set('h', inp.housing);
   if (inp.damage.length) p.set('d', inp.damage.join(',')); if (inp.household.length) p.set('f', inp.household.join(','));
   if (inp.special_zone) p.set('sz', '1'); if (inp.event_end) p.set('end', inp.event_end); if (inp.proxy) p.set('p', '1'); p.set('l', getLang());
   return '#r?' + p.toString();
@@ -423,7 +423,7 @@ async function applyShare(hash) {
   (p.get('f') || '').split(',').filter(Boolean).forEach(v => { const c = f.querySelector(`input[name=household][value=${v}]`); if (c) c.checked = true; });
   $('#qSpecial').checked = p.get('sz') === '1'; $('#qProxy').checked = p.get('p') === '1';
   if (p.get('end')) $('#qEnd').value = p.get('end');
-  if (p.get('emd')) await selectEmd(p.get('emd'));
+  if (p.get('emd')) await selectEmd(p.get('emd')); else if (p.get('sgg')) await selectSgg(p.get('sgg'));
   setTab('find'); f.requestSubmit();
 }
 function initWizard() {

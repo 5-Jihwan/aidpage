@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823j';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823j';
-import { getReports, postReport, flagReport } from './api.js?v=20260823j';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823j';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823k';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823k';
+import { getReports, postReport, flagReport } from './api.js?v=20260823k';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823k';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260823j'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260823k'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -42,7 +42,7 @@ async function loadCore() {
   state.sit = sessionStorage.getItem('safepic.sit') || null;
   getJSON('data/ref/psych_centers.json').then(j => { state.psych = j; });
   if (meta) { $('#aboutAdmin').textContent = `${meta.source || ''} ${meta.version || ''}`.trim(); $('#buildDate').textContent = meta.built || ''; }
-  if (loadRules) { try { state.rules = await loadRules('rules/'); state.rulesEn = await getJSON('rules/en.json'); setRulesLang(getLang()); applyRulesLang(); } catch (e) { console.warn('rules load failed', e); } }
+  if (loadRules) { try { state.rules = await loadRules('rules/'); state.rulesEn = await getJSON('rules/en.json'); setRulesLang(getLang()); applyRulesLang(); if (state.tab === 'about') renderRulesTable(); } catch (e) { console.warn('rules load failed', e); } }
 }
 async function ensureEmd() {
   if (state.geo.emd) return state.geo.emd;
@@ -655,7 +655,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823j').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823k').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -693,7 +693,7 @@ function initSize() {
   }
 }
 /* rules are authored in Korean; rules/en.json overlays label/amount_text/summary/where/docs when the UI is English */
-const RULE_L10N = ['label', 'amount_text', 'summary', 'where', 'docs'];
+const RULE_L10N = ['label', 'amount_text', 'summary', 'where', 'docs', 'basis'];
 function applyRulesLang() {
   if (!state.rules || !state.rules.all) return;
   const en = getLang() === 'en' && state.rulesEn && state.rulesEn.rules;
@@ -716,7 +716,7 @@ function initLang() {
     paint(); setRulesLang(getLang()); applyRulesLang(); renderAll(); if (state.meta) { $('#aboutAdmin').textContent = `${state.meta.source || ''} ${state.meta.version || ''}`.trim(); $('#buildDate').textContent = state.meta.built || ''; } syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
     if (map && map.getLayer('eastsea-label')) map.setLayoutProperty('eastsea-label', 'text-field', getLang() === 'en' ? 'East Sea' : '동해\nEast Sea');
     if (state.lastResult && evaluate) { state.lastResult.res = evaluate(state.rules, state.lastResult.inp, getLang()); renderResult(state.lastResult.res, state.lastResult.inp); }
-    if ($('#rulesTable').dataset.done) { delete $('#rulesTable').dataset.done; if (state.tab === 'about') renderRulesTable(); }
+    if (state.tab === 'about') renderRulesTable();
   })));
 }
 
@@ -872,8 +872,9 @@ function renderResult(res, inp) {
 
 /* ---------- rules table ---------- */
 function renderRulesTable() {
-  const box = $('#rulesTable'); if (!state.rules || box.dataset.done) return;
-  const all = state.rules.all || []; box.hidden = false; box.dataset.done = 1;
+  const box = $('#rulesTable'); if (!state.rules) return;
+  if (box.dataset.done === getLang()) return;
+  const all = state.rules.all || []; box.hidden = false; box.dataset.done = getLang();
   const conf = c => ({ verified: t('conf.verified'), reported: t('conf.reported'), estimated: t('conf.estimated'), pending: t('conf.pending') }[c] || c || '');
   box.innerHTML = `<div class="table-wrap" style="max-height:60vh;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th>${t('rules.h.label')}</th><th>${t('rules.h.amount')}</th><th>${t('rules.h.basis')}</th><th>${t('rules.h.asof')}</th><th>${t('rules.h.conf')}</th></tr></thead><tbody>${all.map(r => `<tr><td><b>${r.label}</b><br><small>${r.summary || ''}</small></td><td class="mono">${r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '-')}</td><td>${r.basis || ''}${r.basis_url ? ` <a href="${r.basis_url}" target="_blank" rel="noopener">↗</a>` : ''}</td><td class="mono">${r.rate_asof || r.effective_from || ''}</td><td><span class="conf conf-${r.confidence || 'na'}">${conf(r.confidence)}</span></td></tr>`).join('')}</tbody></table></div><p class="fine">${t('rules.total', { n: all.length })} <a href="https://github.com/5-Jihwan/safepic/issues" target="_blank" rel="noopener">Issue</a></p>`;
 }

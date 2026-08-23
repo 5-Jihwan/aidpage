@@ -1,6 +1,6 @@
 {
  "meta": {
-  "title": "English overlay for rules/*.json (label · amount_text · summary · where · docs). Legal citations in `basis` stay in Korean (article numbers).",
+  "title": "English overlay for rules/*.json (label · amount_text · summary · where · docs · basis).",
   "asof": "2026-08-23"
  },
  "rules": {
@@ -14,7 +14,8 @@
     "Photos of damage",
     "ID",
     "Resident registration (can be pulled by the office)"
-   ]
+   ],
+   "basis": "Regulation art. 4(1)2(a) · Annex 1 §2(a) (flooded home: MOLIT notice amount, 100% grant) + MOLIT unit cost"
   },
   "cash.house_full": {
    "label": "Disaster relief payment — home destroyed/washed away",
@@ -26,7 +27,8 @@
     "Photos",
     "Building register or proof of ownership",
     "ID"
-   ]
+   ],
+   "basis": "Regulation art. 4(1)2(a) · Annex 1 §2(a) (destroyed/washed-away home: MOLIT notice amount by floor area; 30% grant · 60–70% loan · 0–10% self; 70% loan for seismic-designed homes)"
   },
   "cash.house_half": {
    "label": "Disaster relief payment — home half-destroyed",
@@ -38,7 +40,8 @@
     "Photos",
     "Building register or proof of ownership",
     "ID"
-   ]
+   ],
+   "basis": "Regulation Annex 1 §2(a) and Note 2 (half-destroyed = 50% of full base)"
   },
   "cash.tenant_subsidy": {
    "label": "Tenant subsidy — destroyed/half-destroyed home",
@@ -50,7 +53,8 @@
     "Lease contract",
     "Resident registration",
     "ID"
-   ]
+   ],
+   "basis": "Regulation Annex 1 §2(a) (tenant subsidy: amount by MOIS notice) + MOIS notice"
   },
   "cash.small_biz_stability": {
    "label": "Small-business stabilization payment",
@@ -62,7 +66,8 @@
     "Business registration",
     "Photos",
     "ID"
-   ]
+   ],
+   "basis": "Regulation art. 4(1)1(d) · Annex 1 §1(d) (small-business stabilization: amount by MSS notice, 100% grant) + MSS notice"
   },
   "cash.small_biz_facility": {
    "label": "Small-business facility recovery support",
@@ -74,7 +79,8 @@
     "Business registration",
     "Facility photos and estimates",
     "Building register"
-   ]
+   ],
+   "basis": "Regulation art. 4(1)2(g) · Annex 1 §2(g) (Presidential Decree No. 35875, amended 2025-11-27)"
   },
   "cash.relief_living": {
    "label": "Living-stability relief (meals & living costs at temporary housing)",
@@ -84,7 +90,8 @@
    "docs": [
     "Displaced-person registration (by the municipality)",
     "Resident registration"
-   ]
+   ],
+   "basis": "Regulation art. 4(1)1 · Annex 1 §1 (living-stability relief: meals, living allowance)"
   },
   "cash.death_missing": {
    "label": "Condolence payment — death or missing",
@@ -95,7 +102,8 @@
     "Damage report",
     "Death certificate or missing-person report",
     "Family relation certificate"
-   ]
+   ],
+   "basis": "Regulation art. 4(1)1(a) · Annex 1 §1(a) (death/missing condolence payment)"
   },
   "cash.injury": {
    "label": "Condolence payment — injury",
@@ -106,7 +114,8 @@
     "Damage report",
     "Medical certificate (disability grade)",
     "ID"
-   ]
+   ],
+   "basis": "Regulation art. 4(1)1(a) · Annex 1 §1(a) (injury condolence payment)"
   },
   "cash.farm_recovery": {
    "label": "Crop, farmland and farm-facility recovery cost",
@@ -117,21 +126,24 @@
     "Damage report",
     "Farmland ledger / farm-business registration",
     "Photos"
-   ]
+   ],
+   "basis": "Regulation art. 4(1)2 · Annex 1 §2 (farmland, crop and facility recovery: unit costs by MAFRA notice)"
   },
   "heat_cold.heat_shelter": {
    "label": "Use a cooling center",
    "amount_text": "Free",
    "summary": "During heat advisories anyone can use designated cooling centers (senior centers, community centers, banks). Night/holiday centers are designated separately.",
    "where": "Find the nearest on SafeKorea / Safety Didimdol app / community center",
-   "docs": []
+   "docs": [],
+   "basis": "Framework Act on Disaster and Safety Management art. 3 · national heat-wave plan (MOIS, every May) · municipal heat ordinances"
   },
   "heat_cold.cold_shelter": {
    "label": "Use a warming center",
    "amount_text": "Free",
    "summary": "During cold-wave advisories designated warming centers are free. Emergency warming shelters (stations, terminals) are separate.",
    "where": "SafeKorea / Safety Didimdol app / community center",
-   "docs": []
+   "docs": [],
+   "basis": "Framework Act on Disaster and Safety Management art. 3 · national cold-wave plan (MOIS, every November)"
   },
   "heat_cold.energy_voucher": {
    "label": "Energy voucher (summer & winter)",
@@ -141,7 +153,8 @@
    "docs": [
     "Energy voucher application",
     "ID"
-   ]
+   ],
+   "basis": "Energy Act art. 16-2 (energy vouchers) · energy-voucher program guideline (MOTIE)"
   },
   "heat_cold.emergency_welfare_heat_cold": {
    "label": "Emergency welfare (heat/cold crisis households)",
@@ -151,14 +164,16 @@
    "docs": [
     "Emergency support application",
     "ID"
-   ]
+   ],
+   "basis": "Emergency Welfare Support Act art. 2 (crisis), art. 9 (types of support) · MOHW program guide"
   },
   "heat_cold.heat_illness_care": {
    "label": "Heat/cold illness response & care for vulnerable people",
    "amount_text": "Service (free)",
    "summary": "During advisories: welfare check calls and home visits for elderly living alone and disabled people; ER surveillance.",
    "where": "Public health center / elderly care service provider / 119",
-   "docs": []
+   "docs": [],
+   "basis": "Welfare of Senior Citizens Act art. 27-2 (elderly living alone) · KDCA heat/cold illness ER surveillance · national heat/cold response plans"
   },
   "heat_cold.cooling_heating_device": {
    "label": "Cooling/heating appliance support for vulnerable households",
@@ -168,7 +183,8 @@
    "docs": [
     "ID",
     "Proof of basic-livelihood or near-poor status"
-   ]
+   ],
+   "basis": "Energy Act art. 16-2 · low-income energy-efficiency program (MOTIE · Korea Energy Foundation) · municipal ordinances"
   },
   "relief_fund.house_full": {
    "label": "Relief fund — home destroyed/washed away",
@@ -178,7 +194,8 @@
    "docs": [
     "Damage confirmation (municipal survey)",
     "Bank account in your name"
-   ]
+   ],
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
   },
   "relief_fund.house_half": {
    "label": "Relief fund — home half-destroyed",
@@ -188,7 +205,8 @@
    "docs": [
     "Damage confirmation",
     "Bank account in your name"
-   ]
+   ],
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
   },
   "relief_fund.house_flood": {
    "label": "Relief fund — flooded home",
@@ -198,7 +216,8 @@
    "docs": [
     "Damage confirmation",
     "Bank account in your name"
-   ]
+   ],
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
   },
   "relief_fund.house_minor_quake": {
    "label": "Relief fund — minor earthquake damage",
@@ -208,7 +227,8 @@
    "docs": [
     "Damage confirmation",
     "Bank account in your name"
-   ]
+   ],
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
   },
   "relief_fund.death": {
    "label": "Relief fund — death or missing",
@@ -219,7 +239,8 @@
     "Damage confirmation",
     "Family relation certificate",
     "Death certificate"
-   ]
+   ],
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
   },
   "relief_fund.injury_severe": {
    "label": "Relief fund — injury (disability grade 1–7)",
@@ -229,7 +250,8 @@
    "docs": [
     "Damage confirmation",
     "Disability certificate"
-   ]
+   ],
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
   },
   "relief_fund.injury_minor": {
    "label": "Relief fund — injury (disability grade 8–14)",
@@ -239,7 +261,8 @@
    "docs": [
     "Damage confirmation",
     "Disability certificate"
-   ]
+   ],
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
   },
   "indirect.nhis_premium": {
    "label": "Health-insurance premium reduction",
@@ -248,7 +271,8 @@
    "where": "National Health Insurance Service (municipality sends the victim list)",
    "docs": [
     "Damage confirmation (usually sent by the municipality)"
-   ]
+   ],
+   "basis": "National Health Insurance Act art. 75 (premium reduction), Enforcement Decree art. 44 · Regulation art. 12 (indirect support)"
   },
   "indirect.nhis_late_fee": {
    "label": "Health-insurance late-fee waiver",
@@ -257,7 +281,8 @@
    "where": "National Health Insurance Service",
    "docs": [
     "Damage confirmation (usually sent by the municipality)"
-   ]
+   ],
+   "basis": "National Health Insurance Act art. 80 (late fees) proviso · Regulation art. 12"
   },
   "indirect.nps_exemption": {
    "label": "National-pension contribution exemption",
@@ -267,7 +292,8 @@
    "docs": [
     "Damage confirmation",
     "Exemption application"
-   ]
+   ],
+   "basis": "National Pension Act art. 91 (contribution exemption) · Regulation art. 12"
   },
   "indirect.electricity": {
    "label": "Electricity bill reduction",
@@ -276,7 +302,8 @@
    "where": "KEPCO (call 123)",
    "docs": [
     "Damage confirmation (usually sent by the municipality; submit yourself if missing)"
-   ]
+   ],
+   "basis": "KEPCO basic supply terms (special disaster reduction) · Regulation art. 12"
   },
   "indirect.telecom": {
    "label": "Telecom bill reduction (mobile · internet)",
@@ -286,7 +313,8 @@
    "docs": [
     "Damage confirmation",
     "ID"
-   ]
+   ],
+   "basis": "Telecommunications Business Act art. 28 (terms of use) — each carrier's disaster reduction clause · Regulation art. 12"
   },
   "indirect.citygas": {
    "label": "City-gas bill reduction",
@@ -295,7 +323,8 @@
    "where": "Your city-gas company",
    "docs": [
     "Damage confirmation (usually sent by the municipality)"
-   ]
+   ],
+   "basis": "Urban Gas Business Act art. 20 (supply terms) — each company's disaster reduction clause · Regulation art. 12"
   },
   "indirect.district_heating": {
    "label": "District-heating bill reduction",
@@ -304,7 +333,8 @@
    "where": "Korea District Heating Corp. or your heat supplier",
    "docs": [
     "Damage confirmation"
-   ]
+   ],
+   "basis": "Integrated Energy Supply Act art. 17 (supply terms) disaster reduction · Regulation art. 12"
   },
   "indirect.local_tax": {
    "label": "Local-tax reduction & deferral (property, resident, vehicle tax)",
@@ -314,7 +344,8 @@
    "docs": [
     "Damage confirmation",
     "Reduction/deferral application"
-   ]
+   ],
+   "basis": "Restriction of Special Local Taxation Act art. 92 · Local Tax Collection Act art. 25 (deferral) · Framework Act on Local Taxes art. 26 (extension)"
   },
   "indirect.national_tax": {
    "label": "National-tax deadline extension & deferral",
@@ -324,7 +355,8 @@
    "docs": [
     "Damage confirmation",
     "Extension application"
-   ]
+   ],
+   "basis": "Framework Act on National Taxes art. 6 (extension for natural disasters) · National Tax Collection Act art. 13, 15"
   },
   "indirect.highschool_tuition": {
    "label": "High-school tuition reduction",
@@ -334,7 +366,8 @@
    "docs": [
     "Damage confirmation",
     "Enrollment certificate"
-   ]
+   ],
+   "basis": "Elementary and Secondary Education Act Enforcement Decree art. 97 (tuition reduction) · Regulation art. 12"
   },
   "indirect.sme_guarantee": {
    "label": "Disaster special guarantee for SMEs & small businesses (lower fee)",
@@ -345,7 +378,8 @@
     "Damage confirmation",
     "Business registration",
     "Guarantee application"
-   ]
+   ],
+   "basis": "Regional Credit Guarantee Foundation Act · SME Promotion Act art. 66 (disaster-hit SMEs) · Regulation art. 12"
   },
   "indirect.sme_emergency_loan": {
    "label": "Emergency business-stability loan for small businesses",
@@ -355,7 +389,8 @@
    "docs": [
     "Damage confirmation",
     "Business registration"
-   ]
+   ],
+   "basis": "Small Business Protection and Support Act art. 9 · small-business policy-fund guidelines"
   },
   "indirect.military_postpone": {
    "label": "Postponement of military-service dates",
@@ -365,7 +400,8 @@
    "docs": [
     "Damage confirmation",
     "Postponement request"
-   ]
+   ],
+   "basis": "Military Service Act art. 61 (postponement of enlistment) · Enforcement Decree art. 129"
   },
   "indirect.reserve_training_exempt": {
    "label": "Reserve-forces / civil-defense training exemption",
@@ -374,7 +410,8 @@
    "where": "Reserve unit / community center (civil defense)",
    "docs": [
     "Damage confirmation"
-   ]
+   ],
+   "basis": "Reserve Forces Act Enforcement Rule (training deferral) · Civil Defense Act Enforcement Rule · Regulation art. 12"
   },
   "indirect.tv_license": {
    "label": "TV licence fee exemption",
@@ -383,7 +420,8 @@
    "where": "KBS fee call center (1588-1801) / KEPCO",
    "docs": [
     "Damage confirmation"
-   ]
+   ],
+   "basis": "Broadcasting Act Enforcement Decree art. 44 (licence-fee exemption) · Regulation art. 12"
   },
   "indirect.water_sewage": {
    "label": "Water & sewage bill reduction",
@@ -392,7 +430,8 @@
    "where": "City/county/district waterworks office",
    "docs": [
     "Damage confirmation"
-   ]
+   ],
+   "basis": "Municipal water-supply and sewage ordinances (disaster reduction)"
   },
   "indirect.farm_loan_relief": {
    "label": "Farm policy-loan deferral & interest relief",
@@ -402,7 +441,8 @@
    "docs": [
     "Damage confirmation",
     "Farm-business registration"
-   ]
+   ],
+   "basis": "Agricultural and Fishery Disaster Countermeasures Act art. 4 · farm policy-fund operating guidelines"
   },
   "indirect.student_loan_defer": {
    "label": "Student-loan repayment deferral",
@@ -412,7 +452,8 @@
    "docs": [
     "Damage confirmation",
     "Family relation certificate"
-   ]
+   ],
+   "basis": "Income Contingent Student Loan Act · KOSAF loan standards (deferral for disaster victims) · Regulation amended 2024-11-19"
   },
   "indirect.emergency_welfare": {
    "label": "Emergency welfare — living support",
@@ -423,7 +464,8 @@
     "Emergency support application",
     "Damage confirmation",
     "Income/asset check (pulled by the office)"
-   ]
+   ],
+   "basis": "Emergency Welfare Support Act art. 2 (crisis incl. fire, natural disaster), art. 9 (types of support)"
   },
   "indirect.temp_housing": {
    "label": "Temporary housing for displaced households (public rental · modular units)",
@@ -433,14 +475,16 @@
    "docs": [
     "Damage confirmation",
     "Resident registration"
-   ]
+   ],
+   "basis": "Disaster Relief Act art. 4 (temporary housing) · Special Act on Public Housing Enforcement Rule (special supply for disaster victims)"
   },
   "indirect.psych_support": {
    "label": "Disaster mental-health support (free counselling)",
    "amount_text": "Free counselling",
    "summary": "Free counselling for victims and families; high-risk cases referred for treatment.",
    "where": "Provincial disaster mental-health center (Korean Red Cross) / crisis line 1577-0199",
-   "docs": []
+   "docs": [],
+   "basis": "Framework Act on Disaster and Safety Management art. 66-2 (psychological recovery) · Disaster Relief Act art. 4"
   },
   "indirect.disaster_victim_center": {
    "label": "Joint disaster-victim support center (one-stop desk)",
@@ -449,7 +493,8 @@
    "where": "On-site center (announced by MOIS)",
    "docs": [
     "ID"
-   ]
+   ],
+   "basis": "MOIS plan for the joint disaster-victim support center (2026-07-22)"
   },
   "insurance.house_general": {
    "label": "Storm & earthquake insurance — home (general)",
@@ -459,7 +504,8 @@
    "docs": [
     "ID",
     "Building register or lease contract"
-   ]
+   ],
+   "basis": "Storm and Earthquake Insurance Act art. 7 (premium subsidy) · Enforcement Decree art. 9"
   },
   "insurance.house_single_parent_near_poor": {
    "label": "Storm & earthquake insurance — home (single-parent · near-poor)",
@@ -469,7 +515,8 @@
    "docs": [
     "ID",
     "Single-parent or near-poor certificate"
-   ]
+   ],
+   "basis": "Storm and Earthquake Insurance Act art. 7 · Enforcement Decree art. 9 (low-income subsidy rate)"
   },
   "insurance.house_basic": {
    "label": "Storm & earthquake insurance — home (basic livelihood)",
@@ -479,7 +526,8 @@
    "docs": [
     "ID",
     "Recipient certificate"
-   ]
+   ],
+   "basis": "Storm and Earthquake Insurance Act art. 7 · Enforcement Decree art. 9 (low-income subsidy rate)"
   },
   "insurance.house_vulnerable_zone_full": {
    "label": "Storm & earthquake insurance — low-income in hazard-prone areas (full)",
@@ -489,7 +537,8 @@
    "docs": [
     "ID",
     "Recipient / near-poor / single-parent certificate"
-   ]
+   ],
+   "basis": "Storm and Earthquake Insurance Act art. 7 · MOIS full-premium program for hazard-prone areas"
   },
   "insurance.greenhouse": {
    "label": "Storm & earthquake insurance — greenhouses",
@@ -499,7 +548,8 @@
    "docs": [
     "ID",
     "Farm-business registration"
-   ]
+   ],
+   "basis": "Storm and Earthquake Insurance Act art. 7 · Enforcement Decree art. 9"
   },
   "insurance.small_biz": {
    "label": "Storm & earthquake insurance — small-business shops & factories",
@@ -509,7 +559,8 @@
    "docs": [
     "Business registration",
     "ID"
-   ]
+   ],
+   "basis": "Storm and Earthquake Insurance Act art. 7 · Enforcement Decree art. 9"
   }
  },
  "steps": {

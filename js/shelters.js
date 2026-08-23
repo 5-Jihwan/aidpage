@@ -5,7 +5,15 @@ const KINDS = [
   { id: 'cold', ko: '한파쉼터', en: 'Warming center', color: '#0f9d7a', icon: '❄️' },
   { id: 'quake', ko: '지진옥외대피장소', en: 'Earthquake assembly site', color: '#9a7328', icon: '🏞️' },
   { id: 'temp_housing', ko: '이재민 임시주거시설', en: 'Temporary housing', color: '#566577', icon: '🏫' },
-  { id: 'flood', ko: '수해 대피소', en: 'Flood shelter', color: '#0f4a9e', icon: '🌊' },
+  { id: 'tsunami', ko: '지진해일 대피소', en: 'Tsunami shelter', color: '#0f4a9e', icon: '🌊' },
+  { id: 'townhall', ko: '주민센터(피해신고)', en: 'Community center (damage report)', color: '#1a5fc4', icon: '🏛️' },
+  { id: 'er', ko: '응급의료센터', en: 'Emergency room', color: '#c8432b', icon: '🏥' },
+  { id: 'pharmacy', ko: '약국', en: 'Pharmacy', color: '#c2447e', icon: '💊' },
+  { id: 'fire', ko: '소방서·119안전센터', en: 'Fire station', color: '#c8432b', icon: '🚒' },
+  { id: 'police', ko: '경찰서·지구대', en: 'Police', color: '#14202e', icon: '🚓' },
+  { id: 'meal', ko: '무료급식소', en: 'Free meal site', color: '#9a7328', icon: '🍚' },
+  { id: 'water', ko: '비상급수시설', en: 'Emergency water', color: '#0f9d7a', icon: '🚰' },
+  { id: 'dust', ko: '미세먼지쉼터', en: 'Clean-air shelter', color: '#566577', icon: '😷' },
 ];
 const cache = new Map(); // kind -> FeatureCollection | null
 let index = null; // optional split index {kind:{sido_code:path}}
@@ -49,7 +57,7 @@ function ensureLayer(kind) {
   map.on('mouseleave', src + '-dot', () => map.getCanvas().style.cursor = '');
   map.on('click', src + '-dot', e => {
     const p = e.features[0].properties;
-    const html = `<b>${p.name || ''}</b><br><small>${k.icon} ${k.ko}${p.cap ? ` · ${p.cap}명` : ''}<br>${p.addr || ''}</small>`; map.openPopup ? map.openPopup(e.lngLat, html) : new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+    const html = `<b>${p.name || ''}</b><br><small>${k.icon} ${k.ko}${p.cap ? ` · ${p.cap}명` : ''}${p.type && !/^\d|^FTL|^\d{3}$/.test(p.type) ? ` · ${p.type}` : ''}<br>${p.addr || ''}${p.hours ? `<br>🕒 ${p.hours}` : ''}${p.tel ? `<br>📞 <a href="tel:${p.tel}">${p.tel}</a>` : ''}</small>`; map.openPopup ? map.openPopup(e.lngLat, html) : new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(e.lngLat).setHTML(html).addTo(map);
   });
 }
 export async function setActive(kinds, sido) {

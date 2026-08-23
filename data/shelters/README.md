@@ -1,6 +1,6 @@
 # data/shelters — nationwide shelter points (keyless sources)
 
-Built 2026-08-21 by `scripts/build_shelters.py` (do not hand-edit). WGS84 points, coords rounded to 1e-5 deg. No geocoding, no fabricated points: rows without usable coordinates are dropped (counts below).
+Built 2026-08-23 by `scripts/build_shelters.py` (do not hand-edit). WGS84 points, coords rounded to 1e-5 deg. No geocoding, no fabricated points: rows without usable coordinates are dropped (counts below). 군 시설(부대·사령부·군인아파트 등)은 공개하지 않고 제외한다(`dropped_military`).
 
 Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계 — 광주+전남 = `12`; from the query 시군구 for safekorea layers, else by address match within sido against `data/admin/sgg_index.json`, else null), `cap` (수용인원, int or null), `type`, `src`, `asof` (YYYY-MM-DD).
 
@@ -8,11 +8,20 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
 
 | kind | points | file(s) | bytes |
 |---|---|---|---|
-| civil_defense | 17,228 | `civil_defense/{sido}.geojson` x16 (see index.json) | 5,770,607 |
-| heat | 62,088 | `heat/{sido}.geojson` x16 (see index.json) | 16,844,405 |
-| cold | 53,028 | `cold/{sido}.geojson` x16 (see index.json) | 14,308,170 |
-| quake | 21,481 | `quake/{sido}.geojson` x17 (see index.json) | 6,331,593 |
+| civil_defense | 17,224 | `civil_defense/{sido}.geojson` x16 (see index.json) | 5,769,268 |
+| heat | 62,082 | `heat/{sido}.geojson` x16 (see index.json) | 16,842,642 |
+| cold | 53,026 | `cold/{sido}.geojson` x16 (see index.json) | 14,307,556 |
+| quake | 21,474 | `quake/{sido}.geojson` x17 (see index.json) | 6,329,339 |
 | temp_housing | 15,576 | `temp_housing.geojson` | 4,149,837 |
+| fire | 685 | `fire.geojson` | 192,978 |
+| police | 2,010 | `police.geojson` | 565,148 |
+| pharmacy | 18,225 | `pharmacy/{sido}.geojson` x15 (see index.json) | 5,330,123 |
+| er | 339 | `er.geojson` | 104,447 |
+| dust | 6,036 | `dust.geojson` | 1,744,151 |
+| water | 6,242 | `water.geojson` | 1,833,630 |
+| tsunami | 632 | `tsunami.geojson` | 169,345 |
+| meal | 1,158 | `meal.geojson` | 445,382 |
+| townhall | 3,739 | `townhall.geojson` | 892,945 |
 
 `index.json` maps `{kind: {sido_code: path}}` for kinds split per sido (file would exceed 6 MB).
 
@@ -24,7 +33,7 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
   - url: https://file.localdata.go.kr/file/download/civil_defense_shelter_info/info
   - page: https://file.localdata.go.kr/file/civil_defense_shelter_info/info
   - datago: https://www.data.go.kr/data/15044951/fileData.do
-  - fetched: 2026-08-21
+  - fetched: 2026-08-23
   - asof_max: 2026-08-20
   - raw_rows: 18829
   - status_breakdown: {'사용중': 17236, '사용중지': 1577, '일시중지': 16}
@@ -34,24 +43,24 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
 - **전국무더위쉼터표준데이터 (공공데이터포털 표준데이터 15013199)**
   - url: https://www.data.go.kr/data/15013199/standard.do
   - endpoint: https://www.data.go.kr/download/standard.json (keyless, same as page CSV button)
-  - fetched: 2026-08-21
+  - fetched: 2026-08-23
   - raw_rows: 42226
-  - points: 38699
+  - points: 38696
   - asof_top: [('2020-06-30', 2191), ('2019-09-16', 1144), ('2019-09-20', 980), ('2019-06-27', 970), ('2019-06-04', 956)]
   - license: 공공데이터포털 표준데이터 (이용허락범위 제한 없음)
 - **국민안전24(safekorea) 시설안전지도 무더위쉼터 (행정안전부, 시군구별 조회)**
   - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
   - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
-  - fetched: 2026-08-21
+  - fetched: 2026-08-23
   - raw_rows: 62088
-  - points: 62088
+  - points: 62082
   - license: 공공누리 제1유형 (국민안전24 저작권정책)
 
 ### cold
 - **국민안전24(safekorea) 시설안전지도 한파쉼터 (행정안전부, 시군구별 조회)**
   - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
   - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
-  - fetched: 2026-08-21
+  - fetched: 2026-08-23
   - raw_rows: 53028
   - license: 공공누리 제1유형 (국민안전24 저작권정책)
 
@@ -59,35 +68,118 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
 - **국민안전24(safekorea) 시설안전지도 지진옥외대피소 (행정안전부, 시군구별 조회)**
   - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
   - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
-  - fetched: 2026-08-21
+  - fetched: 2026-08-23
   - raw_rows: 11182
-  - points: 11182
+  - points: 11181
   - license: 공공누리 제1유형 (국민안전24 저작권정책)
 - **전국지진해일긴급대피장소표준데이터 (공공데이터포털 표준데이터 15025449)**
   - url: https://www.data.go.kr/data/15025449/standard.do
   - endpoint: https://www.data.go.kr/download/standard.json
-  - fetched: 2026-08-21
+  - fetched: 2026-08-23
   - raw_rows: 11136
-  - points: 10299
+  - points: 10293
   - license: 공공데이터포털 표준데이터 (이용허락범위 제한 없음)
 
 ### temp_housing
 - **국민안전24(safekorea) 시설안전지도 이재민임시주거시설 + 지진겸용임시주거시설 (행정안전부, 시군구별 조회)**
   - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
   - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
-  - fetched: 2026-08-21
+  - fetched: 2026-08-23
   - raw_rows: 15601
   - raw_rows_quake_layer: 6192
   - quake_only_added: 0
   - license: 공공누리 제1유형 (국민안전24 저작권정책)
 
+### fire
+- **국민안전24(safekorea) 시설안전지도 소방서·119안전센터 (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 685
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### police
+- **국민안전24(safekorea) 시설안전지도 경찰서·지구대 (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 2010
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### pharmacy
+- **국민안전24(safekorea) 시설안전지도 약국 (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 18226
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### er
+- **국민안전24(safekorea) 시설안전지도 응급의료센터 (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 339
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### dust
+- **국민안전24(safekorea) 시설안전지도 미세먼지쉼터 (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 6036
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### water
+- **국민안전24(safekorea) 시설안전지도 비상급수시설 (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 6310
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### tsunami
+- **국민안전24(safekorea) 시설안전지도 지진해일대피소 (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 636
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### meal
+- **전국무료급식소표준데이터 (공공데이터포털 표준데이터 15013107)**
+  - url: https://www.data.go.kr/data/15013107/standard.do
+  - endpoint: https://www.data.go.kr/download/standard.json (keyless)
+  - fetched: 2026-08-23
+  - raw_rows: 1267
+  - points: 1158
+  - columns: None
+  - license: 공공데이터포털 표준데이터 (이용허락범위 제한 없음)
+
+### townhall
+- **OpenStreetMap 주민센터·행정복지센터·읍면사무소 (Overpass API)**
+  - url: https://www.openstreetmap.org
+  - endpoint: https://overpass-api.de/api/interpreter
+  - fetched: 2026-08-23
+  - raw_rows: 6443
+  - license: ODbL 1.0 — © OpenStreetMap contributors (attribution shown on map)
+
 ## Processing stats (per kind)
 
-- **civil_defense**: {"raw_rows": 18829, "dropped_not_in_use": 1593, "dropped_no_or_bad_coords": 8}
-- **heat**: {"std_raw_rows": 42226, "dropped_no_or_bad_coords": 3527, "sgg_unmatched": 1179, "safekorea_raw_rows": 62088, "chosen_safekorea": 1}
-- **cold**: {"raw_rows": 53028}
-- **quake**: {"outdoor_raw_rows": 11182, "tsunami_raw_rows": 11136, "dropped_no_or_bad_coords": 837, "sgg_unmatched": 167}
+- **civil_defense**: {"raw_rows": 18829, "dropped_not_in_use": 1593, "dropped_no_or_bad_coords": 7, "dropped_military": 5}
+- **heat**: {"std_raw_rows": 42226, "dropped_no_or_bad_coords": 3527, "sgg_unmatched": 1179, "dropped_military": 9, "safekorea_raw_rows": 62088, "chosen_safekorea": 1}
+- **cold**: {"raw_rows": 53028, "dropped_military": 2}
+- **quake**: {"outdoor_raw_rows": 11182, "dropped_military": 9, "tsunami_raw_rows": 11136, "dropped_no_or_bad_coords": 835, "sgg_unmatched": 167}
 - **temp_housing**: {"raw_rows": 15601, "dropped_no_or_bad_coords": 4, "dropped_duplicate": 21}
+- **fire**: {"raw_rows": 685}
+- **police**: {"raw_rows": 2010}
+- **pharmacy**: {"raw_rows": 18226, "dropped_military": 1}
+- **er**: {"raw_rows": 339}
+- **dust**: {"raw_rows": 6036}
+- **water**: {"raw_rows": 6310, "dropped_no_or_bad_coords": 62, "dropped_military": 6}
+- **tsunami**: {"raw_rows": 636, "dropped_military": 4}
+- **meal**: {"std_raw_rows": 1267, "dropped_no_or_bad_coords": 109, "sgg_unmatched": 21}
+- **townhall**: {"raw_rows": 6443, "dropped_untagged": 223, "dropped_transit": 2481}
 
 Notes:
 - civil_defense keeps only `운영상태 = 사용중` (사용중지/일시중지 dropped, see status_breakdown). `type` = 시설구분 / 지상·지하.
@@ -115,6 +207,13 @@ Notes:
 - quake_outdoor: 256/256 — complete
 - temp_housing: 256/256 — complete
 - temp_housing_quake: 256/256 — complete
+- fire: 256/256 — complete
+- police: 256/256 — complete
+- pharmacy: 256/256 — complete
+- er: 256/256 — complete
+- dust: 256/256 — complete
+- water: 256/256 — complete
+- tsunami: 256/256 — complete
 
 Re-run `python scripts/build_shelters.py` (optionally `SK_BUDGET_S=1200`) to fill missing 시군구; fetched ones are cached in .work_shelters/sk_*.json.
 

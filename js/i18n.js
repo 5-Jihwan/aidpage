@@ -56,7 +56,7 @@ export const DICT = {
     'eastsea': '동해',
     'home.go': '저장된 내 동네로 가기 · {name}', 'home.forget': '저장 해제', 'home.save': '☆ 내 동네로 저장', 'home.saved': '★ 저장됨', 'sel.reset': '선택 초기화',
     'grid.title': '격자 분석 (시범)', 'grid.nodata': '데이터 없음', 'grid.note': 'H3 격자(약 0.1 km²). 값이 있는 항목만 표시하며, 회색은 아직 데이터가 없는 셀입니다.',
-    'sh.title': '표시할 시설', 'sh.nearest': '가까운 대피소·쉼터', 'sh.walk': '도보 {n}분', 'sh.none': '5km 안에 표시할 시설이 없습니다',
+    'res.psych': '마음 회복 지원 (재난심리회복지원센터)', 'res.psych.hot': '전국 공통 · 유선·방문 상담 무료', 'res.psych.src': '행정안전부 재난심리회복지원센터 현황(2024-08) · 대한적십자사 운영', 'sh.title': '표시할 시설', 'sh.nearest': '가까운 대피소·쉼터', 'sh.walk': '도보 {n}분', 'sh.none': '5km 안에 표시할 시설이 없습니다',
   },
   en: {
     'brand.sub': 'Your situation, your safety — on one page',
@@ -114,7 +114,7 @@ export const DICT = {
     'eastsea': 'East Sea',
     'home.go': 'Go to my saved area · {name}', 'home.forget': 'Forget', 'home.save': '☆ Save as my area', 'home.saved': '★ Saved', 'sel.reset': 'Reset selection',
     'grid.title': 'Grid analysis (pilot)', 'grid.nodata': 'No data', 'grid.note': 'H3 cells (~0.1 km²). Only attributes with data are shown; grey cells have no data yet.',
-    'sh.title': 'Facilities', 'sh.nearest': 'Nearest shelters', 'sh.walk': '{n} min walk', 'sh.none': 'No facilities within 5 km',
+    'res.psych': 'Mental-health recovery support', 'res.psych.hot': 'Nationwide · free phone/visit counselling', 'res.psych.src': 'MOIS disaster mental-health centers (2024-08), run by Korean Red Cross', 'sh.title': 'Facilities', 'sh.nearest': 'Nearest shelters', 'sh.walk': '{n} min walk', 'sh.none': 'No facilities within 5 km',
   },
 };
 let lang = localStorage.getItem('safepic.lang') || ((navigator.language || 'ko').startsWith('ko') ? 'ko' : 'en');

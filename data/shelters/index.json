@@ -71,5 +71,22 @@
   "50": "quake/50.geojson",
   "51": "quake/51.geojson",
   "52": "quake/52.geojson"
+ },
+ "pharmacy": {
+  "11": "pharmacy/11.geojson",
+  "26": "pharmacy/26.geojson",
+  "27": "pharmacy/27.geojson",
+  "28": "pharmacy/28.geojson",
+  "30": "pharmacy/30.geojson",
+  "31": "pharmacy/31.geojson",
+  "36": "pharmacy/36.geojson",
+  "41": "pharmacy/41.geojson",
+  "43": "pharmacy/43.geojson",
+  "44": "pharmacy/44.geojson",
+  "47": "pharmacy/47.geojson",
+  "48": "pharmacy/48.geojson",
+  "50": "pharmacy/50.geojson",
+  "51": "pharmacy/51.geojson",
+  "52": "pharmacy/52.geojson"
  }
 }

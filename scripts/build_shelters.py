@@ -227,7 +227,14 @@ SOURCES: dict[str, list[dict]] = defaultdict(list)
 FAILURES: list[dict] = []
 
 
+# 군 시설(부대·사단·사령부·군인아파트 등)은 공개 지도에 올리지 않는다 (2026-08-23 결정).
+MILITARY = re.compile(r"군부대|[0-9]+\s*(부대|사단|연대|대대|여단)|공수부대|사령부|해병대|육군|(?<!남)해군(?!전적비|과학기술고)|공군|국방부|훈련소|예비군|군인아파트|특전사|부대\s*(앞|내|정문)")
+
+
 def feature(kind, lon, lat, name, addr, cap, typ, src, asof, sgg=None):
+    if MILITARY.search(f"{name or ''} {addr or ''} {typ or ''}"):
+        STATS.add(kind, "dropped_military")
+        return None
     if not in_bounds(lon, lat):
         STATS.add(kind, "dropped_no_or_bad_coords")
         return None
@@ -282,6 +289,14 @@ SK_LAYERS = {
     "quake_outdoor": ("TFK_ACMD_SPCE_FCLTY_TEMP", "지진옥외대피소"),
     "temp_housing": ("TFK_ACMDFCLTY_TEMP", "이재민임시주거시설"),
     "temp_housing_quake": ("TFK_ACMDFCLTY_TEMP", "지진겸용임시주거시설"),
+    # 2026-08-23 additions (same keyless endpoint; every row carries lo/la/title/adres)
+    "fire": ("TFK_FIRE_STATION_TEMP", "소방서"),
+    "police": ("TFK_POLICE_STATION_TEMP", "경찰서"),
+    "pharmacy": ("TB_SFK_HSPTL_INFO", "약국"),
+    "er": ("TB_SFK_ESR_MDLCR_CNTR", "응급의료센터"),
+    "dust": ("TFK_FIND_DUST_RSTR_FCLTY_TEMP", "미세먼지쉼터"),
+    "water": ("TFK_CIVIL_EMR_FACL_TEMP", "비상급수시설"),
+    "tsunami": ("TFK_TSUNAMI_SHELTER_TEMP", "지진해일대피소"),
 }
 
 
@@ -555,12 +570,171 @@ def build_temp_housing() -> list[dict]:
     return feats
 
 
+def dms(d, m, sec):
+    d, m, sec = to_float(d), to_float(m), to_float(sec)
+    if d is None:
+        return None
+    return d + (m or 0) / 60 + (sec or 0) / 3600
+
+
+def make_sk_builder(kind: str, layer: str, label: str, tel_keys=("tel", "dutyTel1", "fcltyTelno", "telRmk")):
+    """Generic builder for a 시설안전지도 layer: title/adres/lo/la (+tel)."""
+    def build() -> list[dict]:
+        feats = []
+        per = safekorea_layer(layer)
+        for sgg, recs in per.items():
+            for r in recs:
+                STATS.add(kind, "raw_rows")
+                if clean(r.get("useYn")) == "N" or clean(r.get("useAt")) == "N" or clean(r.get("delYn")) == "Y":
+                    STATS.add(kind, "dropped_inactive")
+                    continue
+                lon, lat = to_float(r.get("lo")), to_float(r.get("la"))
+                if lon is None and r.get("facilLode") is not None:  # 비상급수시설: DMS
+                    lon, lat = dms(r.get("facilLode"), r.get("facilLomi"), r.get("facilLose")), dms(r.get("facilLade"), r.get("facilLami"), r.get("facilLase"))
+                name = clean(r.get("title")) or clean(r.get("facilityName")) or clean(r.get("facilNm")) or clean(r.get("rstrNm"))
+                addr = clean(r.get("adres")) or clean(r.get("addrNm")) or clean(r.get("rnDtlAdres")) or clean(r.get("facilRdAddr")) or clean(r.get("facilAddr"))
+                cap = to_int(r.get("usePsblNmpr")) or to_int(r.get("emgySickbdCnt"))
+                typ = clean(r.get("facilityType")) or clean(r.get("facilGbnNm")) or clean(r.get("fcltyTy")) or (f"{r.get('facilPow')} {r.get('facilUnit')}".strip() if r.get("facilPow") else None)
+                f = feature(kind, lon, lat, name, addr, cap, typ, "safekorea",
+                            epoch_ms_to_date(r.get("modfTime")) or epoch_ms_to_date(r.get("createDate")) or TODAY, sgg=sgg)
+                if f:
+                    tel = next((clean(r.get(k)) for k in tel_keys if clean(r.get(k))), None)
+                    if tel and r.get("telnoPlcCd") and k_is(tel, r):  # 응급의료센터: 지역번호 분리
+                        tel = f"{r.get('telnoPlcCd')}-{tel}"
+                    if tel:
+                        f["properties"]["tel"] = tel
+                    feats.append(f)
+        SOURCES[kind].append({"name": f"국민안전24(safekorea) 시설안전지도 {label} (행정안전부, 시군구별 조회)",
+                              "url": SK_REF, "endpoint": SK_URL, "fetched": TODAY,
+                              "raw_rows": sum(len(v) for v in per.values()),
+                              "license": "공공누리 제1유형 (국민안전24 저작권정책)"})
+        return feats
+    return build
+
+
+def k_is(tel, r):
+    return tel == clean(r.get("telRmk"))
+
+
+def build_meal() -> list[dict]:
+    """전국무료급식소표준데이터 (공공데이터포털 표준데이터 15013107, keyless CSV endpoint)."""
+    kind = "meal"
+    feats = []
+    rows, hdr = datago_std_rows("15013107")
+    for r in rows:
+        STATS.add(kind, "std_raw_rows")
+        lon, lat = to_float(r.get("LONGITUDE")), to_float(r.get("LATITUDE"))
+        addr = clean(r.get("RDNMADR")) or clean(r.get("LNMADR"))
+        name = clean(r.get("FCLTY_NM")) or clean(r.get("FCLTYNM")) or clean(r.get("FACILITY_NM"))
+        typ = clean(r.get("MLSV_TRGET"))  # 급식 대상(노인·노숙인 등)
+        f = feature(kind, lon, lat, name, addr, to_int(r.get("ACEPTNC_POSBL_CO")) or None, typ,
+                    "datago_std_15013107", clean(r.get("REFERENCE_DATE")) or TODAY)
+        if f:
+            tel = clean(r.get("PHONE_NUMBER")) or clean(r.get("PHONENUMBER"))
+            if tel:
+                f["properties"]["tel"] = tel
+            t = " ".join(x for x in (clean(r.get("MLSV_DATE")), clean(r.get("MLSV_TIME"))) if x) or None
+            if t:
+                f["properties"]["hours"] = t
+            feats.append(f)
+    if not rows:
+        FAILURES.append({"src": "datago_std 15013107 무료급식소", "err": "no rows"})
+    SOURCES[kind].append({"name": "전국무료급식소표준데이터 (공공데이터포털 표준데이터 15013107)",
+                          "url": "https://www.data.go.kr/data/15013107/standard.do",
+                          "endpoint": "https://www.data.go.kr/download/standard.json (keyless)",
+                          "fetched": TODAY, "raw_rows": len(rows), "points": len(feats),
+                          "columns": hdr.get("colNmList") if isinstance(hdr, dict) else None,
+                          "license": "공공데이터포털 표준데이터 (이용허락범위 제한 없음)"})
+    return feats
+
+
+# ----------------------------------------------------------------------------- OSM Overpass (keyless) — 주민센터
+
+_SGG_POLYS = None
+
+
+def _pip(lon, lat, ring):
+    inside = False
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        if (yi > lat) != (yj > lat) and lon < (xj - xi) * (lat - yi) / ((yj - yi) or 1e-12) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def sgg_from_point(lon, lat):
+    global _SGG_POLYS
+    if _SGG_POLYS is None:
+        g = json.loads((ROOT / "data" / "admin" / "kr_sgg.geojson").read_text(encoding="utf-8"))
+        _SGG_POLYS = []
+        for f in g["features"]:
+            geom = f["geometry"]
+            polys = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]
+            for poly in polys:
+                ring = poly[0]
+                xs = [c[0] for c in ring]; ys = [c[1] for c in ring]
+                _SGG_POLYS.append((min(xs), min(ys), max(xs), max(ys), ring, str(f["properties"].get("code"))))
+    for x0, y0, x1, y1, ring, code in _SGG_POLYS:
+        if x0 <= lon <= x1 and y0 <= lat <= y1 and _pip(lon, lat, ring):
+            return code
+    return None
+
+
+def build_townhall() -> list[dict]:
+    """읍·면·동 주민센터(행정복지센터) — OpenStreetMap via Overpass (ODbL). 피해신고 접수처."""
+    kind = "townhall"
+    q = ('[out:json][timeout:180];area["ISO3166-1"="KR"]->.kr;'
+         '(nwr["name"~"주민센터|행정복지센터|면사무소|읍사무소"](area.kr););out center tags;')
+    raw = cached("osm_townhall.json", lambda: http("https://overpass-api.de/api/interpreter",
+                                                   data=urllib.parse.urlencode({"data": q}).encode(),
+                                                   headers={"User-Agent": "safepic/0.1"}, timeout=300))
+    j = json.loads(raw)
+    feats = []
+    for e in j.get("elements", []):
+        t = e.get("tags", {})
+        STATS.add(kind, "raw_rows")
+        if t.get("highway") or t.get("public_transport") or t.get("railway"):
+            STATS.add(kind, "dropped_transit")
+            continue
+        if not (t.get("amenity") == "townhall" or t.get("office") == "government" or t.get("building")):
+            STATS.add(kind, "dropped_untagged")
+            continue
+        lon = e.get("lon") or (e.get("center") or {}).get("lon")
+        lat = e.get("lat") or (e.get("center") or {}).get("lat")
+        addr = t.get("addr:full") or " ".join(x for x in (t.get("addr:city"), t.get("addr:district"), t.get("addr:street"), t.get("addr:housenumber")) if x) or None
+        lon, lat = to_float(lon), to_float(lat)
+        sgg = sgg_from_point(lon, lat) if in_bounds(lon, lat) else None
+        f = feature(kind, lon, lat, clean(t.get("name")), addr, None, None, "osm", TODAY, sgg=sgg)
+        if f:
+            if t.get("phone") or t.get("contact:phone"):
+                f["properties"]["tel"] = t.get("phone") or t.get("contact:phone")
+            feats.append(f)
+    SOURCES[kind].append({"name": "OpenStreetMap 주민센터·행정복지센터·읍면사무소 (Overpass API)",
+                          "url": "https://www.openstreetmap.org", "endpoint": "https://overpass-api.de/api/interpreter",
+                          "fetched": TODAY, "raw_rows": len(j.get("elements", [])),
+                          "license": "ODbL 1.0 — © OpenStreetMap contributors (attribution shown on map)"})
+    return feats
+
+
 BUILDERS = {
     "civil_defense": build_civil_defense,
     "heat": build_heat,
     "cold": build_cold,
     "quake": build_quake,
     "temp_housing": build_temp_housing,
+    "fire": make_sk_builder("fire", "fire", "소방서·119안전센터"),
+    "police": make_sk_builder("police", "police", "경찰서·지구대"),
+    "pharmacy": make_sk_builder("pharmacy", "pharmacy", "약국"),
+    "er": make_sk_builder("er", "er", "응급의료센터"),
+    "dust": make_sk_builder("dust", "dust", "미세먼지쉼터"),
+    "water": make_sk_builder("water", "water", "비상급수시설"),
+    "tsunami": make_sk_builder("tsunami", "tsunami", "지진해일대피소"),
+    "meal": build_meal,
+    "townhall": build_townhall,
 }
 
 NOT_OBTAINABLE = [
@@ -629,7 +803,7 @@ def write_readme(results: dict, index: dict):
     L = []
     L.append("# data/shelters — nationwide shelter points (keyless sources)\n")
     L.append(f"Built {TODAY} by `scripts/build_shelters.py` (do not hand-edit). WGS84 points, coords rounded to 1e-5 deg. "
-             "No geocoding, no fabricated points: rows without usable coordinates are dropped (counts below).\n")
+             "No geocoding, no fabricated points: rows without usable coordinates are dropped (counts below). 군 시설(부대·사령부·군인아파트 등)은 공개하지 않고 제외한다(`dropped_military`).\n")
     L.append("Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계 — 광주+전남 = `12`; from the query 시군구 for safekorea layers, "
              "else by address match within sido against `data/admin/sgg_index.json`, else null), `cap` (수용인원, int or null), `type`, `src`, `asof` (YYYY-MM-DD).\n")
     L.append("## Files\n")

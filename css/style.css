@@ -289,3 +289,7 @@ html.big .coach{font-size:1.05rem}
 /* map popups: above floating controls, readable */
 .maplibregl-popup{z-index:7} .maplibregl-popup-content{font-family:var(--font);font-size:.92rem;line-height:1.4;border-radius:10px;box-shadow:0 8px 24px rgba(20,32,46,.18);padding:10px 14px}
 html.big .maplibregl-popup-content{font-size:1.05rem}
+
+/* psych centers block */
+.psych-hot{font-size:1.05rem;margin-bottom:8px} .psych-hot a{text-decoration:none;color:var(--accent2)}
+.psych-c{border-top:1px dashed var(--line);padding:6px 0;font-size:.92rem} .psych-c a{color:var(--accent2);text-decoration:none;margin-left:6px}

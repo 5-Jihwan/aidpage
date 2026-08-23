@@ -37,6 +37,7 @@ async function loadCore() {
   emdIdx.forEach(e => state.idx.byEmd.set(String(e.code), e));
   sggIdx.forEach(s => state.idx.bySgg.set(String(s.code), s));
   Object.assign(state.live, { weather, alerts, air });
+  getJSON('data/ref/psych_centers.json').then(j => { state.psych = j; });
   if (meta) { $('#aboutAdmin').textContent = `${meta.source || ''} ${meta.version || ''}`.trim(); $('#buildDate').textContent = meta.built || ''; }
   if (loadRules) { try { state.rules = await loadRules('rules/'); } catch (e) { console.warn('rules load failed', e); } }
 }
@@ -413,7 +414,9 @@ function applyPreset(sit) {
 function initCards() {
   $$('#sitCards .card').forEach(b => b.addEventListener('click', () => {
     const sit = b.dataset.sit;
-    if (sit === 'evacuating') { ['civil_defense', 'flood', 'temp_housing'].forEach(k => state.shelters.active.add(k)); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
+    // situation → facilities that matter right now
+    const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
+    if (AUTO[sit]) { AUTO[sit].forEach(k => state.shelters.active.add(k)); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
     if (sit === 'evacuating' || sit === 'before_rain') { $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden'); $('#searchInput').focus(); return; }
     applyPreset(sit); setTab('find'); syncWizardLoc();
     if (sit === 'no_news') setTimeout(() => $('#wizard').requestSubmit(), 50);
@@ -478,6 +481,12 @@ function renderResult(res, inp) {
     : `<div class="deadline"><div class="d">${t('res.dl.10')}</div><div><b>${t('res.dl.title')}</b><br><small class="muted">${t('res.dl.s')}</small></div></div>`;
   const sec = (title, arr) => `<div class="result-block"><h3>${title}</h3>${arr && arr.length ? arr.map(itemHTML).join('') : `<div class="muted" style="font-size:.9rem">${t('res.none')}</div>`}</div>`;
   const cashItems = [...(res.cash || []), ...(res.relief_fund || [])];
+  // 재난심리회복지원센터: 사람이 다치거나 사망한 경우 — 좌표 대신 전화·주소(행안부 현황 2024-08)
+  let psychHTML = '';
+  if (state.psych && (inp.damage || []).some(d => d === 'injury' || d === 'death')) {
+    const cs = state.psych.centers.filter(c => !state.sido || c.sido === state.sido);
+    psychHTML = `<div class="result-block psych"><h3>${t('res.psych')}</h3><div class="psych-hot">📞 <a href="tel:${state.psych.hotline}"><b>${state.psych.hotline}</b></a> <small class="muted">${t('res.psych.hot')}</small></div>${cs.map(c => `<div class="psych-c"><b>${c.name}</b> <a href="tel:${c.tel}" class="mono">${c.tel}</a><br><small class="muted">${c.addr}</small></div>`).join('')}<small class="muted">${t('res.psych.src')}</small></div>`;
+  }
   el.innerHTML = `
     <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div>
     <div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>
@@ -486,6 +495,7 @@ function renderResult(res, inp) {
     ${sec(t('res.auto'), res.auto)}
     ${sec(t('res.apply'), res.apply)}
     ${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}
+    ${psychHTML}
     <div class="result-block"><h3>${t('res.proc')}</h3><ol class="timeline">${(res.timeline || []).map(s => `<li><b>${s.label}</b>${s.due ? ` <span class="badge">${t('badge.due', { d: s.due })}${s.days_left != null ? (s.days_left < 0 ? ' · ' + t('badge.over') : ` · D-${s.days_left}`) : ''}</span>` : ''}<small>${[s.summary, s.where, s.docs && s.docs.length && s.docs.join(', '), s.typical_days].filter(Boolean).join(' · ')}</small></li>`).join('')}</ol></div>
     <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
     <div class="disclaimer">${t('res.disc')}</div>`;

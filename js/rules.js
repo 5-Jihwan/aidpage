@@ -137,10 +137,17 @@ export function diffDays(fromISO, toISO) {
 
 // ---------- 금액 ----------
 
+let LANG = 'ko';
+export function setRulesLang(l) { LANG = l === 'en' ? 'en' : 'ko'; }
 export function formatKRW(n) {
   if (n == null || Number.isNaN(n)) return '—';
   const neg = n < 0 ? '-' : '';
   const abs = Math.abs(n);
+  if (LANG === 'en') {
+    if (abs >= 1e6) return `${neg}₩${(abs / 1e6).toLocaleString('en-US', { maximumFractionDigits: 2 })}M`;
+    if (abs >= 1e3) return `${neg}₩${(abs / 1e3).toLocaleString('en-US', { maximumFractionDigits: 1 })}K`;
+    return `${neg}₩${abs.toLocaleString('en-US')}`;
+  }
   if (abs >= 10000 && abs % 10000 === 0) {
     const man = abs / 10000;
     if (man >= 10000 && man % 10000 === 0) return `${neg}${(man / 10000).toLocaleString('ko-KR')}억원`;
@@ -166,7 +173,38 @@ export function sumCash(items) {
 
 // ---------- 평가 ----------
 
-export function evaluate(rules, rawInput) {
+const MSG = {
+  ko: {
+    report_deadline: '피해신고 마감 (재난 종료일 + 10일)', unpriced: ' + 금액 미확정 항목',
+    disclaimer: '이 결과는 법령·고시 기준의 "해당 가능성"이며 심사 결과가 아닙니다. 최종 판단은 관할 시·군·구.',
+    t_report: (when) => `피해 사진을 찍은 뒤 읍·면·동 주민센터에 자연재난 피해신고서 제출${when}`,
+    t_when_over: (n) => ` (마감 ${n}일 경과 — 부득이한 사유 소명 시 연장 가능, §9⑥⑦)`, t_when_today: ' (오늘 마감)', t_when_d: (d, due) => ` (D-${d}, ${due}까지)`,
+    t_report_noend: '복구 전에 피해 사진·영상을 확보하고, 재난 종료일부터 10일 이내 읍·면·동 주민센터에 피해신고',
+    t_auto_pay: (list, total) => `신고·조사 후 자동 지급 예상: ${list} (합계 ${total})`, t_survey: (list) => `조사 결과에 따라 산정: ${list}`,
+    t_apply: (list, more) => `피해사실확인서 발급 후 직접 신청: ${list}${more ? ` 외 ${more}건` : ''}`, t_auto: (list) => `별도 신청 없이 적용 예정(누락 시 확인서로 신청): ${list}`,
+    t_shelter: (name) => `가까운 ${name} 확인 (국민안전24·안전디딤돌 앱)`, t_benefit: (list) => `주민센터 신청: ${list}`,
+    t_illness: '온열·한랭질환 의심 시 즉시 119. 독거 어르신·장애인은 안부확인 서비스 연계', t_pick: '피해 유형을 선택하면 받을 수 있는 지원과 마감일이 계산됩니다',
+    t_ins: (label, amt) => `다음 재난 대비: ${label} (${amt})`,
+    fillers: ['관할 시·군·구 재난부서 또는 국민안전24에서 최신 공고 확인', '복구 영수증·견적서는 버리지 말고 보관 (세금 감면·보험 청구에 필요)'],
+    shelter_strip: ' 이용',
+  },
+  en: {
+    report_deadline: 'Damage-report deadline (disaster end + 10 days)', unpriced: ' + items without a fixed amount',
+    disclaimer: 'This shows "possible eligibility" under current law and notices, not a decision. The municipality decides.',
+    t_report: (when) => `Photograph the damage, then file the natural-disaster damage report at the community center${when}`,
+    t_when_over: (n) => ` (deadline passed ${n} days ago — extension possible with a valid reason, §9⑥⑦)`, t_when_today: ' (due today)', t_when_d: (d, due) => ` (D-${d}, by ${due})`,
+    t_report_noend: 'Before cleaning up, take photos/video; file the damage report at the community center within 10 days of the disaster end',
+    t_auto_pay: (list, total) => `Expected automatic payment after report and survey: ${list} (total ${total})`, t_survey: (list) => `Assessed after survey: ${list}`,
+    t_apply: (list, more) => `Apply yourself after getting the damage confirmation: ${list}${more ? ` and ${more} more` : ''}`, t_auto: (list) => `Applied without a separate request (use the confirmation if missed): ${list}`,
+    t_shelter: (name) => `Find the nearest ${name} (SafeKorea / Safety Didimdol app)`, t_benefit: (list) => `Apply at the community center: ${list}`,
+    t_illness: 'Suspected heat/cold illness: call 119 immediately. Elderly living alone and disabled people: welfare-check service.', t_pick: 'Choose a damage type to see support and deadlines',
+    t_ins: (label, amt) => `Before the next disaster: ${label} (${amt})`,
+    fillers: ['Check the latest notices at your city/county/district disaster division or SafeKorea', 'Keep recovery receipts and estimates (needed for tax relief and insurance claims)'],
+    shelter_strip: 'Use a ',
+  },
+};
+export function evaluate(rules, rawInput, lang = 'ko') {
+  const M = MSG[lang] || MSG.ko; setRulesLang(lang);
   const input = normalizeInput(rawInput);
   const matched = [];
   for (const r of rules.all || []) {
@@ -203,7 +241,7 @@ export function evaluate(rules, rawInput) {
   const reportIds = matched.filter((r) => r.deadline_days_after_event != null).map((r) => r.id);
   if (reportIds.length) {
     const days = Math.min(...matched.filter((r) => r.deadline_days_after_event != null).map((r) => r.deadline_days_after_event));
-    pushDeadline('피해신고 마감 (재난 종료일 + 10일)', days, reportIds);
+    pushDeadline(M.report_deadline, days, reportIds);
   }
   deadlines.sort((a, b) => (a.days_left ?? 1e9) - (b.days_left ?? 1e9));
 
@@ -222,65 +260,62 @@ export function evaluate(rules, rawInput) {
     };
   });
 
-  const todo = buildTodo({ input, cash, relief_fund, auto, apply, insurance, heat_cold, deadlines, total_cash_krw });
+  const todo = buildTodo({ input, cash, relief_fund, auto, apply, insurance, heat_cold, deadlines, total_cash_krw, M });
 
   return {
     input,
     cash, relief_fund, auto, apply, info, insurance, heat_cold,
     matched_ids: matched.map((r) => r.id),
     total_cash_krw,
-    total_cash_text: formatKRW(total_cash_krw) + (total_cash_has_unpriced ? ' + 금액 미확정 항목' : ''),
+    total_cash_text: formatKRW(total_cash_krw) + (total_cash_has_unpriced ? M.unpriced : ''),
     total_cash_has_unpriced,
     deadlines,
     todo,
     timeline,
-    disclaimer: '이 결과는 법령·고시 기준의 "해당 가능성"이며 심사 결과가 아닙니다. 최종 판단은 관할 시·군·구.',
+    disclaimer: M.disclaimer,
   };
 }
 
 /** 지금 할 일 3가지 — 상황별 우선순위. */
-export function buildTodo({ input, cash, relief_fund, auto, apply, insurance, heat_cold, deadlines, total_cash_krw }) {
+export function buildTodo({ input, cash, relief_fund, auto, apply, insurance, heat_cold, deadlines, total_cash_krw, M = MSG.ko }) {
   const items = [];
   const hasDamage = input.damage.length > 0 && !(input.damage.length === 1 && ['heat', 'cold'].includes(input.damage[0]));
-  const report = deadlines.find((d) => d.label.startsWith('피해신고'));
+  const report = deadlines.find((d) => d.label === M.report_deadline);
 
   if (hasDamage) {
     if (report) {
       const dl = report.days_left;
-      const when = dl == null ? '' : dl < 0 ? ` (마감 ${-dl}일 경과 — 부득이한 사유 소명 시 연장 가능, §9⑥⑦)` : dl === 0 ? ' (오늘 마감)' : ` (D-${dl}, ${report.due}까지)`;
-      items.push({ priority: 1, text: `피해 사진을 찍은 뒤 읍·면·동 주민센터에 자연재난 피해신고서 제출${when}`, ref: 'proc.report' });
+      const when = dl == null ? '' : dl < 0 ? M.t_when_over(-dl) : dl === 0 ? M.t_when_today : M.t_when_d(dl, report.due);
+      items.push({ priority: 1, text: M.t_report(when), ref: 'proc.report' });
     } else {
-      items.push({ priority: 1, text: '복구 전에 피해 사진·영상을 확보하고, 재난 종료일부터 10일 이내 읍·면·동 주민센터에 피해신고', ref: 'proc.report' });
+      items.push({ priority: 1, text: M.t_report_noend, ref: 'proc.report' });
     }
     const cashLabels = [...cash, ...relief_fund].filter((r) => r.amount_krw != null).map((r) => `${r.label} ${r.amount_text}`);
     if (cashLabels.length) {
-      items.push({ priority: 2, text: `신고·조사 후 자동 지급 예상: ${cashLabels.slice(0, 3).join(', ')} (합계 ${formatKRW(total_cash_krw)})`, ref: 'proc.payment' });
+      items.push({ priority: 2, text: M.t_auto_pay(cashLabels.slice(0, 3).join(', '), formatKRW(total_cash_krw)), ref: 'proc.payment' });
     } else if (cash.length) {
-      items.push({ priority: 2, text: `조사 결과에 따라 산정: ${cash.map((r) => r.label).slice(0, 2).join(', ')}`, ref: 'proc.survey' });
+      items.push({ priority: 2, text: M.t_survey(cash.map((r) => r.label).slice(0, 2).join(', ')), ref: 'proc.survey' });
     }
     const applyTop = apply.slice(0, 3).map((r) => r.label);
     if (applyTop.length) {
-      items.push({ priority: 3, text: `피해사실확인서 발급 후 직접 신청: ${applyTop.join(', ')}${apply.length > 3 ? ` 외 ${apply.length - 3}건` : ''}`, ref: 'proc.certificate' });
+      items.push({ priority: 3, text: M.t_apply(applyTop.join(', '), apply.length > 3 ? apply.length - 3 : 0), ref: 'proc.certificate' });
     } else if (auto.length) {
-      items.push({ priority: 3, text: `별도 신청 없이 적용 예정(누락 시 확인서로 신청): ${auto.slice(0, 3).map((r) => r.label).join(', ')}`, ref: 'proc.certificate' });
+      items.push({ priority: 3, text: M.t_auto(auto.slice(0, 3).map((r) => r.label).join(', ')), ref: 'proc.certificate' });
     }
   } else if (['heat', 'cold'].includes(input.hazard) || input.damage.some((d) => ['heat', 'cold'].includes(d))) {
     const shelter = heat_cold.find((r) => r.id.endsWith('_shelter'));
-    if (shelter) items.push({ priority: 1, text: `가까운 ${shelter.label.replace(' 이용', '')} 확인 (국민안전24·안전디딤돌 앱)`, ref: shelter.id });
+    if (shelter) items.push({ priority: 1, text: M.t_shelter(shelter.label.replace(M.shelter_strip, '')), ref: shelter.id });
     const benefit = [...apply].filter((r) => r.group === 'heat_cold' || r.id === 'indirect.emergency_welfare');
-    if (benefit.length) items.push({ priority: 2, text: `주민센터 신청: ${benefit.slice(0, 2).map((r) => r.label).join(', ')}`, ref: benefit[0].id });
-    items.push({ priority: 3, text: '온열·한랭질환 의심 시 즉시 119. 독거 어르신·장애인은 안부확인 서비스 연계', ref: 'heat_cold.heat_illness_care' });
+    if (benefit.length) items.push({ priority: 2, text: M.t_benefit(benefit.slice(0, 2).map((r) => r.label).join(', ')), ref: benefit[0].id });
+    items.push({ priority: 3, text: M.t_illness, ref: 'heat_cold.heat_illness_care' });
   } else {
-    items.push({ priority: 1, text: '피해 유형을 선택하면 받을 수 있는 지원과 마감일이 계산됩니다', ref: null });
+    items.push({ priority: 1, text: M.t_pick, ref: null });
   }
 
   if (items.length < 3 && insurance.length) {
-    items.push({ priority: 3, text: `다음 재난 대비: ${insurance[0].label} (${insurance[0].amount_text})`, ref: insurance[0].id });
+    items.push({ priority: 3, text: M.t_ins(insurance[0].label, insurance[0].amount_text), ref: insurance[0].id });
   }
-  const fillers = [
-    '관할 시·군·구 재난부서 또는 국민안전24에서 최신 공고 확인',
-    '복구 영수증·견적서는 버리지 말고 보관 (세금 감면·보험 청구에 필요)',
-  ];
+  const fillers = M.fillers;
   for (const f of fillers) if (items.length < 3) items.push({ priority: 3, text: f, ref: null });
   return items.slice(0, 3);
 }

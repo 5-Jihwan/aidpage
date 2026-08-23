@@ -1,0 +1,579 @@
+{
+ "meta": {
+  "title": "English overlay for rules/*.json (label · amount_text · summary · where · docs). Legal citations in `basis` stay in Korean (article numbers).",
+  "asof": "2026-08-23"
+ },
+ "rules": {
+  "cash.house_flood": {
+   "label": "Disaster relief payment — flooded home",
+   "amount_text": "₩3.5M per household",
+   "summary": "Flat payment per household whose residence was flooded above floor level. Covers household goods.",
+   "where": "Eup/myeon/dong community center (mayor/county/district office)",
+   "docs": [
+    "Natural-disaster damage report (Form 1)",
+    "Photos of damage",
+    "ID",
+    "Resident registration (can be pulled by the office)"
+   ]
+  },
+  "cash.house_full": {
+   "label": "Disaster relief payment — home destroyed/washed away",
+   "amount_text": "Grant ₩20M–36M (by floor area) + loan 60–70%",
+   "summary": "For a destroyed or washed-away home: 30% of recovery cost as a grant, 60–70% as a loan, remainder self-paid.",
+   "where": "Community center (mayor/county/district office)",
+   "docs": [
+    "Damage report",
+    "Photos",
+    "Building register or proof of ownership",
+    "ID"
+   ]
+  },
+  "cash.house_half": {
+   "label": "Disaster relief payment — home half-destroyed",
+   "amount_text": "Grant ₩10M–18M (50% of full) + loan",
+   "summary": "Half-destroyed home: 50% of the full-destruction base with the same split (30% grant · loan · self).",
+   "where": "Community center",
+   "docs": [
+    "Damage report",
+    "Photos",
+    "Building register or proof of ownership",
+    "ID"
+   ]
+  },
+  "cash.tenant_subsidy": {
+   "label": "Tenant subsidy — destroyed/half-destroyed home",
+   "amount_text": "Up to ₩6M per household (deposit or 6 months' rent)",
+   "summary": "Tenants of a destroyed, half-destroyed or washed-away home receive a move-in deposit or ~6 months' rent.",
+   "where": "Community center",
+   "docs": [
+    "Damage report",
+    "Lease contract",
+    "Resident registration",
+    "ID"
+   ]
+  },
+  "cash.small_biz_stability": {
+   "label": "Small-business stabilization payment",
+   "amount_text": "₩3M per business",
+   "summary": "Flat payment per flooded/damaged small business. Business registration required.",
+   "where": "Community center",
+   "docs": [
+    "Damage report",
+    "Business registration",
+    "Photos",
+    "ID"
+   ]
+  },
+  "cash.small_biz_facility": {
+   "label": "Small-business facility recovery support",
+   "amount_text": "Building: 30% grant · 60% loan · 10% self / Machinery: 35% · 55% · 10% (unit costs unconfirmed)",
+   "summary": "New from 2025-11-27. Recovery cost for business buildings and machinery split into grant, loan and self-payment.",
+   "where": "City/county/district small-business division / community center",
+   "docs": [
+    "Damage report",
+    "Business registration",
+    "Facility photos and estimates",
+    "Building register"
+   ]
+  },
+  "cash.relief_living": {
+   "label": "Living-stability relief (meals & living costs at temporary housing)",
+   "amount_text": "Daily meal and living allowance by household size (current rates unconfirmed)",
+   "summary": "For displaced households staying in temporary housing: daily meal and living allowance by number of members.",
+   "where": "Community center / municipality running the shelter",
+   "docs": [
+    "Displaced-person registration (by the municipality)",
+    "Resident registration"
+   ]
+  },
+  "cash.death_missing": {
+   "label": "Condolence payment — death or missing",
+   "amount_text": "Head of household ₩20M / member ₩10M (as reported)",
+   "summary": "Paid to the family when a natural disaster causes death or disappearance.",
+   "where": "Community center",
+   "docs": [
+    "Damage report",
+    "Death certificate or missing-person report",
+    "Family relation certificate"
+   ]
+  },
+  "cash.injury": {
+   "label": "Condolence payment — injury",
+   "amount_text": "Head of household ₩10M / member ₩5M (as reported)",
+   "summary": "Paid for disaster injuries that meet a disability grade.",
+   "where": "Community center",
+   "docs": [
+    "Damage report",
+    "Medical certificate (disability grade)",
+    "ID"
+   ]
+  },
+  "cash.farm_recovery": {
+   "label": "Crop, farmland and farm-facility recovery cost",
+   "amount_text": "Recovery unit cost by type/area (MAFRA notice) × share — not computed",
+   "summary": "Recovery cost (grant + loan + self) for washed-out/buried farmland, crop loss, greenhouses and barns.",
+   "where": "Community center / city-county agriculture division",
+   "docs": [
+    "Damage report",
+    "Farmland ledger / farm-business registration",
+    "Photos"
+   ]
+  },
+  "heat_cold.heat_shelter": {
+   "label": "Use a cooling center",
+   "amount_text": "Free",
+   "summary": "During heat advisories anyone can use designated cooling centers (senior centers, community centers, banks). Night/holiday centers are designated separately.",
+   "where": "Find the nearest on SafeKorea / Safety Didimdol app / community center",
+   "docs": []
+  },
+  "heat_cold.cold_shelter": {
+   "label": "Use a warming center",
+   "amount_text": "Free",
+   "summary": "During cold-wave advisories designated warming centers are free. Emergency warming shelters (stations, terminals) are separate.",
+   "where": "SafeKorea / Safety Didimdol app / community center",
+   "docs": []
+  },
+  "heat_cold.energy_voucher": {
+   "label": "Energy voucher (summer & winter)",
+   "amount_text": "Annual amount by household size (2026 rates unconfirmed; 2025: 1 person ~₩295K to 4+ ~₩701K, combined)",
+   "summary": "Cooling (electricity credit) and heating (fuel) vouchers for basic-livelihood households that include elderly, disabled, infants, pregnant women or serious illness.",
+   "where": "Community center / Bokjiro online (bokjiro.go.kr)",
+   "docs": [
+    "Energy voucher application",
+    "ID"
+   ]
+  },
+  "heat_cold.emergency_welfare_heat_cold": {
+   "label": "Emergency welfare (heat/cold crisis households)",
+   "amount_text": "Living support by household size / monthly fuel allowance (2026 rates unconfirmed)",
+   "summary": "Emergency living, fuel and medical support for households in crisis due to heat or cold; linked to appliance support.",
+   "where": "Community center / Health & Welfare call center 129",
+   "docs": [
+    "Emergency support application",
+    "ID"
+   ]
+  },
+  "heat_cold.heat_illness_care": {
+   "label": "Heat/cold illness response & care for vulnerable people",
+   "amount_text": "Service (free)",
+   "summary": "During advisories: welfare check calls and home visits for elderly living alone and disabled people; ER surveillance.",
+   "where": "Public health center / elderly care service provider / 119",
+   "docs": []
+  },
+  "heat_cold.cooling_heating_device": {
+   "label": "Cooling/heating appliance support for vulnerable households",
+   "amount_text": "In-kind (varies by program)",
+   "summary": "Fans, air conditioners, heaters and insulation for low-income households; municipal and Korea Energy Foundation programs.",
+   "where": "Community center / Korea Energy Foundation (energy-efficiency program)",
+   "docs": [
+    "ID",
+    "Proof of basic-livelihood or near-poor status"
+   ]
+  },
+  "relief_fund.house_full": {
+   "label": "Relief fund — home destroyed/washed away",
+   "amount_text": "₩10M per household",
+   "summary": "Donation-fund payment for households whose home was destroyed. Paid in addition to the government relief payment.",
+   "where": "Community center (report → municipality tally → association pays)",
+   "docs": [
+    "Damage confirmation (municipal survey)",
+    "Bank account in your name"
+   ]
+  },
+  "relief_fund.house_half": {
+   "label": "Relief fund — home half-destroyed",
+   "amount_text": "₩5M per household",
+   "summary": "Donation-fund payment for a half-destroyed residence.",
+   "where": "Community center",
+   "docs": [
+    "Damage confirmation",
+    "Bank account in your name"
+   ]
+  },
+  "relief_fund.house_flood": {
+   "label": "Relief fund — flooded home",
+   "amount_text": "₩2M per household",
+   "summary": "Donation-fund payment for a flooded residence. Tenants included.",
+   "where": "Community center",
+   "docs": [
+    "Damage confirmation",
+    "Bank account in your name"
+   ]
+  },
+  "relief_fund.house_minor_quake": {
+   "label": "Relief fund — minor earthquake damage",
+   "amount_text": "₩2M per household",
+   "summary": "Donation-fund payment for minor earthquake damage to a home.",
+   "where": "Community center",
+   "docs": [
+    "Damage confirmation",
+    "Bank account in your name"
+   ]
+  },
+  "relief_fund.death": {
+   "label": "Relief fund — death or missing",
+   "amount_text": "₩20M per person",
+   "summary": "Paid to the family of a person killed or missing in a natural disaster.",
+   "where": "Community center",
+   "docs": [
+    "Damage confirmation",
+    "Family relation certificate",
+    "Death certificate"
+   ]
+  },
+  "relief_fund.injury_severe": {
+   "label": "Relief fund — injury (disability grade 1–7)",
+   "amount_text": "₩10M per person",
+   "summary": "For injuries rated disability grade 1–7.",
+   "where": "Community center",
+   "docs": [
+    "Damage confirmation",
+    "Disability certificate"
+   ]
+  },
+  "relief_fund.injury_minor": {
+   "label": "Relief fund — injury (disability grade 8–14)",
+   "amount_text": "₩5M per person",
+   "summary": "For injuries rated disability grade 8–14.",
+   "where": "Community center",
+   "docs": [
+    "Damage confirmation",
+    "Disability certificate"
+   ]
+  },
+  "indirect.nhis_premium": {
+   "label": "Health-insurance premium reduction",
+   "amount_text": "30–50% off × 3 months",
+   "summary": "Premiums reduced 30–50% (by damage level) for 3 months from the month after the disaster.",
+   "where": "National Health Insurance Service (municipality sends the victim list)",
+   "docs": [
+    "Damage confirmation (usually sent by the municipality)"
+   ]
+  },
+  "indirect.nhis_late_fee": {
+   "label": "Health-insurance late-fee waiver",
+   "amount_text": "Late fees waived 6 months",
+   "summary": "No late fees on health-insurance premiums for 6 months.",
+   "where": "National Health Insurance Service",
+   "docs": [
+    "Damage confirmation (usually sent by the municipality)"
+   ]
+  },
+  "indirect.nps_exemption": {
+   "label": "National-pension contribution exemption",
+   "amount_text": "Up to 12 months (self-employed/regional members)",
+   "summary": "Regional members may apply for up to 12 months' exemption citing disaster damage.",
+   "where": "National Pension Service branch (call 1355)",
+   "docs": [
+    "Damage confirmation",
+    "Exemption application"
+   ]
+  },
+  "indirect.electricity": {
+   "label": "Electricity bill reduction",
+   "amount_text": "Destroyed: 1 month free / damaged: 1 month 50% off",
+   "summary": "Destroyed or washed-away home: one month free; half-destroyed or flooded: one month at 50%.",
+   "where": "KEPCO (call 123)",
+   "docs": [
+    "Damage confirmation (usually sent by the municipality; submit yourself if missing)"
+   ]
+  },
+  "indirect.telecom": {
+   "label": "Telecom bill reduction (mobile · internet)",
+   "amount_text": "Mobile: one line up to ₩12,500 / VoIP 100% / broadband 50%",
+   "summary": "Per household: one mobile line up to ₩12,500 off, VoIP 100% and broadband 50% off for one month.",
+   "where": "Your carrier's customer center (SKT 114 / KT 100 / LGU+ 101)",
+   "docs": [
+    "Damage confirmation",
+    "ID"
+   ]
+  },
+  "indirect.citygas": {
+   "label": "City-gas bill reduction",
+   "amount_text": "Cooking ₩1,680 / cooking+heating: destroyed ₩12,400 · half ₩6,200 (one month)",
+   "summary": "Flat one-month reduction by usage type and damage level.",
+   "where": "Your city-gas company",
+   "docs": [
+    "Damage confirmation (usually sent by the municipality)"
+   ]
+  },
+  "indirect.district_heating": {
+   "label": "District-heating bill reduction",
+   "amount_text": "One month's basic charge (level unconfirmed)",
+   "summary": "Basic-charge reduction for district-heating households by damage level.",
+   "where": "Korea District Heating Corp. or your heat supplier",
+   "docs": [
+    "Damage confirmation"
+   ]
+  },
+  "indirect.local_tax": {
+   "label": "Local-tax reduction & deferral (property, resident, vehicle tax)",
+   "amount_text": "Reduction + deferral (up to 1 year; 2 years in special disaster zones)",
+   "summary": "Reduction and payment deferral on local taxes for damaged property; up to 2 years in special disaster zones.",
+   "where": "City/county/district tax division / Wetax (wetax.go.kr)",
+   "docs": [
+    "Damage confirmation",
+    "Reduction/deferral application"
+   ]
+  },
+  "indirect.national_tax": {
+   "label": "National-tax deadline extension & deferral",
+   "amount_text": "Extension 9 months–1 year; up to 2 years in special disaster zones",
+   "summary": "Extended filing/payment deadlines for VAT, income tax etc., and deferral of collection.",
+   "where": "Your tax office / Hometax / tax helpline 126",
+   "docs": [
+    "Damage confirmation",
+    "Extension application"
+   ]
+  },
+  "indirect.highschool_tuition": {
+   "label": "High-school tuition reduction",
+   "amount_text": "Up to ₩1M for 6 months",
+   "summary": "Tuition reduced for high-school students of affected households for 6 months, up to ₩1M.",
+   "where": "School administration office / provincial education office",
+   "docs": [
+    "Damage confirmation",
+    "Enrollment certificate"
+   ]
+  },
+  "indirect.sme_guarantee": {
+   "label": "Disaster special guarantee for SMEs & small businesses (lower fee)",
+   "amount_text": "Guarantee fee 0.5% → 0.1%",
+   "summary": "Special guarantee with fee 0.1% and 100% coverage for disaster-hit small businesses.",
+   "where": "Regional credit guarantee foundation / KODIT / SEMAS",
+   "docs": [
+    "Damage confirmation",
+    "Business registration",
+    "Guarantee application"
+   ]
+  },
+  "indirect.sme_emergency_loan": {
+   "label": "Emergency business-stability loan for small businesses",
+   "amount_text": "Limit and rate unconfirmed (annual notice)",
+   "summary": "Low-interest direct loan from SEMAS policy funds for disaster-hit small businesses.",
+   "where": "SEMAS regional center (1357)",
+   "docs": [
+    "Damage confirmation",
+    "Business registration"
+   ]
+  },
+  "indirect.military_postpone": {
+   "label": "Postponement of military-service dates",
+   "amount_text": "Dates postponed",
+   "summary": "Enlistment/call-up dates postponed for members of affected households in special disaster zones.",
+   "where": "Regional Military Manpower office (1588-9090)",
+   "docs": [
+    "Damage confirmation",
+    "Postponement request"
+   ]
+  },
+  "indirect.reserve_training_exempt": {
+   "label": "Reserve-forces / civil-defense training exemption",
+   "amount_text": "Exempt or deferred",
+   "summary": "Training exempted or deferred for members of affected households in special disaster zones.",
+   "where": "Reserve unit / community center (civil defense)",
+   "docs": [
+    "Damage confirmation"
+   ]
+  },
+  "indirect.tv_license": {
+   "label": "TV licence fee exemption",
+   "amount_text": "Fee exempt (period unconfirmed)",
+   "summary": "TV licence fee exemption for households whose home was destroyed.",
+   "where": "KBS fee call center (1588-1801) / KEPCO",
+   "docs": [
+    "Damage confirmation"
+   ]
+  },
+  "indirect.water_sewage": {
+   "label": "Water & sewage bill reduction",
+   "amount_text": "Varies by municipality (ordinance)",
+   "summary": "Water/sewage bills reduced for a period under municipal ordinance.",
+   "where": "City/county/district waterworks office",
+   "docs": [
+    "Damage confirmation"
+   ]
+  },
+  "indirect.farm_loan_relief": {
+   "label": "Farm policy-loan deferral & interest relief",
+   "amount_text": "Repayment deferred up to 2 years · interest relief (by damage rate)",
+   "summary": "Principal deferral and interest relief on farm policy loans; disaster management loans.",
+   "where": "Local Nonghyup / city-county agriculture division",
+   "docs": [
+    "Damage confirmation",
+    "Farm-business registration"
+   ]
+  },
+  "indirect.student_loan_defer": {
+   "label": "Student-loan repayment deferral",
+   "amount_text": "Deferral (period unconfirmed)",
+   "summary": "KOSAF student-loan deferral and special support for students/graduates of affected households.",
+   "where": "Korea Student Aid Foundation (1599-2000)",
+   "docs": [
+    "Damage confirmation",
+    "Family relation certificate"
+   ]
+  },
+  "indirect.emergency_welfare": {
+   "label": "Emergency welfare — living support",
+   "amount_text": "By household size (2026 rates unconfirmed; 2025: ~₩1.87M/month for 4)",
+   "summary": "Living, housing and medical support under the Emergency Welfare Act when a disaster makes living difficult (income/asset tests apply).",
+   "where": "Community center / Health & Welfare call center 129",
+   "docs": [
+    "Emergency support application",
+    "Damage confirmation",
+    "Income/asset check (pulled by the office)"
+   ]
+  },
+  "indirect.temp_housing": {
+   "label": "Temporary housing for displaced households (public rental · modular units)",
+   "amount_text": "Temporary housing provided (max stay varies)",
+   "summary": "LH public rental units or modular housing for households whose home was destroyed or half-destroyed.",
+   "where": "City/county/district disaster division / LH regional office",
+   "docs": [
+    "Damage confirmation",
+    "Resident registration"
+   ]
+  },
+  "indirect.psych_support": {
+   "label": "Disaster mental-health support (free counselling)",
+   "amount_text": "Free counselling",
+   "summary": "Free counselling for victims and families; high-risk cases referred for treatment.",
+   "where": "Provincial disaster mental-health center (Korean Red Cross) / crisis line 1577-0199",
+   "docs": []
+  },
+  "indirect.disaster_victim_center": {
+   "label": "Joint disaster-victim support center (one-stop desk)",
+   "amount_text": "Counselling · intake",
+   "summary": "New from 2026-07-22. A whole-of-government one-stop desk set up on site for large disasters.",
+   "where": "On-site center (announced by MOIS)",
+   "docs": [
+    "ID"
+   ]
+  },
+  "insurance.house_general": {
+   "label": "Storm & earthquake insurance — home (general)",
+   "amount_text": "55%+ of premium subsidized (up to 92% with municipal top-up)",
+   "summary": "The government pays 55% or more of the premium for homeowners and tenants.",
+   "where": "Insurers (DB · Hyundai · Samsung · KB · NH · Meritz · Hanwha) / community center",
+   "docs": [
+    "ID",
+    "Building register or lease contract"
+   ]
+  },
+  "insurance.house_single_parent_near_poor": {
+   "label": "Storm & earthquake insurance — home (single-parent · near-poor)",
+   "amount_text": "77.5%+ subsidized",
+   "summary": "Single-parent and near-poor households get 77.5% or more of the premium.",
+   "where": "Insurers / community center",
+   "docs": [
+    "ID",
+    "Single-parent or near-poor certificate"
+   ]
+  },
+  "insurance.house_basic": {
+   "label": "Storm & earthquake insurance — home (basic livelihood)",
+   "amount_text": "86.5%+ subsidized",
+   "summary": "Basic-livelihood recipients get 86.5% or more of the premium.",
+   "where": "Insurers / community center",
+   "docs": [
+    "ID",
+    "Recipient certificate"
+   ]
+  },
+  "insurance.house_vulnerable_zone_full": {
+   "label": "Storm & earthquake insurance — low-income in hazard-prone areas (full)",
+   "amount_text": "100% of premium",
+   "summary": "Low-income homes in hazard-prone areas (flood traces, landslide-prone, risk improvement districts) are fully subsidized.",
+   "where": "Community center (enrolled by the municipality)",
+   "docs": [
+    "ID",
+    "Recipient / near-poor / single-parent certificate"
+   ]
+  },
+  "insurance.greenhouse": {
+   "label": "Storm & earthquake insurance — greenhouses",
+   "amount_text": "70%+ subsidized",
+   "summary": "70% or more of the premium for agricultural/forestry greenhouses.",
+   "where": "Insurers / NH Nonghyup",
+   "docs": [
+    "ID",
+    "Farm-business registration"
+   ]
+  },
+  "insurance.small_biz": {
+   "label": "Storm & earthquake insurance — small-business shops & factories",
+   "amount_text": "55%+ subsidized (up to 92% with municipal top-up)",
+   "summary": "55% or more of the premium for small-business buildings, facilities and inventory.",
+   "where": "Insurers / SEMAS",
+   "docs": [
+    "Business registration",
+    "ID"
+   ]
+  }
+ },
+ "steps": {
+  "proc.evidence": {
+   "label": "Secure photos and evidence",
+   "summary": "Before cleaning or repairs, photograph the water line, damaged parts, household goods and signage with the date visible. Keep receipts and estimates.",
+   "where": "At the site",
+   "docs": [
+    "Photos/video (water line, goods)",
+    "Recovery receipts and estimates",
+    "Lease or business registration if applicable"
+   ],
+   "typical_days": "Right after – day 1"
+  },
+  "proc.report": {
+   "label": "File the natural-disaster damage report (within 10 days of the disaster end)",
+   "summary": "Submit the damage report (Form 1) to the mayor/county/district office via the community center, or online at SafeKorea.",
+   "where": "Community center / SafeKorea online",
+   "docs": [
+    "Damage report (Form 1)",
+    "ID",
+    "Photos",
+    "Resident registration, income and family certificates are pulled by the office (§9⑤)"
+   ],
+   "typical_days": "D+0 – D+10"
+  },
+  "proc.survey": {
+   "label": "Municipal field survey (damage level)",
+   "summary": "Officials (with experts if needed) visit to confirm flooding / half / full destruction and area, and register it in NDMS.",
+   "where": "At the site",
+   "docs": [
+    "(Show during survey) photos",
+    "Building register",
+    "Lease contract"
+   ],
+   "typical_days": "3–14 days after report"
+  },
+  "proc.certificate": {
+   "label": "Damage confirmation certificate issued",
+   "summary": "Issued by the municipality based on the survey. Common document for indirect support (health insurance, electricity, telecom, tax).",
+   "where": "Community center / Government24",
+   "docs": [
+    "ID"
+   ],
+   "typical_days": "1–7 days after survey"
+  },
+  "proc.payment": {
+   "label": "Relief payment and relief fund paid",
+   "summary": "Paid to your account once the recovery plan is confirmed. The relief fund is paid separately by Hope Bridge from the municipal list. Flat items (e.g. flooding) may be pre-paid.",
+   "where": "Your bank account",
+   "docs": [
+    "Copy of your bankbook (submitted with the report)"
+   ],
+   "typical_days": "2–6 weeks after report (1–2 weeks pre-payment in large disasters)"
+  },
+  "proc.appeal": {
+   "label": "Objection / re-survey request",
+   "summary": "If you disagree with the damage level or exclusion, request a re-survey or file an objection. Administrative appeal or lawsuit within 90 days of notice.",
+   "where": "District disaster division → administrative appeals commission / administrative court",
+   "docs": [
+    "Objection form",
+    "Additional evidence (photos, estimates, expert opinion)"
+   ],
+   "typical_days": "Immediately – 90 days after notice"
+  }
+ }
+}

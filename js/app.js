@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823h';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823h';
-import { getReports, postReport, flagReport } from './api.js?v=20260823h';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823h';
-let loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260823h'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; } catch (e) { console.warn('rules.js not available', e); }
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823i';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823i';
+import { getReports, postReport, flagReport } from './api.js?v=20260823i';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823i';
+let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
+try { const m = await import('./rules.js?v=20260823i'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -42,7 +42,7 @@ async function loadCore() {
   state.sit = sessionStorage.getItem('safepic.sit') || null;
   getJSON('data/ref/psych_centers.json').then(j => { state.psych = j; });
   if (meta) { $('#aboutAdmin').textContent = `${meta.source || ''} ${meta.version || ''}`.trim(); $('#buildDate').textContent = meta.built || ''; }
-  if (loadRules) { try { state.rules = await loadRules('rules/'); } catch (e) { console.warn('rules load failed', e); } }
+  if (loadRules) { try { state.rules = await loadRules('rules/'); state.rulesEn = await getJSON('rules/en.json'); setRulesLang(getLang()); applyRulesLang(); } catch (e) { console.warn('rules load failed', e); } }
 }
 async function ensureEmd() {
   if (state.geo.emd) return state.geo.emd;
@@ -627,7 +627,10 @@ function initPanel() {
   $('#drawerX').addEventListener('click', () => openDrawer(false)); bg.addEventListener('click', () => openDrawer(false));
   addEventListener('keydown', e => { if (e.key === 'Escape') openDrawer(false); });
   $$('.drawer-link[data-tab]').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); openDrawer(false); }));
-  $('#btnPanelToggle').addEventListener('click', () => { p.classList.toggle('is-collapsed'); p.classList.remove('is-tall'); openDrawer(false); setTimeout(() => map && map.resize(), 280); });
+  const togglePanel = () => { p.classList.toggle('is-collapsed'); p.classList.remove('is-tall'); p.style.height = ''; localStorage.setItem('safepic.panelCollapsed', p.classList.contains('is-collapsed') ? '1' : '0'); setTimeout(() => map && map.resize(), 280); };
+  $('#btnPanelToggle').addEventListener('click', () => { togglePanel(); openDrawer(false); });
+  $('#panelTab').addEventListener('click', togglePanel);
+  if (!matchMedia(MQ_MOBILE).matches && localStorage.getItem('safepic.panelCollapsed') === '1') p.classList.add('is-collapsed');
   // bottom sheet (mobile): the sheet follows the finger, then snaps to collapsed / half / tall
   const g = $('.panel-grip'); let y0 = 0, h0 = 0, sheetDrag = false, moved = false;
   const snapTo = cls => { p.classList.remove('is-collapsed', 'is-tall'); if (cls) p.classList.add(cls); p.style.height = ''; setTimeout(() => map && map.resize(), 280); };
@@ -650,7 +653,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823h').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823i').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -687,13 +690,30 @@ function initSize() {
     setTimeout(done, 8000);
   }
 }
+/* rules are authored in Korean; rules/en.json overlays label/amount_text/summary/where/docs when the UI is English */
+const RULE_L10N = ['label', 'amount_text', 'summary', 'where', 'docs'];
+function applyRulesLang() {
+  if (!state.rules || !state.rules.all) return;
+  const en = getLang() === 'en' && state.rulesEn && state.rulesEn.rules;
+  for (const r of state.rules.all) {
+    if (!r._ko) { r._ko = {}; RULE_L10N.forEach(k => { r._ko[k] = r[k]; }); }
+    const o = en && en[r.id];
+    RULE_L10N.forEach(k => { r[k] = o && o[k] != null ? o[k] : r._ko[k]; });
+  }
+  const steps = (state.rules.procedures && state.rules.procedures.steps) || [], enS = getLang() === 'en' && state.rulesEn && state.rulesEn.steps;
+  for (const s of steps) {
+    if (!s._ko) { s._ko = {}; ['label', 'summary', 'where', 'docs', 'typical_days'].forEach(k => { s._ko[k] = s[k]; }); }
+    const o = enS && enS[s.id];
+    ['label', 'summary', 'where', 'docs', 'typical_days'].forEach(k => { s[k] = o && o[k] != null ? o[k] : s._ko[k]; });
+  }
+}
 function initLang() {
   const paint = () => $$('.lang-btn').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
   paint();
   $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, () => {
-    paint(); renderAll(); syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
+    paint(); setRulesLang(getLang()); applyRulesLang(); renderAll(); syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
     if (map && map.getLayer('eastsea-label')) map.setLayoutProperty('eastsea-label', 'text-field', getLang() === 'en' ? 'East Sea' : '동해\nEast Sea');
-    if (state.lastResult) renderResult(state.lastResult.res, state.lastResult.inp);
+    if (state.lastResult && evaluate) { state.lastResult.res = evaluate(state.rules, state.lastResult.inp, getLang()); renderResult(state.lastResult.res, state.lastResult.inp); }
     if ($('#rulesTable').dataset.done) { delete $('#rulesTable').dataset.done; if (state.tab === 'about') renderRulesTable(); }
   })));
 }
@@ -757,7 +777,7 @@ function runResult() {
   const inp = readWizard();
   if (!inp.housing && !inp.damage.length) { alert(t('wiz.need')); return; }
   if (!state.rules || !evaluate) { $('#result').hidden = false; $('#result').innerHTML = `<p>${t('ui.nodata')}</p>`; return; }
-  const res = evaluate(state.rules, inp); state.lastResult = { res, inp };
+  const res = evaluate(state.rules, inp, getLang()); state.lastResult = { res, inp };
   renderResult(res, inp); history.replaceState(null, '', encodeShare(inp));
 }
 /* ⑪ "왜 해당되나": matchRule의 why 토큰 → 사람이 읽는 문구 */

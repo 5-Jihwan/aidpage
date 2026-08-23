@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260824a">
+<link rel="stylesheet" href="css/style.css?v=20260824b">
 </head>
 <body>
 
@@ -94,17 +94,16 @@
           </div>
           <div class="region-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSaveHome"></button><button type="button" class="btn btn-ghost btn-sm" id="btnResetSel" data-i18n="sel.reset">선택 초기화</button></div>
           <div class="level-guide" id="levelGuide"></div>
+          <div class="sit-bar" id="sitBar"></div>
           <div class="risk-line" id="riskLine" hidden></div>
           <div class="todo-card" id="todoCard" hidden></div>
-          <div class="ins-card" id="insCard" hidden></div>
-          <div class="wx-card" id="wxCard"></div>
-          <div class="warn-card" id="warnCard"></div>
-          <div class="kv" id="regionKv"></div>
-          <div class="note" id="regionNote"></div>
-          <div class="near" id="nearBox" hidden></div>
-          <div class="er-card" id="erCard" hidden></div>
-          <div class="reports" id="reportBox" hidden></div>
-          <div class="near" id="gridBox" hidden></div>
+          <section class="sec" data-sec="er"><div class="er-card" id="erCard" hidden></div></section>
+          <section class="sec" data-sec="near"><div class="near" id="nearBox" hidden></div></section>
+          <section class="sec" data-sec="wx"><div class="wx-card" id="wxCard"></div><div class="warn-card" id="warnCard"></div></section>
+          <section class="sec" data-sec="ins"><div class="ins-card" id="insCard" hidden></div></section>
+          <section class="sec" data-sec="rep"><div class="reports" id="reportBox" hidden></div></section>
+          <section class="sec" data-sec="kv"><div class="kv" id="regionKv"></div><div class="note" id="regionNote"></div></section>
+          <section class="sec" data-sec="grid"><div class="near" id="gridBox" hidden></div></section>
           <div class="children" id="regionChildren"></div>
         </div>
       </section>
@@ -234,6 +233,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260824a"></script>
+<script type="module" src="js/app.js?v=20260824b"></script>
 </body>
 </html>

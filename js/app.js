@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824a';
-import { getReports, postReport, flagReport } from './api.js?v=20260824a';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824b';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824b';
+import { getReports, postReport, flagReport } from './api.js?v=20260824b';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824b';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260824a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260824b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -316,7 +316,7 @@ async function syncGrid() {
     `<div class="fine">${t('grid.note')}</div>`;
   for (const el of [box, where]) { if (!el) continue; el.hidden = false; el.innerHTML = `<h3>${t('grid.title')}</h3>` + html; $$('.chip', el).forEach(b => b.addEventListener('click', () => { gridAttr = b.dataset.a; localStorage.setItem('safepic.gridAttr', gridAttr); syncGrid(); })); }
   $('#wherePending').hidden = true;
-  renderCompare();
+  renderCompare(); applyFolds();
 }
 /* ---------- 탭③ 동 2개 비교 (격자 집계) ---------- */
 const CMP_ROWS = [
@@ -407,6 +407,7 @@ async function renderNearest() {
   if (state.emd !== e.code) return;
   box.hidden = false;
   box.innerHTML = `<h3>${t('sh.nearest')} <small class="muted">${useGps ? t('sh.fromGps') : t('sh.fromEmd')}</small></h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() === 'en' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
+  applyFolds();
   $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5, padding: visiblePadding() }); openPopup(x.c, `<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}${x.p.tel ? `<br>📞 <a href="tel:${x.p.tel}">${x.p.tel}</a>` : ''}</small>${routeLinks(x.c[0], x.c[1], x.p.name)}`, { fromPanel: true }); }));
 }
 
@@ -534,7 +535,7 @@ async function renderReports() {
     $$('.rep-flag', list).forEach(b => b.addEventListener('click', async () => { b.disabled = true; const r = await flagReport(sgg, b.dataset.id); b.textContent = r.status === 'ok' ? '✓' : '⚑'; }));
     paintReportMarkers(items);
   };
-  const res = await getReports(sgg); if (state.sgg !== sgg) return;
+  const res = await getReports(sgg); if (state.sgg !== sgg) return; applyFolds();
   if (res.status !== 'ok') { list.innerHTML = `<div class="muted">${t(res.status === 'offline' ? 'rep.offline' : 'rep.err')}</div>`; } else paint(res.items);
   $('#repForm').addEventListener('submit', async e => {
     e.preventDefault(); const f = e.target, btn = f.querySelector('button'); btn.disabled = true;
@@ -587,7 +588,7 @@ function renderRegion() {
   $('#regionPath').textContent = [n.sidoName, state.level !== 'sido' && n.sggName].filter(Boolean).join(' › ');
   $('#regionName').textContent = state.level === 'emd' ? n.emdName : state.level === 'sgg' ? n.sggName : n.sidoName;
   $('#levelGuide').innerHTML = ['sido', 'sgg', 'emd'].map(l => `<span class="${state.level === l ? 'on' : ''}">${t('lv.' + l)}</span>`).join('');
-  renderTodo(); renderInsurance(); renderReports(); renderRiskLine(); renderER();
+  renderTodo(); renderInsurance(); renderReports(); renderRiskLine(); renderER(); renderSitBar(); setTimeout(applyFolds, 0);
   // weather + air
   const wx = $('#wxCard');
   if (state.sgg) {
@@ -703,7 +704,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824b').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -776,17 +777,48 @@ function applyPreset(sit) {
   if (p.housing) { const r = f.querySelector(`input[name=housing][value=${p.housing}]`); if (r) r.checked = true; }
   (p.damage || []).forEach(v => { const c = f.querySelector(`input[name=damage][value=${v}]`); if (c) c.checked = true; });
 }
+/* ---------- 상황 = 필터. 상황이 바뀌면 (1) 자동 시설 (2) 펼칠 카드 (3) 동선이 바뀐다 ---------- */
+const SITS = ['house_flood', 'shop_flood', 'evacuating', 'before_rain', 'injury', 'no_news', 'proxy'];
+const SIT_ICON = { house_flood: '🏠', shop_flood: '🏪', evacuating: '🚨', before_rain: '🌧️', injury: '🩹', no_news: '⏳', proxy: '👥' };
+const SIT_KEY = { house_flood: 'sit.house', shop_flood: 'sit.shop', evacuating: 'sit.evac', before_rain: 'sit.before', injury: 'sit.injury', no_news: 'sit.nonews', proxy: 'sit.proxy' };
+const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
+// 상황별로 펼쳐 두는 카드 (나머지는 제목 한 줄로 접힘). null = 상황 없음
+const OPEN = { null: ['wx', 'near'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], proxy: ['near', 'wx'] };
+function applySituation(sit, navigate) {
+  state.sit = sit; if (sit) sessionStorage.setItem('safepic.sit', sit); else sessionStorage.removeItem('safepic.sit');
+  state._foldOverride = {}; // 상황이 바뀌면 사용자가 손으로 접고 편 기록은 초기화
+  const PP = getProfile();
+  if (AUTO[sit]) { const extra = [...(PP.senior ? ['heat', 'cold'] : []), ...(PP.mob ? ['temp_housing'] : []), ...(PP.child || PP.senior ? ['er'] : [])]; [...AUTO[sit], ...extra].forEach(k => state.shelters.active.add(k)); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
+  if (!navigate) { renderRegion(); return; }
+  if (sit === 'proxy') { $('#wizard').reset(); $('#qProxy').checked = true; setTab('find'); syncWizardLoc(); return; }
+  if (sit === 'evacuating' || sit === 'before_rain') { $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden'); $('#searchInput').focus(); return; }
+  applyPreset(sit); setTab('find'); syncWizardLoc();
+  if (sit === 'no_news') setTimeout(() => $('#wizard').requestSubmit(), 50);
+}
 function initCards() {
-  $$('#sitCards .card').forEach(b => b.addEventListener('click', () => {
-    const sit = b.dataset.sit; state.sit = sit; sessionStorage.setItem('safepic.sit', sit);
-    // situation → facilities that matter right now
-    const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
-    const PP = getProfile(); if (AUTO[sit]) { const extra = [...(PP.senior ? ['heat', 'cold'] : []), ...(PP.mob ? ['temp_housing'] : []), ...(PP.child || PP.senior ? ['er'] : [])]; [...AUTO[sit], ...extra].forEach(k => state.shelters.active.add(k)); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
-    if (sit === 'proxy') { $('#wizard').reset(); $('#qProxy').checked = true; setTab('find'); syncWizardLoc(); return; }
-    if (sit === 'evacuating' || sit === 'before_rain') { $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden'); $('#searchInput').focus(); return; }
-    applyPreset(sit); setTab('find'); syncWizardLoc();
-    if (sit === 'no_news') setTimeout(() => $('#wizard').requestSubmit(), 50);
-  }));
+  $$('#sitCards .card').forEach(b => b.addEventListener('click', () => applySituation(b.dataset.sit, true)));
+}
+/* 상황 바: 지금 고른 상황을 보여주고 한 번에 바꾼다 */
+function renderSitBar() {
+  const bar = $('#sitBar'); if (!bar) return;
+  bar.innerHTML = `<span class="sit-lbl">${t('sit.now')}</span>` + SITS.map(s => `<button type="button" class="sit-chip ${state.sit === s ? 'is-on' : ''}" data-sit="${s}">${SIT_ICON[s]} ${t(SIT_KEY[s])}</button>`).join('') + (state.sit ? `<button type="button" class="sit-chip sit-clear" data-sit="">✕</button>` : '');
+  $$('.sit-chip', bar).forEach(b => b.addEventListener('click', () => applySituation(b.dataset.sit || null, false)));
+  const on = bar.querySelector('.sit-chip.is-on'); if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+/* 카드 접기: 상황별 기본 + 사용자 수동 토글(상황 바뀔 때까지 유지) */
+const SEC_LABEL = { er: 'sec.er', near: 'sec.near', wx: 'sec.wx', ins: 'sec.ins', rep: 'sec.rep', kv: 'sec.kv', grid: 'sec.grid' };
+function applyFolds() {
+  const open = new Set(OPEN[state.sit || 'null'] || OPEN.null), ov = state._foldOverride || {};
+  $$('.sec').forEach(sec => {
+    const id = sec.dataset.sec;
+    const hasContent = [...sec.children].some(c => !c.classList.contains('sec-head') && !c.hidden && c.innerHTML.trim());
+    sec.classList.toggle('is-empty', !hasContent);
+    let head = sec.querySelector(':scope > .sec-head');
+    if (!head) { head = document.createElement('button'); head.type = 'button'; head.className = 'sec-head'; sec.prepend(head); head.addEventListener('click', () => { state._foldOverride = state._foldOverride || {}; state._foldOverride[id] = !sec.classList.contains('is-folded'); applyFolds(); }); }
+    head.innerHTML = `<span>${t(SEC_LABEL[id])}</span><span class="sec-chev">▾</span>`;
+    const folded = id in ov ? ov[id] : !open.has(id);
+    sec.classList.toggle('is-folded', folded);
+  });
 }
 
 /* ---------- wizard ---------- */

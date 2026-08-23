@@ -16,6 +16,7 @@ export async function hasGrid(sgg) {
   if (cache.has(sgg)) return !!cache.get(sgg);
   try { let r = await fetch(`data/grid/${sgg}.geojson`, { cache: 'force-cache' }); if (!r.ok) r = await fetch(`data/grid/${sgg}.geojson`, { cache: 'reload' }); const fc = r.ok ? await r.json() : null; cache.set(sgg, fc); return !!fc; } catch { cache.set(sgg, null); return false; }
 }
+export function meta(sgg) { const fc = cache.get(sgg); return fc ? (fc.meta || {}) : {}; }
 export function available(sgg) {
   const fc = cache.get(sgg); if (!fc) return [];
   return ATTRS.filter(a => fc.features.some(f => f.properties[a.id] != null));

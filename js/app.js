@@ -1,6 +1,6 @@
 // SafePic — app.js (ES module, no build step)
 import { t, getLang, setLang, applyStatic } from './i18n.js';
-import { initGrid, hasGrid, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js';
+import { initGrid, hasGrid, meta as gridMeta, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js';
 import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js';
 let loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; } catch (e) { console.warn('rules.js not available', e); }
@@ -126,6 +126,9 @@ function visiblePadding() {
   const pw = p.classList.contains('is-collapsed') ? 0 : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 32;
   return { top: 70, bottom: 40, left: pw, right: 170 };
 }
+/* 데이터 출처·기준일 배지 (시설·격자·날씨 공통 형식) */
+const SRC_NAME = { safekorea: '국민안전24', osm: 'OpenStreetMap', localdata: '지방행정인허가데이터', datago_std: '공공데이터포털 표준데이터' };
+function srcBadge(src, asof) { const k = Object.keys(SRC_NAME).find(x => String(src || '').startsWith(x)); const name = k ? SRC_NAME[k] : (src || ''); return (name || asof) ? `<div class="src-badge">${asof ? `${t('badge.asof')} ${asof}` : ''}${asof && name ? ' · ' : ''}${name}</div>` : ''; }
 /* 길찾기 딥링크 (키 불필요): 카카오맵 · 구글 · 애플 */
 function routeLinks(lon, lat, name) {
   const n = encodeURIComponent(name || 'SafePic');
@@ -151,7 +154,7 @@ function openPopup(lngLat, html, opts = {}) {
   return pop;
 }
 function addAdminLayers() {
-  map.openPopup = openPopup; map.routeLinks = routeLinks;
+  map.openPopup = openPopup; map.routeLinks = routeLinks; map.srcBadge = srcBadge;
   const empty = { type: 'FeatureCollection', features: [] };
   map.addSource('sido', { type: 'geojson', data: state.geo.sido || empty, promoteId: 'code' });
   map.addSource('sgg', { type: 'geojson', data: state.geo.sgg || empty, promoteId: 'code' });
@@ -226,8 +229,18 @@ async function selectEmd(code) {
   await ensureEmd(); setLevelFilters();
   const fs = featuresWhere(state.geo.emd, 'code', code); if (fs.length) fitTo(fs); else map.flyTo({ center: [e.lon, e.lat], zoom: 13 });
   if (map.getSource('emd')) { state.geo.emd.features.forEach(f => map.setFeatureState({ source: 'emd', id: f.properties.code }, { sel: false })); map.setFeatureState({ source: 'emd', id: String(code) }, { sel: true }); }
+  pushRecent(String(code));
   renderAll(); syncWizardLoc();
   if (matchMedia('(max-width:900px)').matches) { $('#panel').classList.remove('is-collapsed'); }
+}
+/* 최근 본 동네 3개 (저장한 내 동네 제외) */
+function pushRecent(code) { const r = JSON.parse(localStorage.getItem('safepic.recent') || '[]').filter(c => c !== code); r.unshift(code); localStorage.setItem('safepic.recent', JSON.stringify(r.slice(0, 4))); }
+function renderRecent() {
+  const row = $('#recentRow'); if (!row) return;
+  const home = getHome(), list = JSON.parse(localStorage.getItem('safepic.recent') || '[]').filter(c => c !== home).map(c => state.idx.byEmd.get(c)).filter(Boolean).slice(0, 3);
+  row.hidden = !list.length; if (!list.length) return;
+  row.innerHTML = `<span class="muted">${t('recent.title')}</span>` + list.map(e => `<button type="button" class="chip" data-c="${e.code}">${e.sgg_name} ${e.name}</button>`).join('');
+  $$('button[data-c]', row).forEach(b => b.addEventListener('click', () => selectEmd(b.dataset.c)));
 }
 function resetNation() {
   Object.assign(state, { level: 'nation', sido: null, sgg: null, emd: null });
@@ -237,6 +250,7 @@ function renderAll() { renderCrumb(); renderRegion(); renderLive(); syncShelterL
 /* ---------- saved home (localStorage only) ---------- */
 const getHome = () => localStorage.getItem('safepic.home');
 function renderHome() {
+  renderRecent();
   const h = getHome(), e = h && state.idx.byEmd.get(h), row = $('#homeRow');
   if (row) { row.hidden = !e; if (e) $('#btnGoHome').textContent = t('home.go', { name: `${e.sgg_name} ${e.name}` }); }
   const sb = $('#btnSaveHome'); if (sb) { const on = state.emd && state.emd === h; sb.textContent = on ? t('home.saved') : t('home.save'); sb.classList.toggle('is-on', !!on); sb.hidden = state.level !== 'emd'; }
@@ -254,6 +268,8 @@ async function syncGrid() {
   if (!state.sgg || !(await hasGrid(state.sgg))) { hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; return; }
   const attrs = gridAttrs(state.sgg); if (!attrs.some(a => a.id === gridAttr)) gridAttr = attrs[0] && attrs[0].id;
   const leg = showGrid(state.sgg, gridAttr);
+  state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('') } : null;
+  renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []);
   const html = `<div class="grid-attrs">${attrs.map(a => `<button type="button" class="chip ${a.id === gridAttr ? 'is-on' : ''}" data-a="${a.id}">${getLang() === 'en' ? a.en : a.ko}</button>`).join('')}</div>` +
     (leg ? `<div class="legend">${leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('')}<span><i style="background:#d9dee7"></i>${t('grid.nodata')}</span></div>` : '') +
     `<div class="fine">${t('grid.note')}</div>`;
@@ -264,7 +280,8 @@ function initGridClick() {
   map.on('click', 'grid-fill', e => {
     const p = e.features[0].properties, attrs = gridAttrs(state.sgg);
     const rows = attrs.map(a => `<tr><td>${getLang() === 'en' ? a.en : a.ko}</td><td class="mono">${gridFmt(a, p[a.id] == null ? null : +p[a.id])}</td></tr>`).join('') + (p.flood_years ? `<tr><td>${getLang() === 'en' ? 'Flood years' : '침수 연도'}</td><td class="mono">${String(p.flood_years).replace(/[\[\]"]/g, '')}</td></tr>` : '');
-    openPopup(e.lngLat, `<b>${p.emd_name || ''}</b> <small class="mono">${p.h3}</small><table class="cell-table">${rows}</table>`, { closeButton: true, offset: 6 });
+    const gm = gridMeta(state.sgg) || {};
+    openPopup(e.lngLat, `<b>${p.emd_name || ''}</b> <small class="mono">${p.h3}</small><table class="cell-table">${rows}</table>${srcBadge(gm.src || '서울 침수흔적도 · ' + (gm.dem || 'DEM') + ' · 행안부 주민등록', gm.jumin_basis)}`, { closeButton: true, offset: 6 });
   });
 }
 async function initShelterUI() {
@@ -294,6 +311,18 @@ function syncShelterLayers() {
   if (!map || !state.shelters.avail.length) return;
   const kinds = state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : [];
   setShelters(kinds, state.sido);
+  renderLegend(kinds);
+}
+/* 지도 범례: 켜진 시설 색 + (격자 표시 중이면) 격자 범례 */
+function renderLegend(kinds) {
+  const box = $('#mapLegend'); if (!box) return;
+  const en = getLang() === 'en';
+  const sh = kinds.map(k => state.shelters.avail.find(a => a.id === k)).filter(Boolean);
+  const g = state._gridLegend;
+  if (!sh.length && !g) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = (sh.length ? `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>` : '') +
+    (g ? `<div class="lg-row lg-grid"><b>${g.title}</b>${g.html}</div>` : '') + `<small class="lg-src">${t('legend.src')}</small>`;
 }
 async function renderNearest() {
   const box = $('#nearBox'); if (!box) return;

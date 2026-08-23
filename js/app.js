@@ -563,22 +563,22 @@ function initPanel() {
   $$('.drawer-link[data-tab]').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); openDrawer(false); }));
   $('#btnPanelToggle').addEventListener('click', () => { p.classList.toggle('is-collapsed'); p.classList.remove('is-tall'); openDrawer(false); setTimeout(() => map && map.resize(), 280); });
   // bottom sheet (mobile): the sheet follows the finger, then snaps to collapsed / half / tall
-  const g = $('.panel-grip'); let y0 = 0, h0 = 0, dragging = false, moved = false;
+  const g = $('.panel-grip'); let y0 = 0, h0 = 0, sheetDrag = false, moved = false;
   const snapTo = cls => { p.classList.remove('is-collapsed', 'is-tall'); if (cls) p.classList.add(cls); p.style.height = ''; setTimeout(() => map && map.resize(), 280); };
-  const onStart = e => { if (!matchMedia('(max-width:900px)').matches) return; dragging = true; moved = false; y0 = e.touches[0].clientY; h0 = p.getBoundingClientRect().height; p.style.transition = 'none'; };
-  const onMove = e => { if (!dragging) return; const dy = e.touches[0].clientY - y0; if (Math.abs(dy) > 4) moved = true; const h = Math.max(64, Math.min(innerHeight - 60, h0 - dy)); p.style.height = h + 'px'; };
-  const onEnd = e => { if (!dragging) return; dragging = false; p.style.transition = ''; const h = p.getBoundingClientRect().height, vh = innerHeight, dy = e.changedTouches[0].clientY - y0;
+  const shStart = e => { if (!matchMedia('(max-width:900px)').matches) return; sheetDrag = true; moved = false; y0 = e.touches[0].clientY; h0 = p.getBoundingClientRect().height; p.style.transition = 'none'; };
+  const shMove = e => { if (!sheetDrag) return; const dy = e.touches[0].clientY - y0; if (Math.abs(dy) > 4) moved = true; const h = Math.max(64, Math.min(innerHeight - 60, h0 - dy)); p.style.height = h + 'px'; };
+  const shEnd = e => { if (!sheetDrag) return; sheetDrag = false; p.style.transition = ''; const h = p.getBoundingClientRect().height, vh = innerHeight, dy = e.changedTouches[0].clientY - y0;
     if (!moved) { snapTo(p.classList.contains('is-tall') ? '' : 'is-tall'); return; }
     const flick = Math.abs(dy) > 60; let target;
     if (flick) target = dy < 0 ? (h0 < vh * 0.4 ? '' : 'is-tall') : (h0 > vh * 0.6 ? '' : 'is-collapsed');
     else target = h < vh * 0.3 ? 'is-collapsed' : h > vh * 0.7 ? 'is-tall' : '';
     snapTo(target); };
-  g.addEventListener('touchstart', onStart, { passive: true }); g.addEventListener('touchmove', onMove, { passive: true }); g.addEventListener('touchend', onEnd);
-  // also allow dragging from the sheet header area when the list is scrolled to the top
+  g.addEventListener('touchstart', shStart, { passive: true }); g.addEventListener('touchmove', shMove, { passive: true }); g.addEventListener('touchend', shEnd);
+  // also allow sheetDrag from the sheet header area when the list is scrolled to the top
   const ps = $('#panelScroll');
-  ps.addEventListener('touchstart', e => { if (ps.scrollTop <= 0 && matchMedia('(max-width:900px)').matches) { onStart(e); dragging = false; y0 = e.touches[0].clientY; } }, { passive: true });
-  ps.addEventListener('touchmove', e => { if (!dragging && ps.scrollTop <= 0 && e.touches[0].clientY - y0 > 12 && !p.classList.contains('is-collapsed')) { dragging = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = e.touches[0].clientY; p.style.transition = 'none'; } if (dragging) onMove(e); }, { passive: true });
-  ps.addEventListener('touchend', e => { if (dragging) onEnd(e); });
+  ps.addEventListener('touchstart', e => { if (ps.scrollTop <= 0 && matchMedia('(max-width:900px)').matches) { shStart(e); sheetDrag = false; y0 = e.touches[0].clientY; } }, { passive: true });
+  ps.addEventListener('touchmove', e => { if (!sheetDrag && ps.scrollTop <= 0 && e.touches[0].clientY - y0 > 12 && !p.classList.contains('is-collapsed')) { sheetDrag = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = e.touches[0].clientY; p.style.transition = 'none'; } if (sheetDrag) shMove(e); }, { passive: true });
+  ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

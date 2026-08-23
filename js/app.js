@@ -383,8 +383,10 @@ function renderLegend(kinds) {
   const g = state._gridLegend;
   if (!sh.length && !g) { box.hidden = true; return; }
   box.hidden = false;
-  box.innerHTML = (sh.length ? `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>` : '') +
+  const mobile = matchMedia('(max-width:900px)').matches; box.classList.toggle('is-min', mobile && !state._legendOpen);
+  box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + (sh.length ? `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>` : '') +
     (g ? `<div class="lg-row lg-grid"><b>${g.title}</b>${g.html}</div>` : '') + `<small class="lg-src">${t('legend.src')}</small>`;
+  $('#lgToggle').addEventListener('click', () => { state._legendOpen = !state._legendOpen; box.classList.toggle('is-min', mobile && !state._legendOpen); });
 }
 async function renderNearest() {
   const box = $('#nearBox'); if (!box) return;
@@ -553,11 +555,30 @@ function initPanel() {
   rz.addEventListener('touchstart', () => { dragging = true; }, { passive: true });
   addEventListener('mousemove', onMove); addEventListener('touchmove', onMove, { passive: true }); addEventListener('mouseup', onUp); addEventListener('touchend', onUp);
   rz.addEventListener('dblclick', () => { document.documentElement.style.setProperty('--panel-w', '460px'); localStorage.removeItem('safepic.panelW'); map && map.resize(); });
-  $('#btnPanel').addEventListener('click', () => { p.classList.toggle('is-collapsed'); p.classList.remove('is-tall'); setTimeout(() => map && map.resize(), 280); });
-  const g = $('.panel-grip'); let y0 = 0;
-  g.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });
-  g.addEventListener('touchend', e => { const dy = e.changedTouches[0].clientY - y0; if (dy < -30) { if (p.classList.contains('is-collapsed')) p.classList.remove('is-collapsed'); else p.classList.add('is-tall'); } else if (dy > 30) { if (p.classList.contains('is-tall')) p.classList.remove('is-tall'); else p.classList.add('is-collapsed'); } setTimeout(() => map && map.resize(), 280); });
-  g.addEventListener('click', () => { p.classList.toggle('is-tall'); p.classList.remove('is-collapsed'); });
+  const drawer = $('#drawer'), bg = $('#drawerBg'), hb = $('#btnPanel');
+  const openDrawer = on => { drawer.hidden = !on; bg.hidden = !on; hb.setAttribute('aria-expanded', on); document.body.classList.toggle('drawer-open', on); };
+  hb.addEventListener('click', () => openDrawer(drawer.hidden));
+  $('#drawerX').addEventListener('click', () => openDrawer(false)); bg.addEventListener('click', () => openDrawer(false));
+  addEventListener('keydown', e => { if (e.key === 'Escape') openDrawer(false); });
+  $$('.drawer-link[data-tab]').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); openDrawer(false); }));
+  $('#btnPanelToggle').addEventListener('click', () => { p.classList.toggle('is-collapsed'); p.classList.remove('is-tall'); openDrawer(false); setTimeout(() => map && map.resize(), 280); });
+  // bottom sheet (mobile): the sheet follows the finger, then snaps to collapsed / half / tall
+  const g = $('.panel-grip'); let y0 = 0, h0 = 0, dragging = false, moved = false;
+  const snapTo = cls => { p.classList.remove('is-collapsed', 'is-tall'); if (cls) p.classList.add(cls); p.style.height = ''; setTimeout(() => map && map.resize(), 280); };
+  const onStart = e => { if (!matchMedia('(max-width:900px)').matches) return; dragging = true; moved = false; y0 = e.touches[0].clientY; h0 = p.getBoundingClientRect().height; p.style.transition = 'none'; };
+  const onMove = e => { if (!dragging) return; const dy = e.touches[0].clientY - y0; if (Math.abs(dy) > 4) moved = true; const h = Math.max(64, Math.min(innerHeight - 60, h0 - dy)); p.style.height = h + 'px'; };
+  const onEnd = e => { if (!dragging) return; dragging = false; p.style.transition = ''; const h = p.getBoundingClientRect().height, vh = innerHeight, dy = e.changedTouches[0].clientY - y0;
+    if (!moved) { snapTo(p.classList.contains('is-tall') ? '' : 'is-tall'); return; }
+    const flick = Math.abs(dy) > 60; let target;
+    if (flick) target = dy < 0 ? (h0 < vh * 0.4 ? '' : 'is-tall') : (h0 > vh * 0.6 ? '' : 'is-collapsed');
+    else target = h < vh * 0.3 ? 'is-collapsed' : h > vh * 0.7 ? 'is-tall' : '';
+    snapTo(target); };
+  g.addEventListener('touchstart', onStart, { passive: true }); g.addEventListener('touchmove', onMove, { passive: true }); g.addEventListener('touchend', onEnd);
+  // also allow dragging from the sheet header area when the list is scrolled to the top
+  const ps = $('#panelScroll');
+  ps.addEventListener('touchstart', e => { if (ps.scrollTop <= 0 && matchMedia('(max-width:900px)').matches) { onStart(e); dragging = false; y0 = e.touches[0].clientY; } }, { passive: true });
+  ps.addEventListener('touchmove', e => { if (!dragging && ps.scrollTop <= 0 && e.touches[0].clientY - y0 > 12 && !p.classList.contains('is-collapsed')) { dragging = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = e.touches[0].clientY; p.style.transition = 'none'; } if (dragging) onMove(e); }, { passive: true });
+  ps.addEventListener('touchend', e => { if (dragging) onEnd(e); });
 }
 function initPWA() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -576,14 +597,14 @@ function initSize() {
   apply(saved || 'normal');
   $$('.size-btn[data-size]').forEach(b => b.addEventListener('click', () => set(b.dataset.size)));
   const cb = $('#btnContrast'), CK = 'safepic.contrast';
-  const applyC = on => { root.classList.toggle('contrast', on); cb.classList.toggle('is-on', on); };
+  const applyC = on => { root.classList.toggle('contrast', on); cb.checked = on; };
   applyC(localStorage.getItem(CK) === '1');
-  cb.addEventListener('click', () => { const on = !root.classList.contains('contrast'); localStorage.setItem(CK, on ? '1' : '0'); applyC(on); });
+  cb.addEventListener('change', () => { localStorage.setItem(CK, cb.checked ? '1' : '0'); applyC(cb.checked); });
   if (!saved && !localStorage.getItem('safepic.sizeCoach')) {
     const c = $('#sizeCoach'); c.hidden = false;
     const done = () => { c.hidden = true; localStorage.setItem('safepic.sizeCoach', '1'); };
     $('#sizeCoachX').addEventListener('click', done);
-    $$('.size-btn').forEach(b => b.addEventListener('click', done, { once: true }));
+    $('#btnPanel').addEventListener('click', done, { once: true });
     setTimeout(done, 8000);
   }
 }

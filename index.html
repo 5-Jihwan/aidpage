@@ -23,7 +23,8 @@
 <body>
 
 <header class="top">
-  <button class="icon-btn" id="btnPanel" data-i18n-title="panel.collapse" aria-label="패널 접기/펼치기"><span class="bars"></span></button>
+  <button class="icon-btn" id="btnPanel" data-i18n-title="drawer.title" aria-label="설정 메뉴" aria-controls="drawer" aria-expanded="false"><span class="bars"></span></button>
+  <div class="coach coach-top" id="sizeCoach" hidden><span data-i18n="size.coach">글씨가 작으면 여기서 키우세요</span><button type="button" class="coach-x" id="sizeCoachX" aria-label="닫기">×</button></div>
   <a class="brand" href="#" id="brand">
     <span class="brand-mark" aria-hidden="true"></span>
     <span class="brand-name">SafePic</span>
@@ -40,6 +41,15 @@
 </header>
 
 
+<div class="drawer-bg" id="drawerBg" hidden></div>
+<aside class="drawer" id="drawer" aria-label="설정" hidden>
+  <div class="drawer-head"><b data-i18n="drawer.title">설정</b><button type="button" class="icon-btn" id="drawerX" aria-label="닫기">×</button></div>
+  <section class="drawer-sec"><h4 data-i18n="drawer.lang">언어</h4><div class="lang pill" role="group" aria-label="언어"><button class="lang-btn" data-lang="ko">한국어</button><button class="lang-btn" data-lang="en">English</button></div></section>
+  <section class="drawer-sec"><h4 data-i18n="drawer.size">글씨 크기</h4><div class="size pill" role="group" aria-label="글씨 크기"><button class="size-btn" data-size="normal" data-i18n="size.normal">보통</button><button class="size-btn" data-size="big" data-i18n="size.big">큰 글씨</button></div>
+    <label class="drawer-row"><input type="checkbox" id="btnContrast"><span data-i18n="size.contrast.t">글자와 배경 대비를 높입니다</span></label></section>
+  <section class="drawer-sec desktop-only"><h4 data-i18n="drawer.panel">화면</h4><button type="button" class="btn btn-ghost btn-sm" id="btnPanelToggle" data-i18n="panel.collapse">패널 접기/펼치기</button></section>
+  <section class="drawer-sec"><h4 data-i18n="drawer.more">더 보기</h4><button type="button" class="drawer-link" data-tab="about" data-i18n="tab.about">방법·한계</button><a class="drawer-link" href="https://github.com/5-Jihwan/safepic" target="_blank" rel="noopener">GitHub</a><div class="fine" data-i18n="drawer.note">입력은 서버로 가지 않고 이 브라우저 안에서만 계산됩니다.</div></section>
+</aside>
 <main class="stage">
   <aside class="panel" id="panel">
     <div class="panel-grip" aria-hidden="true"></div>
@@ -186,15 +196,6 @@
       <label><input type="checkbox" value="pm25" checked><span data-i18n="wx.pm25">초미세먼지</span></label>
     </div>
     <div class="wxsel shsel" id="shsel" hidden aria-label="표시할 시설"></div>
-      <div class="lang pill" role="group" aria-label="언어">
-        <button class="lang-btn" data-lang="ko">한국어</button><button class="lang-btn" data-lang="en">EN</button>
-      </div>
-      <div class="size-wrap">
-        <div class="size pill" role="group" aria-label="글씨 크기">
-          <span class="size-ic" aria-hidden="true">가</span><button class="size-btn" data-size="normal" data-i18n="size.normal">보통</button><button class="size-btn" data-size="big" data-i18n="size.big">큰 글씨</button><button class="size-btn contrast-btn" id="btnContrast" data-i18n="size.contrast" data-i18n-title="size.contrast.t" title="고대비">고대비</button>
-        </div>
-        <div class="coach" id="sizeCoach" hidden><span data-i18n="size.coach">글씨가 작으면 여기서 키우세요</span><button type="button" class="coach-x" id="sizeCoachX" aria-label="닫기">×</button></div>
-      </div>
     </div>
     <div class="map-legend" id="mapLegend" hidden></div>
     <div class="map-hint" id="mapHint" data-i18n="hint.start">지구본에서 대한민국을 누르거나, 동 이름을 검색하세요</div>

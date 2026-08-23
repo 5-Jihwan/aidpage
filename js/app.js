@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823o';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823o';
-import { getReports, postReport, flagReport } from './api.js?v=20260823o';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823o';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823p';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823p';
+import { getReports, postReport, flagReport } from './api.js?v=20260823p';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260823o'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260823p'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -478,8 +478,9 @@ async function renderRiskLine() {
   const box = $('#riskLine'); if (!box) return;
   if (!state.sgg) { box.hidden = true; return; }
   const parts = [];
-  const ws = warningsFor(state.sgg, state.sido);
-  parts.push(ws.length ? `<span class="rl-bad">⚠ ${t('risk.inWarn', { w: ws.map(w => warnName(w.type, w.level)).join(', ') })}</span>` : `<span class="rl-ok">${t('risk.noWarn')}</span>`);
+  const ws = warningsFor(state.sgg, state.sido), A = state.live.alerts;
+  const fresh = A && A.status === 'ok' && A.updated && (Date.now() - Date.parse(A.updated)) < 3 * 3600 * 1000;
+  parts.push(ws.length ? `<span class="rl-bad">⚠ ${t('risk.inWarn', { w: ws.map(w => warnName(w.type, w.level)).join(', ') })}</span>` : fresh ? `<span class="rl-ok">${t('risk.noWarn')}</span>` : `<span class="muted">${t('risk.unknown')}</span>`);
   const e = state.emd && state.idx.byEmd.get(state.emd);
   if (e) {
     const cells = gridCells(state.sgg).map(f => f.properties).filter(p => p.emd_name === e.name);
@@ -498,7 +499,7 @@ function renderTodo() {
   if (!state.sgg) { box.hidden = true; return; }
   const items = todoItems(); box.hidden = !items.length;
   const n = nameOf(), place = [n.sggName, state.emd && n.emdName].filter(Boolean).join(' ');
-  const SRC = { kma: t('src.kma'), mois: t('src.mois'), safepic: t('src.safepic') };
+  const SRC = { kma: t('src.kma'), mois: t('src.mois'), safepic: t('src.safepic') }; // 출처는 '특보 기준' 표기 — 문구 자체는 SafePic 안내
   box.innerHTML = `<h3>${t('todo.title')} <small class="muted">${place}</small> <button type="button" class="speak-mini" id="todoSpeak" title="${t('tts.title')}">🔊</button></h3><ol class="todo-list">${items.map((x, i) => `<li><span>${x.src ? `<b class="todo-src">[${SRC[x.src] || x.src}]</b> ` : ''}${x.text}</span>${x.kind && state.shelters.avail.some(a => a.id === x.kind) ? `<button type="button" class="btn btn-ghost btn-sm" data-kind="${x.kind}">${t('todo.show')}</button>` : ''}</li>`).join('')}</ol>`;
   $('#todoSpeak').addEventListener('click', () => speak(items.map((x, i) => `${i + 1}. ${x.text}`).join('. '), $('#todoSpeak')));
   $$('button[data-kind]', box).forEach(b => b.addEventListener('click', () => { state.shelters.active.add(b.dataset.kind); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); renderNearest(); }));
@@ -679,7 +680,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823o').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823p').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

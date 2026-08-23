@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260823i">
+<link rel="stylesheet" href="css/style.css?v=20260823j">
 </head>
 <body>
 
@@ -164,7 +164,7 @@
             <p class="math-cap" data-i18n="where.f1">① 연평균 기대피해 (EAD) — 재현기간별 피해를 초과확률로 적분</p>
             <math display="block"><mrow><mi>E</mi><mo stretchy="false">[</mo><mi>L</mi><mo stretchy="false">]</mo><msub><mrow></mrow><mi>i</mi></msub><mo>=</mo><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><msub><mi>L</mi><mi>i</mi></msub><mo stretchy="false">(</mo><mi>p</mi><mo stretchy="false">)</mo><mspace width="0.2em"/><mi>d</mi><mi>p</mi><mo>≈</mo><munderover><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi>R</mi></mrow><mrow></mrow></munderover><mfrac><mn>1</mn><mi>r</mi></mfrac><mo>·</mo><msub><mi>L</mi><mi>i</mi></msub><mo stretchy="false">(</mo><msub><mi>d</mi><mi>r</mi></msub><mo stretchy="false">)</mo></mrow></math>
             <p class="math-cap" data-i18n="where.f2">② 침수심별 피해 — 다차원법(MD-FDA) 피해율 곡선 × 자산</p>
-            <math display="block"><mrow><msub><mi>L</mi><mi>i</mi></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo><munder><mo>∑</mo><mrow><mi>k</mi><mo>∈</mo><mo>{</mo><mtext>건물,가재,인명</mtext><mo>}</mo></mrow></munder><msub><mi>A</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo>·</mo><msub><mi>φ</mi><mi>k</mi></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>·</mo><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mi>γ</mi><msub><mi>v</mi><mi>i</mi></msub><mo stretchy="false">)</mo></mrow></math>
+            <math display="block"><mrow><msub><mi>L</mi><mi>i</mi></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo><munder><mo>∑</mo><mrow><mi>k</mi><mo>∈</mo><mo>{</mo><mtext data-i18n="where.sets">건물,가재,인명</mtext><mo>}</mo></mrow></munder><msub><mi>A</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo>·</mo><msub><mi>φ</mi><mi>k</mi></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>·</mo><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mi>γ</mi><msub><mi>v</mi><mi>i</mi></msub><mo stretchy="false">)</mo></mrow></math>
             <p class="math-cap" data-i18n="where.f3">③ 안전 확률 — 최대 가능 피해 대비</p>
             <math display="block"><mrow><msub><mi>S</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><mi>E</mi><mo stretchy="false">[</mo><mi>L</mi><msub><mo stretchy="false">]</mo><mi>i</mi></msub></mrow><mrow><msubsup><mi>L</mi><mi>i</mi><mi>max</mi></msubsup></mrow></mfrac></mrow></math>
             <p class="math-cap" data-i18n="where.f4">④ 대책 a의 효율 — FEMA 편익비용비(BCR)와 동일</p>
@@ -177,23 +177,24 @@
       <section class="view" data-view="about">
         <h1 class="h1" data-i18n="about.h1">방법과 한계</h1>
         <h3 data-i18n="about.why">왜 만들었나</h3>
-        <p>재난 지원은 법 → 대통령령 별표 → 부처 고시 → 17개 기관 간접지원 → 의연금 규정 → 보험법의 다섯 층으로 흩어져 있고, 38종을 내 조건으로 한 번에 보여주는 공적 화면이 없습니다(2026-08 조사). 피해신고는 재난 종료일부터 10일 안에 해야 하는데(대통령령 제9조②), 이 기한을 가장 모르기 쉬운 사람이 가장 취약한 사람입니다.</p>
-        <p>행정학에서는 이를 <b>행정 부담(administrative burden)</b> — 알아내는 비용, 따르는 비용, 심리적 비용 — 으로 설명합니다(Herd &amp; Moynihan 2018). SafePic은 그 비용을 시민 대신 시스템이 지게 하려는 시도입니다.</p>
+        <p data-i18n-html="about.p1"></p>
+        <p data-i18n-html="about.p2"></p>
         <h3 data-i18n="about.not">무엇을 하지 않나</h3>
         <ul>
-          <li>심사하지 않습니다. 모든 결과는 "해당 가능성"이며 최종 판단은 관할 지자체입니다.</li>
-          <li>개인정보를 수집하지 않습니다. 입력은 브라우저 안에서만 계산되고 공유 URL에만 담깁니다.</li>
-          <li>확인되지 않은 숫자를 보여주지 않습니다. 모든 금액 옆에 근거 조문·기준일·출처가 붙습니다.</li>
+          <li data-i18n="about.n1"></li>
+          <li data-i18n="about.n2"></li>
+          <li data-i18n="about.n3"></li>
         </ul>
         <h3 data-i18n="about.data">데이터와 갱신</h3>
         <ul>
-          <li>행정경계: 통계청 SGIS 기반 행정동 경계(vuski/admdongkor, CC BY 4.0), 단순화. <span id="aboutAdmin" class="mono"></span></li>
-          <li>날씨·특보: 기상청 단기예보·특보 API. 미세먼지: 에어코리아. 재난문자: 재난안전데이터공유플랫폼. 30분 주기 수집.</li>
-          <li>지원 규칙: 「재난 및 안전관리 기본법」 §66, 「자연재난 구호 및 복구 비용 부담기준 등에 관한 규정」(2025-11-27 개정) 별표1·§9·§12, 「의연금품 관리·운영 규정」, 풍수해·지진재해보험 지원기준. <a href="#" id="linkRules" data-i18n="about.rules">규칙 전체 보기</a></li>
+          <li><span data-i18n="about.d1"></span> <span id="aboutAdmin" class="mono"></span></li>
+          <li data-i18n="about.d2"></li>
+          <li data-i18n="about.d4"></li>
+          <li><span data-i18n="about.d3"></span> <a href="#" id="linkRules" data-i18n="about.rules">규칙 전체 보기</a></li>
         </ul>
         <h3 data-i18n="about.borrow">참고한 것</h3>
-        <p>익명 질문형 진입은 미국 DisasterAssistance.gov, "한 숫자 + 근거 펼침"은 First Street, 비용편익 슬라이더는 WRI Aqueduct에서 배웠습니다. 지도 타일: OpenFreeMap · © OpenStreetMap.</p>
-        <p class="fine">개인 프로젝트 · 비영리 · <a href="https://github.com/5-Jihwan/safepic" target="_blank" rel="noopener">GitHub</a> · <a href="https://5-jihwan.github.io" target="_blank" rel="noopener">5-Jihwan</a> · <span class="mono" id="buildDate"></span></p>
+        <p data-i18n="about.b1"></p>
+        <p class="fine"><span data-i18n="about.f1"></span> · <a href="https://github.com/5-Jihwan/safepic" target="_blank" rel="noopener">GitHub</a> · <a href="https://5-jihwan.github.io" target="_blank" rel="noopener">5-Jihwan</a> · <span class="mono" id="buildDate"></span></p>
         <div id="rulesTable" class="rules-table" hidden></div>
       </section>
 
@@ -228,6 +229,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260823i"></script>
+<script type="module" src="js/app.js?v=20260823j"></script>
 </body>
 </html>

@@ -62,7 +62,7 @@ function ensureLayer(kind) {
   map.on('mouseleave', src + '-dot', () => map.getCanvas().style.cursor = '');
   map.on('click', src + '-dot', e => {
     const p = e.features[0].properties;
-    const html = `<b>${p.name || ''}</b><br><small>${k.icon} ${k.ko}${p.cap ? ` · ${p.cap}명` : ''}${p.type && !/^\d|^FTL|^\d{3}$/.test(p.type) ? ` · ${p.type}` : ''}<br>${p.addr || ''}${p.hours ? `<br>🕒 ${p.hours}` : ''}${p.tel ? `<br>📞 <a href="tel:${p.tel}">${p.tel}</a>` : ''}</small>${map.routeLinks ? map.routeLinks(e.lngLat.lng, e.lngLat.lat, p.name) : ''}${map.srcBadge ? map.srcBadge(p.src, p.asof) : ''}`; map.openPopup ? map.openPopup(e.lngLat, html) : new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+    const html = `<b>${p.name || ''}</b><br><small>${k.icon} ${document.documentElement.lang === 'en' ? k.en : k.ko}${p.cap ? ` · ${p.cap}${document.documentElement.lang === 'en' ? '' : '명'}` : ''}${p.type && !/^\d|^FTL|^\d{3}$/.test(p.type) ? ` · ${p.type}` : ''}<br>${p.addr || ''}${p.hours ? `<br>🕒 ${p.hours}` : ''}${p.tel ? `<br>📞 <a href="tel:${p.tel}">${p.tel}</a>` : ''}</small>${map.routeLinks ? map.routeLinks(e.lngLat.lng, e.lngLat.lat, p.name) : ''}${map.srcBadge ? map.srcBadge(p.src, p.asof) : ''}`; map.openPopup ? map.openPopup(e.lngLat, html) : new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(e.lngLat).setHTML(html).addTo(map);
   });
 }
 export async function setActive(kinds, sido) {

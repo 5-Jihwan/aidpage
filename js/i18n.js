@@ -3,7 +3,7 @@ export const DICT = {
   ko: {
     'brand.sub': '내 상황에 맞는 안전, 한 장으로',
     'nav.nation': '대한민국',
-    'tab.now': '지금 내 동네', 'tab.find': '지원 찾기', 'tab.where': '어디에 먼저', 'tab.about': '방법·한계',
+    'tab.start': '처음으로', 'start.title': '처음 화면으로 (지역·입력 초기화)', 'tab.now': '내 동네', 'tab.find': '지원 찾기', 'tab.where': '어디에 먼저', 'tab.about': '방법·한계',
     'size.normal': '보통', 'size.big': '큰 글씨', 'size.coach': '글씨가 작으면 여기서 키우세요',
     'live.empty': '지역을 고르면 오늘 날씨·특보·미세먼지가 여기 표시됩니다',
     'search.ph': '동·읍·면 이름으로 찾기 (예: 신림동, 진안읍)',
@@ -61,7 +61,7 @@ export const DICT = {
   en: {
     'brand.sub': 'Your situation, your safety — on one page',
     'nav.nation': 'Korea',
-    'tab.now': 'My area now', 'tab.find': 'Find support', 'tab.where': 'Where first', 'tab.about': 'Method & limits',
+    'tab.start': 'Start over', 'start.title': 'Back to start (clears region & inputs)', 'tab.now': 'My area', 'tab.find': 'Find support', 'tab.where': 'Where first', 'tab.about': 'Method & limits',
     'size.normal': 'Normal', 'size.big': 'Large text', 'size.coach': 'Text too small? Enlarge it here',
     'live.empty': 'Pick an area to see today’s weather, warnings and air quality here',
     'search.ph': 'Search by neighborhood (e.g., Sillim-dong)',

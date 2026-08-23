@@ -42,7 +42,7 @@ function ensureLayer(kind) {
   map.on('mouseleave', src + '-dot', () => map.getCanvas().style.cursor = '');
   map.on('click', src + '-dot', e => {
     const p = e.features[0].properties;
-    new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(e.lngLat).setHTML(`<b>${p.name || ''}</b><br><small>${k.icon} ${k.ko}${p.cap ? ` · ${p.cap}명` : ''}<br>${p.addr || ''}</small>`).addTo(map);
+    const html = `<b>${p.name || ''}</b><br><small>${k.icon} ${k.ko}${p.cap ? ` · ${p.cap}명` : ''}<br>${p.addr || ''}</small>`; map.openPopup ? map.openPopup(e.lngLat, html) : new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(e.lngLat).setHTML(html).addTo(map);
   });
 }
 export async function setActive(kinds, sido) {

@@ -83,7 +83,30 @@ function localizeLabels() {
     try { map.setLayoutProperty(l.id, 'text-field', field); } catch (e) { /* ignore */ }
   }
 }
+/* visible map area (px) after floating UI: left panel / bottom sheet / top-right stack */
+function visiblePadding() {
+  const mobile = matchMedia('(max-width:900px)').matches, p = $('#panel');
+  if (mobile) {
+    const sheet = p.classList.contains('is-collapsed') ? 72 : p.classList.contains('is-tall') ? innerHeight * 0.9 : innerHeight * 0.5;
+    return { top: 120, bottom: Math.round(sheet) + 12, left: 12, right: 12 };
+  }
+  const pw = p.classList.contains('is-collapsed') ? 0 : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 32;
+  return { top: 70, bottom: 40, left: pw, right: 170 };
+}
+/* open a popup and make sure it is not hidden behind the panel/controls */
+function openPopup(lngLat, html, opts = {}) {
+  if (matchMedia('(max-width:900px)').matches && opts.fromPanel) { $('#panel').classList.add('is-collapsed'); $('#panel').classList.remove('is-tall'); setTimeout(() => map.resize(), 260); }
+  const pop = new maplibregl.Popup({ closeButton: !!opts.closeButton, offset: opts.offset || 8, maxWidth: opts.maxWidth || '280px' }).setLngLat(lngLat).setHTML(html).addTo(map);
+  setTimeout(() => {
+    const pad = visiblePadding(), pt = map.project(lngLat), W = map.getContainer().clientWidth, H = map.getContainer().clientHeight;
+    const popH = (pop.getElement() && pop.getElement().offsetHeight) || 160;
+    const inside = pt.x > pad.left + 20 && pt.x < W - pad.right - 20 && pt.y > pad.top + popH + 10 && pt.y < H - pad.bottom - 10;
+    if (!inside) map.easeTo({ center: lngLat, padding: { ...pad, top: pad.top + popH }, duration: 450 });
+  }, 280);
+  return pop;
+}
 function addAdminLayers() {
+  map.openPopup = openPopup;
   const empty = { type: 'FeatureCollection', features: [] };
   map.addSource('sido', { type: 'geojson', data: state.geo.sido || empty, promoteId: 'code' });
   map.addSource('sgg', { type: 'geojson', data: state.geo.sgg || empty, promoteId: 'code' });
@@ -196,7 +219,7 @@ function initGridClick() {
   map.on('click', 'grid-fill', e => {
     const p = e.features[0].properties, attrs = gridAttrs(state.sgg);
     const rows = attrs.map(a => `<tr><td>${getLang() === 'en' ? a.en : a.ko}</td><td class="mono">${gridFmt(a, p[a.id] == null ? null : +p[a.id])}</td></tr>`).join('') + (p.flood_years ? `<tr><td>${getLang() === 'en' ? 'Flood years' : '침수 연도'}</td><td class="mono">${String(p.flood_years).replace(/[\[\]"]/g, '')}</td></tr>` : '');
-    new maplibregl.Popup({ closeButton: true, offset: 6, maxWidth: '280px' }).setLngLat(e.lngLat).setHTML(`<b>${p.emd_name || ''}</b> <small class="mono">${p.h3}</small><table class="cell-table">${rows}</table>`).addTo(map);
+    openPopup(e.lngLat, `<b>${p.emd_name || ''}</b> <small class="mono">${p.h3}</small><table class="cell-table">${rows}</table>`, { closeButton: true, offset: 6 });
   });
 }
 async function initShelterUI() {
@@ -223,7 +246,7 @@ async function renderNearest() {
   if (state.emd !== e.code) return;
   box.hidden = false;
   box.innerHTML = `<h3>${t('sh.nearest')}</h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() === 'en' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
-  $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5 }); new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(x.c).setHTML(`<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}</small>`).addTo(map); }));
+  $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5, padding: visiblePadding() }); openPopup(x.c, `<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}</small>`, { fromPanel: true }); }));
 }
 
 /* ---------- names / live lookups ---------- */
@@ -482,7 +505,9 @@ function renderRulesTable() {
 (async function boot() {
   applyStatic();
   $$('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
-  $('#brand').addEventListener('click', e => { e.preventDefault(); setTab('now'); resetNation(); });
+  const goStart = () => { setTab('now'); resetNation(); const w = $('#wizard'); if (w) { w.reset(); syncWizardLoc(); } const r = $('#result'); if (r) r.hidden = true; $('#mapHint').classList.remove('is-hidden'); };
+  $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });
+  $('#btnStart').addEventListener('click', goStart);
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
   initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initWxSel(); initHome();
   await loadCore(); renderCrumb(); renderLive();

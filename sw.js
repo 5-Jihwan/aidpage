@@ -5,9 +5,9 @@
    - live data (data/live/*): network-first, fall back to cache
    - facility/grid files (data/shelters, data/grid): cache-first once fetched (only what the user opened)
    - map tiles / fonts / CDN: never cached here (too big; browser HTTP cache handles them) */
-const VERSION = 'safepic-20260823g';
+const VERSION = 'safepic-20260823h';
 const SHELL = [
-  './', './index.html', './css/style.css', './js/app.js', './js/i18n.js', './js/rules.js', './js/shelters.js', './js/grid.js',
+  './', './index.html', './css/style.css', './js/app.js', './js/i18n.js', './js/rules.js', './js/shelters.js', './js/grid.js', './js/api.js',
   './manifest.webmanifest',
   './data/admin/kr_sido.geojson', './data/admin/kr_sgg.geojson', './data/admin/emd_index.json', './data/admin/sgg_index.json', './data/admin/meta.json', './data/admin/landmarks.geojson',
   './data/ref/psych_centers.json', './data/shelters/index.json',

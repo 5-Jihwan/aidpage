@@ -432,3 +432,12 @@ html.big .prof label{font-size:1.08rem}
 /* insurance card */
 .ins-card{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:12px} .ins-card h3{margin:0 0 6px}
 .ins-hist{font-size:.92rem;color:var(--ink);margin-bottom:4px} .ins-rate{font-size:1rem;margin-bottom:4px} .ins-rate b{color:var(--accent2)}
+
+/* resident reports */
+.reports{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px} .reports h3{margin:0 0 8px}
+.rep-item{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;align-items:start;padding:6px 0;border-bottom:1px dashed var(--line);font-size:.92rem}
+.rep-k{background:var(--bg2);border-radius:999px;padding:2px 8px;font-size:.78rem;color:var(--mute);white-space:nowrap} .rep-t{color:var(--ink)} .rep-item small{grid-column:2}
+.rep-flag{border:0;background:none;color:var(--mute);font-size:.95rem;padding:0 4px;grid-row:1/3} .rep-flag:hover{color:var(--danger)}
+.rep-form{display:grid;grid-template-columns:auto 1fr auto;gap:6px;margin-top:10px} .rep-form select,.rep-form input{height:38px;border:1px solid var(--line);border-radius:9px;padding:0 10px;font:inherit;background:#fff;color:var(--ink);min-width:0}
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .rep-form{grid-template-columns:1fr 1fr} .rep-form input{grid-column:1/3} .rep-form button{grid-column:2} }
+html.big .rep-item{font-size:1.05rem} html.big .rep-form select,html.big .rep-form input{height:46px;font-size:1.05rem}

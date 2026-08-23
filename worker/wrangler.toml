@@ -1,0 +1,17 @@
+name = "safepic-api"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "bbc699ecd17c412e818a6d02c4db26d7"
+
+[vars]
+ALLOWED_ORIGINS = "https://5-jihwan.github.io,http://localhost:8799,http://127.0.0.1:8799"
+
+# Secrets (never in this file): set with `npx wrangler secret put NAME`
+#   BIGKINDS_KEY   빅카인즈
+#   LAW_OC         국가법령정보 OPEN API (이메일 ID 앞부분)
+#   KMA_APIHUB_KEY 기상청 API허브 (레이더·위성 이미지)
+#   SERPAPI_KEY    (선택)

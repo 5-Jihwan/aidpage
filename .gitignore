@@ -7,3 +7,7 @@ data/live/.hot
 data/live/*.tmp
 .work_shelters/
 .work_grid/
+.wrangler/
+worker/.wrangler/
+data/live/er_sample.json
+.work_shelters/

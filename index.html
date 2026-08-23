@@ -14,11 +14,12 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@500;700&display=swap">
+<link rel="preload" href="fonts/GyeonggiTitle-Medium.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260824f">
+<link rel="stylesheet" href="css/style.css?v=20260824g">
 </head>
 <body>
 
@@ -219,7 +220,7 @@
     </div>
     <div class="mapstack" id="mapstack">
     <div class="wxsel" id="wxsel" aria-label="표시할 날씨 항목">
-      <button type="button" class="wxsel-t mono" id="wxselT" data-i18n="wx.title">표시할 날씨</button>
+      <button type="button" class="wxsel-t" id="wxselT" data-i18n="wx.title">표시할 날씨</button>
       <label><input type="radio" name="wxmap" value="" checked><span data-i18n="wx.none">없음</span></label>
       <label><input type="radio" name="wxmap" value="t"><span data-i18n="wx.t">기온</span></label>
       <label><input type="radio" name="wxmap" value="feels"><span data-i18n="wx.feels">체감</span></label>
@@ -237,6 +238,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260824f"></script>
+<script type="module" src="js/app.js?v=20260824g"></script>
 </body>
 </html>

@@ -1,13 +1,12 @@
 /* SafePic — palette shared with 5-jihwan.github.io */
 /* 경기천년제목 (경기도 제공, 무료 배포) — 제목·UI 라벨용. 본문은 가독성을 위해 Pretendard 유지, 숫자·코드만 DM Mono */
-@font-face{font-family:"GyeonggiTitle";src:url("../fonts/GyeonggiTitle-Light.woff") format("woff");font-weight:300;font-display:swap}
-@font-face{font-family:"GyeonggiTitle";src:url("../fonts/GyeonggiTitle-Medium.woff") format("woff");font-weight:500;font-display:swap}
-@font-face{font-family:"GyeonggiTitle";src:url("../fonts/GyeonggiTitle-Bold.woff") format("woff");font-weight:700;font-display:swap}
+@font-face{font-family:"GyeonggiTitle";src:url("../fonts/GyeonggiTitle-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"GyeonggiTitle";src:url("../fonts/GyeonggiTitle-Bold.woff2") format("woff2");font-weight:700;font-display:swap}
 :root{
   --ink:#14202e; --text:#2b3a4d; --mute:#566577; --line:#dbe3ee; --bg:#f7f9fc; --bg2:#eef2f8; --card:#fff;
   --accent:#1a5fc4; --accent2:#0f4a9e; --gold:#9a7328; --teal:#0f9d7a; --rose:#c2447e; --warn:#d9a400; --danger:#c8432b;
   --panel-w:clamp(340px, 32vw, 520px); --top-h:60px; --live-h:42px; --fs:16.5px; --tap:36px;
-  --font:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif; --mono:"DM Mono",ui-monospace,Menlo,monospace; --display:"GyeonggiTitle","Outfit",var(--font); --label:"GyeonggiTitle",var(--font);
+  --font:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif; --mono:"DM Mono",ui-monospace,Menlo,monospace; --display:"GyeonggiTitle",var(--font); --label:"GyeonggiTitle",var(--font);
 }
 *{box-sizing:border-box} html,body{height:100%;margin:0} [hidden]{display:none!important}
 body{font-family:var(--font);color:var(--text);background:var(--bg2);font-size:var(--fs);line-height:1.55;-webkit-font-smoothing:antialiased;overflow:hidden}
@@ -34,7 +33,7 @@ h1,h2,h3{color:var(--ink)}
 .tab{background:none;border:0;color:var(--mute);padding:7px 12px;border-radius:9px;white-space:nowrap;font-size:.92rem;display:flex;gap:6px;align-items:center}
 .tab-start{color:var(--ink);border:1px solid var(--line);margin-right:4px;gap:5px} .tab-start:hover{background:var(--bg)}
 .tab i{font-style:normal;font-family:var(--mono);font-size:.75rem;color:var(--gold)}
-.tab span{font-family:var(--label);font-weight:500}
+.tab span{font-family:var(--label);font-weight:500} .tab.is-active span{font-weight:700}
 .tab:hover{color:var(--ink)} .tab.is-active{background:#fff;color:var(--ink);font-weight:700;box-shadow:0 1px 4px rgba(20,32,46,.08)}
 .tab-about{opacity:.85}
 
@@ -80,7 +79,7 @@ h3{font-family:var(--label);font-weight:700;font-size:1.05rem;margin:22px 0 8px;
 .wxsel{position:relative;display:flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 8px;box-shadow:0 4px 14px rgba(20,32,46,.08)}
 .wxsel label{display:none} .wxsel.is-open label{display:inline-block} .wxsel.is-open{flex-wrap:wrap}
 .wxsel-t{cursor:pointer;padding:4px 6px;border:0;background:none;border-radius:8px;color:var(--ink)!important;font-weight:600} .wxsel-t:hover{background:var(--bg)} .wxsel-t::after{content:' \25BE';color:var(--mute)}
-.wxsel-t{color:var(--mute);margin-right:4px;font-size:.85rem;font-family:var(--label)!important;font-weight:500}
+.wxsel-t{color:var(--mute);margin-right:4px;font-size:.85rem;font-family:var(--label);font-weight:500}
 .wxsel label{position:relative} .wxsel input{position:absolute;opacity:0;inset:0;pointer-events:none}
 .wxsel span{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.82rem;color:var(--mute);border:1px solid transparent;cursor:pointer;user-select:none}
 .wxsel input:checked+span{background:var(--bg);color:var(--ink);border-color:var(--line);font-weight:600}
@@ -512,6 +511,5 @@ html.big .sec-head{font-size:1.08rem;padding:12px 16px}
 html.big .late-list li{font-size:1.1rem}
 
 /* card & button labels in the title face (Korean), numbers stay in DM Mono */
-.card b,.btn,.chip,.sit-chip,.shgrp-t,.wxsel span,.pill button,.lang-top,.sec-head,.drawer-link,.tip-text,.todo-list li span,.h2,.brand-name{font-family:var(--label)}
-.card b,.sec-head,.brand-name,.h2{font-weight:700} .btn,.chip,.sit-chip,.wxsel span,.pill button,.lang-top,.drawer-link{font-weight:500}
-.todo-list li span,.tip-text{font-weight:500}
+button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-family:var(--label)}
+.card b,.sec-head{font-weight:700} .chip,.sit-chip,.wxsel span,.pill button,.drawer-link{font-weight:500}

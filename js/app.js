@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824f';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824f';
-import { getReports, postReport, flagReport } from './api.js?v=20260824f';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824f';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824g';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824g';
+import { getReports, postReport, flagReport } from './api.js?v=20260824g';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824g';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260824f'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260824g'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -367,7 +367,7 @@ async function initShelterUI() {
   ];
   const en = getLang() === 'en', K = id => state.shelters.avail.find(a => a.id === id);
   const chip = k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${en ? k.en : k.ko}</span></label>`;
-  box.innerHTML = `<button type="button" class="wxsel-t mono" id="shselT">${t('sh.title')}</button>` + GROUPS.map(g => {
+  box.innerHTML = `<button type="button" class="wxsel-t" id="shselT">${t('sh.title')}</button>` + GROUPS.map(g => {
     const ks = g.kinds.map(K).filter(Boolean); if (!ks.length) return '';
     const allOn = ks.every(k => state.shelters.active.has(k.id));
     return `<div class="shgrp"><button type="button" class="shgrp-t ${allOn ? 'is-on' : ''}" data-grp="${g.id}">${g.icon} ${en ? g.en : g.ko}</button><div class="shgrp-k">${ks.map(chip).join('')}</div></div>`;
@@ -770,7 +770,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824f').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824g').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

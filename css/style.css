@@ -512,4 +512,5 @@ html.big .late-list li{font-size:1.1rem}
 
 /* card & button labels in the title face (Korean), numbers stay in DM Mono */
 button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-family:var(--label)}
+.card small,.install span,.rep-form input,.prof select{font-family:var(--font);font-weight:400}
 .card b,.sec-head{font-weight:700} .chip,.sit-chip,.wxsel span,.pill button,.drawer-link{font-weight:500}

@@ -448,3 +448,9 @@ html.big .rep-item{font-size:1.05rem} html.big .rep-form select,html.big .rep-fo
 .panel.is-collapsed .panel-tab{position:fixed;left:0;right:auto;top:50%;transform:translateY(-50%);opacity:1;pointer-events:auto;border-left:0;width:22px;height:80px;z-index:12}
 .panel.is-collapsed .panel-tab-ic{transform:rotate(180deg)}
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .panel-tab{display:none} }
+
+/* language switch on the first screen (also in the drawer) */
+.landing-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px} .landing-top .h1{flex:1;min-width:0}
+.lang-inline{flex:none;margin-top:2px} .lang-inline button{padding:4px 10px;font-size:.82rem;min-height:32px}
+@media (pointer:coarse){ .lang-inline button{min-height:36px} }
+html.big .lang-inline button{font-size:.95rem}

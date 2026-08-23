@@ -126,6 +126,18 @@ function visiblePadding() {
   const pw = p.classList.contains('is-collapsed') ? 0 : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 32;
   return { top: 70, bottom: 40, left: pw, right: 170 };
 }
+/* 길찾기 딥링크 (키 불필요): 카카오맵 · 구글 · 애플 */
+function routeLinks(lon, lat, name) {
+  const n = encodeURIComponent(name || 'SafePic');
+  return `<div class="route-row"><a href="https://map.kakao.com/link/to/${n},${lat},${lon}" target="_blank" rel="noopener">카카오맵</a><a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=walking" target="_blank" rel="noopener">Google</a><a href="https://maps.apple.com/?daddr=${lat},${lon}&dirflg=w" target="_blank" rel="noopener">Apple</a></div>`;
+}
+/* 📅 .ics: 기한을 휴대폰 달력에 */
+function downloadICS(title, dateISO, desc) {
+  const d = dateISO.replace(/-/g, ''), next = new Date(Date.UTC(+dateISO.slice(0, 4), +dateISO.slice(5, 7) - 1, +dateISO.slice(8, 10) + 1)).toISOString().slice(0, 10).replace(/-/g, '');
+  const esc = s => String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SafePic//KO', 'BEGIN:VEVENT', `UID:safepic-${d}-${Math.random().toString(36).slice(2)}`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`, `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${next}`, `SUMMARY:${esc(title)}`, `DESCRIPTION:${esc(desc)}`, 'BEGIN:VALARM', 'TRIGGER:-P2D', 'ACTION:DISPLAY', `DESCRIPTION:${esc(title)}`, 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' })); a.download = `safepic-${d}.ics`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
 /* open a popup and make sure it is not hidden behind the panel/controls */
 function openPopup(lngLat, html, opts = {}) {
   if (matchMedia('(max-width:900px)').matches && opts.fromPanel) { $('#panel').classList.add('is-collapsed'); $('#panel').classList.remove('is-tall'); setTimeout(() => map.resize(), 260); }
@@ -139,7 +151,7 @@ function openPopup(lngLat, html, opts = {}) {
   return pop;
 }
 function addAdminLayers() {
-  map.openPopup = openPopup;
+  map.openPopup = openPopup; map.routeLinks = routeLinks;
   const empty = { type: 'FeatureCollection', features: [] };
   map.addSource('sido', { type: 'geojson', data: state.geo.sido || empty, promoteId: 'code' });
   map.addSource('sgg', { type: 'geojson', data: state.geo.sgg || empty, promoteId: 'code' });
@@ -294,7 +306,7 @@ async function renderNearest() {
   if (state.emd !== e.code) return;
   box.hidden = false;
   box.innerHTML = `<h3>${t('sh.nearest')} <small class="muted">${useGps ? t('sh.fromGps') : t('sh.fromEmd')}</small></h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() === 'en' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
-  $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5, padding: visiblePadding() }); openPopup(x.c, `<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}</small>`, { fromPanel: true }); }));
+  $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5, padding: visiblePadding() }); openPopup(x.c, `<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}${x.p.tel ? `<br>📞 <a href="tel:${x.p.tel}">${x.p.tel}</a>` : ''}</small>${routeLinks(x.c[0], x.c[1], x.p.name)}`, { fromPanel: true }); }));
 }
 
 /* ---------- names / live lookups ---------- */
@@ -517,7 +529,7 @@ function syncWizardLoc() {
 }
 function readWizard() {
   const fd = new FormData($('#wizard'));
-  return { housing: fd.get('housing') || null, damage: fd.getAll('damage'), household: fd.getAll('household'), special_zone: $('#qSpecial').checked ? true : null, event_end: fd.get('event_end') || null, today: new Date().toISOString().slice(0, 10), hazard: 'rain', proxy: $('#qProxy').checked, emd: state.emd, sgg: state.sgg };
+  return { housing: fd.get('housing') || null, damage: fd.getAll('damage'), household: fd.getAll('household'), special_zone: $('#qSpecial').checked ? true : null, household_unknown: $('#qUnknown').checked, event_end: fd.get('event_end') || null, today: new Date().toISOString().slice(0, 10), hazard: 'rain', proxy: $('#qProxy').checked, emd: state.emd, sgg: state.sgg };
 }
 function encodeShare(inp) {
   const p = new URLSearchParams();
@@ -605,6 +617,7 @@ function renderResult(res, inp) {
   const dlHTML = dl
     ? `<div class="deadline ${dl.days_left < 0 ? 'over' : ''}"><div class="d">${dl.days_left < 0 ? t('res.dl.over', { n: -dl.days_left }) : dl.days_left === 0 ? t('res.dl.today') : t('res.dl.d', { n: dl.days_left })}</div><div><b>${dl.label}</b><br><small class="muted">${t('res.dl.ext', { due: dl.due })}</small></div></div>`
     : `<div class="deadline"><div class="d">${t('res.dl.10')}</div><div><b>${t('res.dl.title')}</b><br><small class="muted">${t('res.dl.s')}</small></div></div>`;
+  const icsBtn = dl && dl.days_left >= 0 ? `<button type="button" class="btn btn-ghost btn-sm ics" id="btnIcs">📅 ${t('res.ics')}</button>` : '';
   const sec = (title, arr) => `<div class="result-block"><h3>${title}</h3>${arr && arr.length ? arr.map(itemHTML).join('') : `<div class="muted" style="font-size:.9rem">${t('res.none')}</div>`}</div>`;
   const cashItems = [...(res.cash || []), ...(res.relief_fund || [])];
   // 재난심리회복지원센터: 사람이 다치거나 사망한 경우 — 좌표 대신 전화·주소(행안부 현황 2024-08)
@@ -616,18 +629,22 @@ function renderResult(res, inp) {
   el.innerHTML = `
     <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div>
     <div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>
-    ${dlHTML}
+    ${dlHTML}${icsBtn}
+    <div class="print-head"><div>${place} · ${inp.today}</div><div>${t('res.print.for')}</div></div>
     <div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>
     ${sec(t('res.auto'), res.auto)}
     ${sec(t('res.apply'), res.apply)}
     ${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}
     ${docsHTML(res)}
-    ${(() => { const nm = nearMisses(inp); return nm.length ? `<div class="result-block miss"><h3>${t('res.miss')}</h3>${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : ''; })()}
+    ${(() => { const nm = nearMisses(inp); return nm.length ? `<div class="result-block miss ${inp.household_unknown ? 'is-unknown' : ''}"><h3>${inp.household_unknown ? t('res.maybe') : t('res.miss')}</h3>${inp.household_unknown ? `<small class="muted">${t('res.maybe.s')}</small>` : ''}${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : ''; })()}
     ${psychHTML}
     <div class="result-block"><h3>${t('res.proc')}</h3><ol class="timeline">${(res.timeline || []).map(s => `<li><b>${s.label}</b>${s.due ? ` <span class="badge">${t('badge.due', { d: s.due })}${s.days_left != null ? (s.days_left < 0 ? ' · ' + t('badge.over') : ` · D-${s.days_left}`) : ''}</span>` : ''}<small>${[s.summary, s.where, s.docs && s.docs.length && s.docs.join(', '), s.typical_days].filter(Boolean).join(' · ')}</small></li>`).join('')}</ol></div>
     <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
     <div class="disclaimer">${t('res.disc')}</div>`;
   $('#btnEdit').onclick = () => { el.hidden = true; $('#panelScroll').scrollTop = 0; };
+  const ib = $('#btnIcs'); if (ib && dl) ib.onclick = () => downloadICS(`${dl.label} — SafePic`, dl.due, `${place}\n${t('res.dl.ext', { due: dl.due })}\n${location.href}`);
+  // print-only: nearest community center (피해신고 접수처)
+  if (state.emd && state.shelters.avail.some(a => a.id === 'townhall')) { const e = state.idx.byEmd.get(state.emd); nearestShelters([e.lon, e.lat], ['townhall'], state.sido, 1, true).then(l => { if (l[0] && !el.hidden) { const d = document.createElement('div'); d.className = 'result-block print-only'; d.innerHTML = `<h3>${t('res.print.townhall')}</h3><b>${l[0].p.name}</b><br>${l[0].p.addr || ''}${l[0].p.tel ? ` · ${l[0].p.tel}` : ''} · ${t('sh.walk', { n: l[0].walk })}`; el.querySelector('.share-row').before(d); } }); }
   $$('input[data-doc]', el).forEach(c => c.addEventListener('change', () => { const on = $$('input[data-doc]', el).filter(x => x.checked).map(x => x.nextElementSibling.textContent); sessionStorage.setItem('safepic.docs', JSON.stringify(on)); }));
   $('#btnCopy').onclick = async () => { try { await navigator.clipboard.writeText(location.href); $('#copied').textContent = t('res.copied'); setTimeout(() => $('#copied').textContent = '', 2000); } catch { prompt('URL', location.href); } };
   $('#panelScroll').scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });

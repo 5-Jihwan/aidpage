@@ -216,10 +216,18 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
   .panel{height:60dvh} .maplibregl-ctrl-bottom-right{bottom:calc(60dvh + 6px)} .map-hint{bottom:calc(62dvh + 10px)}
 }
 @media print{
-  .top,.live,.mapwrap,.wizard,.share-row{display:none!important}
-  body{background:#fff;overflow:visible} .stage,.panel{position:static;width:auto;box-shadow:none;border:0;display:block}
-  .panel-scroll{padding:0} .result{display:block!important}
+  @page{margin:14mm}
+  .top,.live,.mapwrap,.wizard,.share-row,.panel-grip,.panel-resize,#btnEdit,.ics,.install,.coach{display:none!important}
+  body{background:#fff;overflow:visible;font-size:13pt;color:#000} .stage,.panel{position:static;width:auto;height:auto;box-shadow:none;border:0;display:block;background:#fff}
+  .panel-scroll{padding:0;overflow:visible} .view{display:none} .view[data-view="find"]{display:block} .result{display:block!important}
+  .result-block,.deadline,.psych{break-inside:avoid;border:1px solid #bbb;background:#fff}
+  .print-head{display:flex;justify-content:space-between;font-size:10pt;color:#444;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:10px}
+  .print-only{display:block!important}
+  .result h2{font-size:20pt} .total{font-size:22pt} .deadline .d{font-size:18pt}
+  .item-basis{font-size:9pt} .doc-list label{font-size:12pt} .doc-list input{width:16px;height:16px}
+  a{color:#000;text-decoration:none}
 }
+.print-head,.print-only{display:none}
 
 /* shelters */
 .near{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
@@ -329,3 +337,11 @@ html.big .todo-list li{font-size:1.12rem}
 .miss-item{padding:6px 0;border-bottom:1px dashed var(--line);font-size:.92rem} .miss-item:last-child{border-bottom:0}
 html.big .doc-list label{font-size:1.08rem} html.big .doc-list input{width:24px;height:24px}
 @media print{ .doc-list input{-webkit-appearance:checkbox;appearance:checkbox} .miss{display:none} }
+
+/* route links in popups */
+.route-row{display:flex;gap:6px;margin-top:8px} .route-row a{flex:1;text-align:center;border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:.8rem;text-decoration:none;color:var(--accent2);font-weight:600}
+.route-row a:hover{background:var(--bg)}
+html.big .route-row a{font-size:.95rem;padding:7px 8px}
+/* ics + unknown */
+.ics{margin:-6px 0 12px} .opt-unknown span{border-style:dashed;color:var(--mute)}
+.miss.is-unknown{border-color:var(--gold)}

@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824d';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824d';
-import { getReports, postReport, flagReport } from './api.js?v=20260824d';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824d';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824f';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824f';
+import { getReports, postReport, flagReport } from './api.js?v=20260824f';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824f';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260824d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260824f'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -18,7 +18,7 @@ const state = {
   idx: { emd: [], sgg: [], byEmd: new Map(), bySgg: new Map() },
   live: { weather: null, alerts: null, air: null },
   rules: null, meta: null, tab: 'now',
-  wxsel: new Set(JSON.parse(localStorage.getItem('safepic.wxsel') || '["t","feels","rain","pm10","pm25"]')),
+  wxsel: new Set(WX_KEYS), wxmap: localStorage.getItem('safepic.wxmap') || '',
   lastResult: null,
   shelters: { avail: [], active: new Set(JSON.parse(localStorage.getItem('safepic.shelters') || 'null') || seasonalKinds()) },
 };
@@ -211,6 +211,7 @@ function addAdminLayers() {
   map.addLayer({ id: 'landmark-dot', type: 'circle', source: 'landmarks', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3, 9, 6], 'circle-color': '#1a5fc4', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 }, minzoom: 3.5, maxzoom: 11 });
   map.addLayer({ id: 'landmark-label', type: 'symbol', source: 'landmarks', layout: { 'text-field': getLang() === 'en' ? ['get', 'en'] : ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'en'], { 'font-scale': 0.8, 'text-color': '#6b7a90' }], 'text-size': 12, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top' }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.4 }, minzoom: 3.5 });
   setLevelFilters();
+  setTimeout(applyWxLayer, 0);
 
   const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; $('#map').appendChild(tip);
   let hover = { src: null, id: null };
@@ -240,7 +241,8 @@ function setLevelFilters() {
   map.setFilter('sgg-fill', sggF); map.setFilter('sgg-label', state.sido ? sggF : NONE);
   map.setFilter('sgg-line', state.sido ? sggF : null); // nation view keeps the thin 시군구 outline (liked by users)
   ['emd-fill', 'emd-line', 'emd-label'].forEach(l => map.setFilter(l, emdF));
-  map.setPaintProperty('sido-fill', 'fill-opacity', state.sido ? 0 : ['case', ['boolean', ['feature-state', 'hover'], false], 0.32, 0]);
+  if (!state.wxmap) map.setPaintProperty('sido-fill', 'fill-opacity', state.sido ? 0 : ['case', ['boolean', ['feature-state', 'hover'], false], 0.32, 0]);
+  else map.setPaintProperty('sido-fill', 'fill-opacity', state.sido ? 0 : ['case', ['boolean', ['feature-state', 'hover'], false], 0.85, 0.62]);
   // highlight only the deepest selection (emd > sgg); nothing selected = no fill
   const want = state.emd ? { src: 'emd', id: String(state.emd) } : state.sgg ? { src: 'sgg', id: String(state.sgg) } : null;
   const prev = state._sel;
@@ -388,12 +390,12 @@ function renderLegend(kinds) {
   const box = $('#mapLegend'); if (!box) return;
   const en = getLang() === 'en';
   const sh = kinds.map(k => state.shelters.avail.find(a => a.id === k)).filter(Boolean);
-  const g = state._gridLegend;
-  if (!sh.length && !g) { box.hidden = true; return; }
+  const g = state._gridLegend, wxl = state._wxLegend;
+  if (!sh.length && !g && !wxl) { box.hidden = true; return; }
   box.hidden = false;
   const mobile = matchMedia(MQ_MOBILE).matches; box.classList.toggle('is-min', mobile && !state._legendOpen);
   box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + (sh.length ? `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>` : '') +
-    (g ? `<div class="lg-row lg-grid"><b>${g.title}</b>${g.html}</div>` : '') + `<small class="lg-src">${t('legend.src')}</small>`;
+    (wxl ? `<div class="lg-row lg-grid"><b>${wxl.title}</b>${wxl.html}</div>` : '') + (g ? `<div class="lg-row lg-grid"><b>${g.title}</b>${g.html}</div>` : '') + `<small class="lg-src">${t('legend.src')}</small>`;
   $('#lgToggle').addEventListener('click', () => { state._legendOpen = !state._legendOpen; box.classList.toggle('is-min', mobile && !state._legendOpen); });
 }
 async function renderNearest() {
@@ -645,8 +647,56 @@ function fmtTime(iso) { if (!iso) return ''; const d = new Date(iso); if (isNaN(
 function initWxSel() {
   $('#wxselT').addEventListener('click', () => $('#wxsel').classList.toggle('is-open'));
   document.addEventListener('click', e => { if (!e.target.closest('#wxsel')) $('#wxsel').classList.remove('is-open'); });
-  $$('#wxsel input').forEach(i => { i.checked = state.wxsel.has(i.value); i.addEventListener('change', () => { i.checked ? state.wxsel.add(i.value) : state.wxsel.delete(i.value); localStorage.setItem('safepic.wxsel', JSON.stringify([...state.wxsel])); renderRegion(); renderLive(); }); });
+  $$('#wxsel input').forEach(i => { i.checked = (i.value === state.wxmap); i.addEventListener('change', () => { if (!i.checked) return; state.wxmap = i.value; localStorage.setItem('safepic.wxmap', i.value); applyWxLayer(); }); });
+  paintWxTitle();
 }
+function paintWxTitle() { const b = $('#wxselT'); if (b) b.textContent = state.wxmap ? `${t('wx.title')}: ${t('wx.' + (state.wxmap === 'wind' ? 'wind' : state.wxmap))}` : t('wx.title'); }
+/* ---------- 지도 색면: 한 번에 한 항목. 값은 시군구(단기예보) → 없으면 시도 대표 관측소 ---------- */
+const WX_RAMP = {
+  t:     { key: 't',    stops: [-10, '#2b6cb0', 0, '#90cdf4', 15, '#f7f9fc', 25, '#fbd38d', 30, '#f6ad55', 35, '#e53e3e'], unit: '℃', legend: [-10, 0, 15, 25, 30, 35] },
+  feels: { key: 'feels', stops: [-10, '#2b6cb0', 0, '#90cdf4', 20, '#f7f9fc', 31, '#fbd38d', 33, '#f6ad55', 35, '#e53e3e', 38, '#9b2c2c'], unit: '℃', legend: [20, 31, 33, 35, 38] },
+  reh:   { key: 'reh',  stops: [20, '#d69e2e', 35, '#f6e05e', 50, '#f7f9fc', 80, '#63b3ed', 100, '#2b6cb0'], unit: '%', legend: [20, 35, 50, 80, 100] },
+  wind:  { key: 'wsd',  stops: [0, '#f7f9fc', 4, '#cbd5e0', 9, '#a0aec0', 14, '#ed8936', 20, '#c53030'], unit: 'm/s', legend: [0, 4, 9, 14, 20] },
+  rain:  { key: 'rn1',  stops: [0, '#f7f9fc', 1, '#bee3f8', 5, '#63b3ed', 15, '#3182ce', 30, '#1a365d'], unit: 'mm', legend: [0, 1, 5, 15, 30] },
+  pm10:  { key: 'pm10', stops: [0, '#48bb78', 30, '#68d391', 31, '#f6e05e', 80, '#ecc94b', 81, '#f6ad55', 150, '#ed8936', 151, '#e53e3e'], unit: '㎍/㎥', legend: [30, 80, 150] },
+  pm25:  { key: 'pm25', stops: [0, '#48bb78', 15, '#68d391', 16, '#f6e05e', 35, '#ecc94b', 36, '#f6ad55', 75, '#ed8936', 76, '#e53e3e'], unit: '㎍/㎥', legend: [15, 35, 75] },
+};
+function wxValueFor(sggCode, metric) {
+  const cfg = WX_RAMP[metric]; if (!cfg) return null;
+  if (metric === 'pm10' || metric === 'pm25') { const a = airFor(sggCode); return a && a[cfg.key] != null ? +a[cfg.key] : null; }
+  const w = weatherFor(sggCode); return w && w[cfg.key] != null ? +w[cfg.key] : null;
+}
+function applyWxLayer() {
+  if (!map || !map.getLayer('sgg-fill')) return;
+  const m = state.wxmap, cfg = WX_RAMP[m];
+  paintWxTitle();
+  const base = ['case', ['boolean', ['feature-state', 'hover'], false], 0.32, ['boolean', ['feature-state', 'sel'], false], 0.26, 0];
+  if (!cfg) {
+    ['sgg-fill', 'sido-fill', 'emd-fill'].forEach(l => { map.setPaintProperty(l, 'fill-opacity', base); });
+    map.setPaintProperty('sgg-fill', 'fill-color', '#9a7328'); map.setPaintProperty('sido-fill', 'fill-color', '#1a5fc4');
+    setLevelFilters(); state._wxLegend = null; renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); return;
+  }
+  // push values into feature-state
+  const W = state.live.weather || {};
+  for (const f of (state.geo.sgg || { features: [] }).features) { const v = wxValueFor(f.properties.code, m); map.setFeatureState({ source: 'sgg', id: f.properties.code }, { wx: v == null ? null : v }); }
+  for (const f of (state.geo.sido || { features: [] }).features) {
+    const h = W.hub && W.hub.by_sido && W.hub.by_sido[String(f.properties.code)];
+    let v = null;
+    if (m === 'pm10' || m === 'pm25') { const vals = (state.geo.sgg || { features: [] }).features.filter(g => String(g.properties.sido_code) === String(f.properties.code)).map(g => wxValueFor(g.properties.code, m)).filter(x => x != null); v = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null; }
+    else v = h && h[cfg.key] != null ? +h[cfg.key] : null;
+    map.setFeatureState({ source: 'sido', id: f.properties.code }, { wx: v });
+  }
+  const color = ['case', ['==', ['feature-state', 'wx'], null], '#d9dee7', ['interpolate', ['linear'], ['coalesce', ['feature-state', 'wx'], 0], ...cfg.stops]];
+  const op = ['case', ['boolean', ['feature-state', 'hover'], false], 0.85, ['boolean', ['feature-state', 'sel'], false], 0.8, 0.62];
+  map.setPaintProperty('sgg-fill', 'fill-color', color); map.setPaintProperty('sido-fill', 'fill-color', color);
+  // nation view: colour sido; after a sido is chosen: colour its sgg
+  map.setPaintProperty('sido-fill', 'fill-opacity', state.sido ? 0 : op);
+  map.setPaintProperty('sgg-fill', 'fill-opacity', op);
+  map.setPaintProperty('emd-fill', 'fill-opacity', base);
+  state._wxLegend = { title: t('wx.' + m) + (W.by_sgg && Object.keys(W.by_sgg).length ? '' : ` · ${t('wx.legend.sido')}`), html: cfg.legend.map((v, i) => `<span><i style="background:${colorAt(cfg.stops, v)}"></i>${i === 0 ? '≤' : ''}${v}${cfg.unit}</span>`).join('') };
+  renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []);
+}
+function colorAt(stops, v) { for (let i = 0; i < stops.length - 2; i += 2) { if (v <= stops[i]) return stops[i + 1]; if (v < stops[i + 2]) return stops[i + 1]; } return stops[stops.length - 1]; }
 
 /* ---------- search ---------- */
 function initSearch() {
@@ -720,7 +770,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824d').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824f').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

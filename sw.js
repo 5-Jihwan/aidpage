@@ -5,7 +5,7 @@
    - live data (data/live/*): network-first, fall back to cache
    - facility/grid files (data/shelters, data/grid): cache-first once fetched (only what the user opened)
    - map tiles / fonts / CDN: never cached here (too big; browser HTTP cache handles them) */
-const VERSION = 'safepic-20260824d';
+const VERSION = 'safepic-20260824f';
 const SHELL = [
   './', './index.html', './css/style.css', './js/app.js', './js/i18n.js', './js/rules.js', './js/shelters.js', './js/grid.js', './js/api.js',
   './manifest.webmanifest',
@@ -25,7 +25,7 @@ self.addEventListener('fetch', e => {
   if (url.origin !== location.origin) return; // tiles, fonts, CDN: leave to the browser
   const p = url.pathname;
   if (p.includes('/data/live/')) { e.respondWith(networkFirst(req)); return; }
-  if (p.includes('/data/shelters/') || p.includes('/data/grid/') || p.includes('/data/admin/kr_emd')) { e.respondWith(cacheFirst(req, true)); return; }
+  if (p.includes('/data/shelters/') || p.includes('/data/grid/') || p.includes('/data/admin/kr_emd') || p.includes('/fonts/')) { e.respondWith(cacheFirst(req, true)); return; }
   if (p.includes('/data/') || p.includes('/rules/')) { e.respondWith(cacheFirst(req, false)); return; }
   e.respondWith(networkFirst(req)); // html/css/js: always fresh when online, cached when not
 });

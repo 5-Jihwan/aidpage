@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260824d">
+<link rel="stylesheet" href="css/style.css?v=20260824f">
 </head>
 <body>
 
@@ -220,13 +220,14 @@
     <div class="mapstack" id="mapstack">
     <div class="wxsel" id="wxsel" aria-label="표시할 날씨 항목">
       <button type="button" class="wxsel-t mono" id="wxselT" data-i18n="wx.title">표시할 날씨</button>
-      <label><input type="checkbox" value="t" checked><span data-i18n="wx.t">기온</span></label>
-      <label><input type="checkbox" value="feels" checked><span data-i18n="wx.feels">체감</span></label>
-      <label><input type="checkbox" value="rain" checked><span data-i18n="wx.rain">강수</span></label>
-      <label><input type="checkbox" value="reh"><span data-i18n="wx.reh">습도</span></label>
-      <label><input type="checkbox" value="wind"><span data-i18n="wx.wind">바람</span></label>
-      <label><input type="checkbox" value="pm10" checked><span data-i18n="wx.pm10">미세먼지</span></label>
-      <label><input type="checkbox" value="pm25" checked><span data-i18n="wx.pm25">초미세먼지</span></label>
+      <label><input type="radio" name="wxmap" value="" checked><span data-i18n="wx.none">없음</span></label>
+      <label><input type="radio" name="wxmap" value="t"><span data-i18n="wx.t">기온</span></label>
+      <label><input type="radio" name="wxmap" value="feels"><span data-i18n="wx.feels">체감</span></label>
+      <label><input type="radio" name="wxmap" value="rain"><span data-i18n="wx.rain">강수</span></label>
+      <label><input type="radio" name="wxmap" value="reh"><span data-i18n="wx.reh">습도</span></label>
+      <label><input type="radio" name="wxmap" value="wind"><span data-i18n="wx.wind">바람</span></label>
+      <label><input type="radio" name="wxmap" value="pm10"><span data-i18n="wx.pm10">미세먼지</span></label>
+      <label><input type="radio" name="wxmap" value="pm25"><span data-i18n="wx.pm25">초미세먼지</span></label>
     </div>
     <div class="wxsel shsel" id="shsel" hidden aria-label="표시할 시설"></div>
     </div>
@@ -236,6 +237,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260824d"></script>
+<script type="module" src="js/app.js?v=20260824f"></script>
 </body>
 </html>

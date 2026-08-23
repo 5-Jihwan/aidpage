@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260823n">
+<link rel="stylesheet" href="css/style.css?v=20260823o">
 </head>
 <body>
 
@@ -82,6 +82,7 @@
             <button class="card" data-sit="before_rain"><span class="card-ic">🌧️</span><b data-i18n="sit.before">비 오기 전이에요</b><small data-i18n="sit.before.s">우리 동네 위험·보험</small></button>
             <button class="card" data-sit="injury"><span class="card-ic">🩹</span><b data-i18n="sit.injury">가족이 다쳤어요</b><small data-i18n="sit.injury.s">의연금·심리지원</small></button>
             <button class="card" data-sit="no_news"><span class="card-ic">⏳</span><b data-i18n="sit.nonews">신고했는데 소식이 없어요</b><small data-i18n="sit.nonews.s">절차와 기한</small></button>
+            <button class="card card-proxy" data-sit="proxy"><span class="card-ic">👥</span><b data-i18n="sit.proxy">부모님·이웃 대신 확인해요</b><small data-i18n="sit.proxy.s">인쇄·공유하기 좋게</small></button>
           </div>
         </div>
 
@@ -92,6 +93,7 @@
           </div>
           <div class="region-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSaveHome"></button><button type="button" class="btn btn-ghost btn-sm" id="btnResetSel" data-i18n="sel.reset">선택 초기화</button></div>
           <div class="level-guide" id="levelGuide"></div>
+          <div class="risk-line" id="riskLine" hidden></div>
           <div class="todo-card" id="todoCard" hidden></div>
           <div class="ins-card" id="insCard" hidden></div>
           <div class="wx-card" id="wxCard"></div>
@@ -230,6 +232,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260823n"></script>
+<script type="module" src="js/app.js?v=20260823o"></script>
 </body>
 </html>

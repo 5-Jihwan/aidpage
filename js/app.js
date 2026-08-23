@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823n';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823n';
-import { getReports, postReport, flagReport } from './api.js?v=20260823n';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823n';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823o';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823o';
+import { getReports, postReport, flagReport } from './api.js?v=20260823o';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823o';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260823n'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260823o'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -325,6 +325,8 @@ const CMP_ROWS = [
   { id: 'elderly', ko: '고령 1인세대 비율', en: 'Elderly living alone', fmt: v => (v * 100).toFixed(1) + '%', lowerBetter: true, agg: cs => cs[0].elderly_alone_r ?? null },
   { id: 'pop', ko: '인구', en: 'Population', fmt: v => v.toLocaleString('ko-KR'), lowerBetter: null, agg: cs => cs[0].pop ?? null },
 ];
+/* 재현기간 → 자연어 확률 ("100년에 한 번"의 오해 방지) */
+function probText(T, years = 30) { const p = 1 / T, cum = 1 - Math.pow(1 - p, years); return t('prob.text', { T, p: (p * 100).toFixed(p * 100 < 1 ? 1 : 0), y: years, c: Math.round(cum * 100) }); }
 function renderCompare() {
   const box = $('#compareBox'); if (!box) return;
   const cs = gridCells(state.sgg); if (!cs.length) { box.hidden = true; return; }
@@ -339,7 +341,7 @@ function renderCompare() {
   const rows = CMP_ROWS.map(r => { const a = r.agg(A), b = r.agg(B), g = r.agg(all); if (a == null || b == null) return ''; const win = r.lowerBetter == null ? 0 : (a === b ? 0 : (a < b) === r.lowerBetter ? 1 : 2); return `<tr><td>${en ? r.en : r.ko}</td><td class="${win === 1 ? 'win' : ''}">${r.fmt(a)}</td><td class="${win === 2 ? 'win' : ''}">${r.fmt(b)}</td><td class="muted">${g != null ? r.fmt(g) : '—'}</td></tr>`; }).join('');
   const verdict = (() => { const parts = []; for (const r of CMP_ROWS) { if (r.lowerBetter == null) continue; const a = r.agg(A), b = r.agg(B); if (a == null || b == null || a === b) continue; const w = (a < b) === r.lowerBetter ? saved[0] : saved[1]; parts.push(t('cmp.v.' + r.id, { w })); } return parts.slice(0, 3).join(' '); })();
   box.hidden = false;
-  box.innerHTML = `<h3>${t('cmp.title')}</h3><div class="cmp-head">${sel(0)}<span class="muted">vs</span>${sel(1)}</div><div class="table-wrap"><table class="cmp-table"><thead><tr><th></th><th>${saved[0]}</th><th>${saved[1]}</th><th class="muted">${t('cmp.avg', { name: nameOf().sggName })}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="cmp-verdict">${verdict}</p><div class="fine">${t('cmp.note')}</div>`;
+  box.innerHTML = `<h3>${t('cmp.title')}</h3><div class="cmp-head">${sel(0)}<span class="muted">vs</span>${sel(1)}</div><div class="table-wrap"><table class="cmp-table"><thead><tr><th></th><th>${saved[0]}</th><th>${saved[1]}</th><th class="muted">${t('cmp.avg', { name: nameOf().sggName })}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="cmp-verdict">${verdict}</p><div class="fine">${t('cmp.note')}<br>${t('prob.lead')} ${probText(100)} · ${probText(30)}</div>`;
   $$('.cmp-sel', box).forEach(s => s.addEventListener('change', () => { const v = [...$$('.cmp-sel', box)].map(x => x.value); sessionStorage.setItem('safepic.cmp', JSON.stringify(v)); renderCompare(); }));
 }
 function initGridClick() {
@@ -449,13 +451,13 @@ const ALERT_MAP = { // 특보 종류·단계 → 행동 문구 키 + 자동 시�
 };
 function todoItems() {
   const ws = warningsFor(state.sgg, state.sido), m = new Date().getMonth() + 1, out = [], seen = new Set();
-  const add = (key, kind) => { if (seen.has(key) || out.length >= 3) return; seen.add(key); out.push({ text: t('todo.' + key), kind }); };
+  const add = (key, kind, src) => { if (seen.has(key) || out.length >= 3) return; seen.add(key); out.push({ text: t('todo.' + key), kind, src: src || null }); };
   const P = getProfile();
   for (const w of ws) { const a = ALERT_MAP[w.type]; if (!a) continue; let lv = /경보/.test(w.level) ? 'warn' : 'adv';
     if (P.floor === 'semi' && a.key === 'rain') lv = 'warn';                       // 반지하: 호우는 주의보도 경보 문구로
     if (a.key === 'heat' && (P.senior || P.child)) add('prof.heat.senior', 'heat');  // 어르신·영유아: 폭염 우선 문구
     if (a.key === 'wind' && P.floor === 'high') add('prof.wind.high');
-    add(`alert.${a.key}.${lv}`, a.kinds[0]); }
+    add(`alert.${a.key}.${lv}`, a.kinds[0], 'kma'); }
   if (P.floor === 'semi' && (m >= 6 && m <= 9)) add('prof.semi.summer', 'temp_housing');
   if (P.mob) add('prof.mob', 'temp_housing');
   if (P.pet && (state.sit === 'evacuating' || ws.length)) add('prof.pet');
@@ -471,11 +473,33 @@ function todoItems() {
   add('always.shelter', 'civil_defense'); add('always.townhall', 'townhall');
   return out.slice(0, 3);
 }
+/* "내 동은 위험 구역 안/밖" — 지도 없이 글자로 판정 (PADM/지도 오인 연구) */
+async function renderRiskLine() {
+  const box = $('#riskLine'); if (!box) return;
+  if (!state.sgg) { box.hidden = true; return; }
+  const parts = [];
+  const ws = warningsFor(state.sgg, state.sido);
+  parts.push(ws.length ? `<span class="rl-bad">⚠ ${t('risk.inWarn', { w: ws.map(w => warnName(w.type, w.level)).join(', ') })}</span>` : `<span class="rl-ok">${t('risk.noWarn')}</span>`);
+  const e = state.emd && state.idx.byEmd.get(state.emd);
+  if (e) {
+    const cells = gridCells(state.sgg).map(f => f.properties).filter(p => p.emd_name === e.name);
+    if (cells.length) { const k = cells.filter(p => p.flood_hist_n > 0).length; parts.push(`<span class="${k ? 'rl-bad' : 'rl-ok'}">${t('risk.flood', { n: k, total: cells.length })}</span>`); }
+    if (state.shelters.avail.some(a => a.id === 'underpass' || a.id === 'steep')) {
+      const hz = await nearestShelters([e.lon, e.lat], ['underpass', 'steep'].filter(k => state.shelters.avail.some(a => a.id === k)), state.sido, 2, true);
+      const near = hz.filter(h => h.d <= 500);
+      if (near.length) parts.push(`<span class="rl-warn">${t('risk.hazardNear', { list: near.map(h => `${h.k.icon} ${h.p.name} ${h.walk}${t('risk.min')}`).join(' · ') })}</span>`);
+    }
+  }
+  if (state.emd !== (e && e.code) && e) return;
+  box.hidden = false; box.innerHTML = parts.join('<span class="rl-sep"> · </span>') + `<small class="muted rl-basis">${t('risk.basis')}</small>`;
+}
 function renderTodo() {
   const box = $('#todoCard'); if (!box) return;
   if (!state.sgg) { box.hidden = true; return; }
   const items = todoItems(); box.hidden = !items.length;
-  box.innerHTML = `<h3>${t('todo.title')} <button type="button" class="speak-mini" id="todoSpeak" title="${t('tts.title')}">🔊</button></h3><ol class="todo-list">${items.map((x, i) => `<li><span>${x.text}</span>${x.kind && state.shelters.avail.some(a => a.id === x.kind) ? `<button type="button" class="btn btn-ghost btn-sm" data-kind="${x.kind}">${t('todo.show')}</button>` : ''}</li>`).join('')}</ol>`;
+  const n = nameOf(), place = [n.sggName, state.emd && n.emdName].filter(Boolean).join(' ');
+  const SRC = { kma: t('src.kma'), mois: t('src.mois'), safepic: t('src.safepic') };
+  box.innerHTML = `<h3>${t('todo.title')} <small class="muted">${place}</small> <button type="button" class="speak-mini" id="todoSpeak" title="${t('tts.title')}">🔊</button></h3><ol class="todo-list">${items.map((x, i) => `<li><span>${x.src ? `<b class="todo-src">[${SRC[x.src] || x.src}]</b> ` : ''}${x.text}</span>${x.kind && state.shelters.avail.some(a => a.id === x.kind) ? `<button type="button" class="btn btn-ghost btn-sm" data-kind="${x.kind}">${t('todo.show')}</button>` : ''}</li>`).join('')}</ol>`;
   $('#todoSpeak').addEventListener('click', () => speak(items.map((x, i) => `${i + 1}. ${x.text}`).join('. '), $('#todoSpeak')));
   $$('button[data-kind]', box).forEach(b => b.addEventListener('click', () => { state.shelters.active.add(b.dataset.kind); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); renderNearest(); }));
 }
@@ -539,7 +563,7 @@ function renderRegion() {
   $('#regionPath').textContent = [n.sidoName, state.level !== 'sido' && n.sggName].filter(Boolean).join(' › ');
   $('#regionName').textContent = state.level === 'emd' ? n.emdName : state.level === 'sgg' ? n.sggName : n.sidoName;
   $('#levelGuide').innerHTML = ['sido', 'sgg', 'emd'].map(l => `<span class="${state.level === l ? 'on' : ''}">${t('lv.' + l)}</span>`).join('');
-  renderTodo(); renderInsurance(); renderReports();
+  renderTodo(); renderInsurance(); renderReports(); renderRiskLine();
   // weather + air
   const wx = $('#wxCard');
   if (state.sgg) {
@@ -655,7 +679,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823n').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823o').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -734,6 +758,7 @@ function initCards() {
     // situation → facilities that matter right now
     const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
     const PP = getProfile(); if (AUTO[sit]) { const extra = [...(PP.senior ? ['heat', 'cold'] : []), ...(PP.mob ? ['temp_housing'] : []), ...(PP.child || PP.senior ? ['er'] : [])]; [...AUTO[sit], ...extra].forEach(k => state.shelters.active.add(k)); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
+    if (sit === 'proxy') { $('#wizard').reset(); $('#qProxy').checked = true; setTab('find'); syncWizardLoc(); return; }
     if (sit === 'evacuating' || sit === 'before_rain') { $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden'); $('#searchInput').focus(); return; }
     applyPreset(sit); setTab('find'); syncWizardLoc();
     if (sit === 'no_news') setTimeout(() => $('#wizard').requestSubmit(), 50);

@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824h';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824h';
-import { getReports, postReport, flagReport } from './api.js?v=20260824h';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824h';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824j';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824j';
+import { getReports, postReport, flagReport } from './api.js?v=20260824j';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824j';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260824h'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260824j'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -211,7 +211,7 @@ function addAdminLayers() {
   map.addLayer({ id: 'landmark-dot', type: 'circle', source: 'landmarks', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3, 9, 6], 'circle-color': '#1a5fc4', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 }, minzoom: 3.5, maxzoom: 11 });
   map.addLayer({ id: 'landmark-label', type: 'symbol', source: 'landmarks', layout: { 'text-field': getLang() === 'en' ? ['get', 'en'] : ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'en'], { 'font-scale': 0.8, 'text-color': '#6b7a90' }], 'text-size': 12, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top' }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.4 }, minzoom: 3.5 });
   setLevelFilters();
-  setTimeout(applyWxLayer, 0);
+  setTimeout(() => { applyWxLayer(); applyTyphoon(); }, 0);
 
   const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; $('#map').appendChild(tip);
   let hover = { src: null, id: null };
@@ -272,7 +272,7 @@ async function selectEmd(code) {
   await ensureEmd(); setLevelFilters();
   const fs = featuresWhere(state.geo.emd, 'code', code); if (fs.length) fitTo(fs); else map.flyTo({ center: [e.lon, e.lat], zoom: 13 });
   if (map.getSource('emd')) { state.geo.emd.features.forEach(f => map.setFeatureState({ source: 'emd', id: f.properties.code }, { sel: false })); map.setFeatureState({ source: 'emd', id: String(code) }, { sel: true }); }
-  pushRecent(String(code));
+  pushRecent(String(code)); if (state.wxmap === 'wind') applyWindArrows(true);
   renderAll(); syncWizardLoc();
   if (matchMedia(MQ_MOBILE).matches) { $('#panel').classList.remove('is-collapsed'); }
 }
@@ -435,7 +435,7 @@ function warningsFor(sgg, sido) {
   const a = state.live.alerts; if (!a || !a.warnings || !a.warnings.items) return quakeAsWarning();
   return [...a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(sgg) || c === String(sido)) || (w.areas || []).some(x => (nameOf().sggName && x.includes(nameOf().sggName)) || (nameOf().sidoName && x === nameOf().sidoName))), ...quakeAsWarning()];
 }
-function quakeAsWarning() { const q = recentQuake(); return q ? [{ type: '지진', level: '속보', areas: [`${q.loc} · M${q.mag}`], since: q.announced }] : []; }
+function quakeAsWarning() { const q = recentQuake(); const T = state.live.alerts && state.live.alerts.typhoon; const out = q ? [{ type: '지진', level: '속보', areas: [`${q.loc} · M${q.mag}`], since: q.announced }] : []; for (const t of (T && T.items) || []) { const a = t.analysis || (t.forecast || [])[0]; if (a) out.push({ type: '태풍', level: '정보', areas: [`${t.year} ${t.no}호 · ${a.wind || '?'}m/s · ${a.pressure || '?'}hPa`], since: a.tm }); } return out; }
 function _warningsForLegacy(sgg, sido) {
   const a = state.live.alerts; if (!a || !a.warnings || !a.warnings.items) return [];
   const n = nameOf();
@@ -461,7 +461,7 @@ function renderCrumb() {
   if (state.emd) { sep(); add(n.emdName, () => {}, true); }
 }
 /* ---------- today's to-do (3 lines): warnings > situation > season ---------- */
-const WARN_EN = { '폭염': 'Heat', '호우': 'Heavy rain', '대설': 'Heavy snow', '강풍': 'Strong wind', '한파': 'Cold wave', '건조': 'Dry', '태풍': 'Typhoon', '지진': 'Earthquake', '풍랑': 'High seas', '황사': 'Yellow dust', '주의보': ' advisory', '경보': ' warning', '속보': ' bulletin' };
+const WARN_EN = { '폭염': 'Heat', '호우': 'Heavy rain', '대설': 'Heavy snow', '강풍': 'Strong wind', '한파': 'Cold wave', '건조': 'Dry', '태풍': 'Typhoon', '지진': 'Earthquake', '풍랑': 'High seas', '황사': 'Yellow dust', '주의보': ' advisory', '경보': ' warning', '속보': ' bulletin', '정보': ' info' };
 const warnName = (type, level) => getLang() === 'en' ? (WARN_EN[type] || type) + (WARN_EN[level] || ' ' + level) : type + level;
 const ALERT_MAP = { // 특보 종류·단계 → 행동 문구 키 + 자동 시설
   '폭염': { key: 'heat', kinds: ['heat'] }, '호우': { key: 'rain', kinds: ['temp_housing', 'civil_defense', 'underpass'] }, '대설': { key: 'snow', kinds: ['cold'] },
@@ -674,7 +674,7 @@ function applyWxLayer() {
   if (!cfg) {
     ['sgg-fill', 'sido-fill', 'emd-fill'].forEach(l => { map.setPaintProperty(l, 'fill-opacity', base); });
     map.setPaintProperty('sgg-fill', 'fill-color', '#9a7328'); map.setPaintProperty('sido-fill', 'fill-color', '#1a5fc4');
-    setLevelFilters(); state._wxLegend = null; renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); return;
+    setLevelFilters(); applyWindArrows(false); state._wxLegend = null; renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); return;
   }
   // push values into feature-state
   const W = state.live.weather || {};
@@ -693,8 +693,75 @@ function applyWxLayer() {
   map.setPaintProperty('sido-fill', 'fill-opacity', state.sido ? 0 : op);
   map.setPaintProperty('sgg-fill', 'fill-opacity', op);
   map.setPaintProperty('emd-fill', 'fill-opacity', base);
-  state._wxLegend = { title: t('wx.' + m) + (W.by_sgg && Object.keys(W.by_sgg).length ? '' : ` · ${t('wx.legend.sido')}`), html: cfg.legend.map((v, i) => `<span><i style="background:${colorAt(cfg.stops, v)}"></i>${i === 0 ? '≤' : ''}${v}${cfg.unit}</span>`).join('') };
+  applyWindArrows(m === 'wind');
+  state._wxLegend = { title: t('wx.' + m) + (m === 'wind' ? ` · ${t('wx.wind.note')}` : '') + (W.by_sgg && Object.keys(W.by_sgg).length ? '' : ` · ${t('wx.legend.sido')}`), html: cfg.legend.map((v, i) => `<span><i style="background:${colorAt(cfg.stops, v)}"></i>${i === 0 ? '≤' : ''}${v}${cfg.unit}</span>`).join('') };
   renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []);
+}
+/* 바람 화살표: 화살표는 바람이 '가는' 방향(풍향 vec는 불어오는 방향이므로 +180°), 길이·굵기는 풍속 */
+function ensureArrowImage() {
+  if (!map || map.hasImage('wind-arrow')) return;
+  const c = document.createElement('canvas'); c.width = c.height = 48; const x = c.getContext('2d');
+  x.translate(24, 24); x.lineWidth = 4; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0f4a9e'; x.fillStyle = '#0f4a9e';
+  x.beginPath(); x.moveTo(0, 16); x.lineTo(0, -12); x.stroke();
+  x.beginPath(); x.moveTo(0, -20); x.lineTo(-9, -6); x.lineTo(9, -6); x.closePath(); x.fill();
+  map.addImage('wind-arrow', x.getImageData(0, 0, 48, 48), { pixelRatio: 2 });
+}
+function applyWindArrows(on) {
+  if (!map) return;
+  if (!on) { if (map.getLayer('wind-arrows')) map.setLayoutProperty('wind-arrows', 'visibility', 'none'); return; }
+  ensureArrowImage();
+  const pts = [];
+  const list = state.sido ? state.idx.sgg.filter(s => String(s.sido) === state.sido) : state.idx.sgg;
+  const seen = new Set();
+  for (const s of list) {
+    const w = weatherFor(s.code); if (!w || w.wsd == null) continue;
+    const key = state.sido ? s.code : (w._sido ? s.sido : s.code); // nation view with sido-level data: one arrow per sido
+    if (seen.has(key)) continue; seen.add(key);
+    let lon = s.lon, lat = s.lat;
+    if (!state.sido && w._sido) { const sib = state.idx.sgg.filter(z => String(z.sido) === String(s.sido)); lon = sib.reduce((a, z) => a + z.lon, 0) / sib.length; lat = sib.reduce((a, z) => a + z.lat, 0) / sib.length; }
+    pts.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: { rot: ((w.vec || 0) + 180) % 360, wsd: w.wsd, label: `${w.wsd.toFixed(1)}` } });
+  }
+  const fc = { type: 'FeatureCollection', features: pts };
+  if (map.getSource('wind')) map.getSource('wind').setData(fc);
+  else {
+    map.addSource('wind', { type: 'geojson', data: fc });
+    map.addLayer({ id: 'wind-arrows', type: 'symbol', source: 'wind', layout: { 'icon-image': 'wind-arrow', 'icon-rotate': ['get', 'rot'], 'icon-rotation-alignment': 'map', 'icon-size': ['interpolate', ['linear'], ['get', 'wsd'], 0, 0.45, 5, 0.8, 14, 1.4], 'icon-allow-overlap': true, 'text-field': ['concat', ['get', 'label'], ' m/s'], 'text-size': 10, 'text-offset': [0, 1.6], 'text-anchor': 'top', 'text-font': ['Noto Sans Regular'], 'text-optional': true }, paint: { 'icon-opacity': ['interpolate', ['linear'], ['get', 'wsd'], 0, 0.35, 3, 0.9], 'text-color': '#0f4a9e', 'text-halo-color': '#fff', 'text-halo-width': 1.2 } });
+  }
+  map.setLayoutProperty('wind-arrows', 'visibility', 'visible');
+  startWindFlow();
+}
+/* 화살표가 바람 방향으로 천천히 흘러가는 느낌 (icon-offset은 회전된 아이콘 좌표계라 '앞쪽'으로 움직인다) */
+let _windRAF = null;
+function startWindFlow() {
+  if (_windRAF || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const t0 = performance.now();
+  const tick = now => {
+    if (!map || !map.getLayer('wind-arrows') || map.getLayoutProperty('wind-arrows', 'visibility') === 'none') { _windRAF = null; return; }
+    const ph = ((now - t0) / 1400) % 1; // 0→1 loop
+    map.setLayoutProperty('wind-arrows', 'icon-offset', [0, -ph * 14]);
+    map.setPaintProperty('wind-arrows', 'icon-opacity', ['interpolate', ['linear'], ['get', 'wsd'], 0, 0.3, 3, 0.95 - ph * 0.35]);
+    _windRAF = requestAnimationFrame(tick);
+  };
+  _windRAF = requestAnimationFrame(tick);
+}
+/* 태풍: 분석 위치 + 예측 경로 선 + 25m/s 반경 */
+function applyTyphoon() {
+  if (!map) return;
+  const T = state.live.alerts && state.live.alerts.typhoon; const items = (T && T.items) || [];
+  const feats = [];
+  for (const t of items) {
+    const pts = [t.analysis, ...(t.forecast || [])].filter(Boolean);
+    if (pts.length > 1) feats.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: pts.map(p => [p.lon, p.lat]) }, properties: { kind: 'track' } });
+    pts.forEach((p, i) => { feats.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lon, p.lat] }, properties: { kind: i === 0 ? 'now' : 'fc', label: i === 0 ? `태풍 ${t.no}호 · ${p.wind || ''}m/s` : `+${p.tmd}h`, r25: p.rad25 || 0 } }); });
+  }
+  const fc = { type: 'FeatureCollection', features: feats };
+  if (map.getSource('typhoon')) map.getSource('typhoon').setData(fc);
+  else if (feats.length) {
+    map.addSource('typhoon', { type: 'geojson', data: fc });
+    map.addLayer({ id: 'typhoon-track', type: 'line', source: 'typhoon', filter: ['==', ['get', 'kind'], 'track'], paint: { 'line-color': '#c8432b', 'line-width': 3, 'line-dasharray': [2, 1.5] } });
+    map.addLayer({ id: 'typhoon-pts', type: 'circle', source: 'typhoon', filter: ['!=', ['get', 'kind'], 'track'], paint: { 'circle-radius': ['case', ['==', ['get', 'kind'], 'now'], 9, 6], 'circle-color': ['case', ['==', ['get', 'kind'], 'now'], '#c8432b', '#fff'], 'circle-stroke-color': '#c8432b', 'circle-stroke-width': 2 } });
+    map.addLayer({ id: 'typhoon-lbl', type: 'symbol', source: 'typhoon', filter: ['!=', ['get', 'kind'], 'track'], layout: { 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#c8432b', 'text-halo-color': '#fff', 'text-halo-width': 1.3 } });
+  }
 }
 function colorAt(stops, v) { for (let i = 0; i < stops.length - 2; i += 2) { if (v <= stops[i]) return stops[i + 1]; if (v < stops[i + 2]) return stops[i + 1]; } return stops[stops.length - 1]; }
 
@@ -770,7 +837,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824h').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824j').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

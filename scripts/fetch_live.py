@@ -605,6 +605,44 @@ def fetch_quake(prev):
     return sec
 
 
+HUB_TYP = "https://apihub.kma.go.kr/api/typ01/url/typ_now.php"
+
+
+def fetch_typhoon(prev):
+    """태풍정보+예측(허브 typ_now): 활성 태풍의 분석(FT=0)·예측(FT=1) 위치·반경. 없으면 items=[]."""
+    sec = {"status": "ok", "items": [], "source": "기상청 API허브 태풍정보", "updated": now_kst().isoformat(timespec="seconds")}
+    if not KEY_HUB:
+        sec["status"] = "no_key"
+        return sec
+    try:
+        rows = _hub_text(HUB_TYP, {"help": 0})
+        by = {}
+        for r in rows:
+            if len(r) < 16:
+                continue
+            try:
+                ft, yy, typ, seq, tmd = int(r[0]), int(r[1]), int(r[2]), int(r[3]), int(r[4])
+                lat, lon = float(r[7]), float(r[8])
+            except ValueError:
+                continue
+            key = f"{yy}-{typ:02d}"
+            t = by.setdefault(key, {"year": yy, "no": typ, "seq": seq, "analysis": None, "forecast": []})
+            pt = {"tmd": tmd, "tm": r[5], "ft_tm": r[6], "lat": lat, "lon": lon, "dir": r[9], "speed": _v(r[10]), "pressure": _v(r[11]),
+                  "wind": _v(r[12]), "rad15": _v(r[13]), "rad25": _v(r[14]), "rad70": _v(r[15]) if len(r) > 15 else None}
+            if ft == 0:
+                t["analysis"] = pt
+            else:
+                t["forecast"].append(pt)
+        for t in by.values():
+            t["forecast"].sort(key=lambda p: p["tmd"])
+            sec["items"].append(t)
+    except HttpError as e:
+        sec = dict(prev or {}, status=f"error:{e.code}")
+    except Exception:  # noqa: BLE001
+        sec = dict(prev or {}, status="error:parse")
+    return sec
+
+
 # --------------------------------------------------------------------------- 5b. 응급실 실시간 가용병상 (E-Gen)
 def fetch_er(sgg, prev):
     """중앙응급의료센터 E-Gen 응급실 실시간 가용병상 (data.go.kr B552657, 일 1,000건).
@@ -883,12 +921,13 @@ def main():
         "river": safe(fetch_river, prev_a.get("river")),
         "landslide": safe(fetch_landslide, sgg, prev_a.get("landslide")),
         "quake": safe(fetch_quake, prev_a.get("quake")),
+        "typhoon": safe(fetch_typhoon, prev_a.get("typhoon")),
     }
     air = safe(fetch_air, sgg, prev_air)
     er = safe(fetch_er, sgg, prev_er)
     weather["calls"] = _calls
     air["calls"] = _calls
-    statuses = [weather.get("status"), air.get("status"), er.get("status"), (weather.get("hub") or {}).get("status")] + [alerts[k].get("status") for k in ("warnings", "messages", "river", "landslide", "quake")]
+    statuses = [weather.get("status"), air.get("status"), er.get("status"), (weather.get("hub") or {}).get("status")] + [alerts[k].get("status") for k in ("warnings", "messages", "river", "landslide", "quake", "typhoon")]
     if all(st in ("no_key", "todo", None) for st in statuses) and os.path.exists(WEATHER_PATH):
         log("all sections no_key: leaving placeholder files untouched (no commit churn)")
     else:

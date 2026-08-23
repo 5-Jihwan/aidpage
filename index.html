@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260823m">
+<link rel="stylesheet" href="css/style.css?v=20260823n">
 </head>
 <body>
 
@@ -38,6 +38,7 @@
     <button class="tab" data-tab="where"><i>03</i><span data-i18n="tab.where">어디에 먼저</span></button>
     <button class="tab tab-about" data-tab="about"><span data-i18n="tab.about">방법·한계</span></button>
   </nav>
+  <button type="button" class="lang-top" id="langTop" aria-label="언어 전환 / Switch language" title="언어 / Language">EN</button>
 </header>
 
 
@@ -71,7 +72,7 @@
         <div id="nowLanding">
           <div class="home-row" id="homeRow" hidden><button type="button" class="btn btn-primary" id="btnGoHome"></button><button type="button" class="btn btn-ghost" id="btnForgetHome" data-i18n="home.forget">저장 해제</button></div>
           <div class="recent-row" id="recentRow" hidden></div>
-          <div class="landing-top"><h1 class="h1" data-i18n="landing.h1">지금 어떤 상황이세요?</h1><div class="lang pill lang-inline" role="group" aria-label="언어"><button class="lang-btn" data-lang="ko">한국어</button><button class="lang-btn" data-lang="en">EN</button></div></div>
+          <h1 class="h1" data-i18n="landing.h1">지금 어떤 상황이세요?</h1>
           <p class="lead" data-i18n="landing.lead">법령이 아니라 상황으로 시작합니다. 입력은 서버로 가지 않고 이 브라우저 안에서만 계산됩니다.</p>
           <div class="install" id="installRow" hidden><span data-i18n="install.msg">📲 홈 화면에 추가하면 통신이 끊겨도 내 동네 정보를 볼 수 있어요.</span><button type="button" class="btn btn-primary btn-sm" id="btnInstall" data-i18n="install.go">추가</button><button type="button" class="btn btn-ghost btn-sm" id="btnInstallX" data-i18n="install.later">나중에</button></div>
           <div class="cards" id="sitCards">
@@ -229,6 +230,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260823m"></script>
+<script type="module" src="js/app.js?v=20260823n"></script>
 </body>
 </html>

@@ -16,6 +16,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@500;700&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -48,6 +50,7 @@
           <div class="home-row" id="homeRow" hidden><button type="button" class="btn btn-primary" id="btnGoHome"></button><button type="button" class="btn btn-ghost" id="btnForgetHome" data-i18n="home.forget">저장 해제</button></div>
           <h1 class="h1" data-i18n="landing.h1">지금 어떤 상황이세요?</h1>
           <p class="lead" data-i18n="landing.lead">법령이 아니라 상황으로 시작합니다. 입력은 서버로 가지 않고 이 브라우저 안에서만 계산됩니다.</p>
+          <div class="install" id="installRow" hidden><span data-i18n="install.msg">📲 홈 화면에 추가하면 통신이 끊겨도 내 동네 정보를 볼 수 있어요.</span><button type="button" class="btn btn-primary btn-sm" id="btnInstall" data-i18n="install.go">추가</button><button type="button" class="btn btn-ghost btn-sm" id="btnInstallX" data-i18n="install.later">나중에</button></div>
           <div class="cards" id="sitCards">
             <button class="card" data-sit="house_flood"><span class="card-ic">🏠</span><b data-i18n="sit.house">집이 잠겼어요</b><small data-i18n="sit.house.s">침수·파손 지원금, 10일 신고</small></button>
             <button class="card" data-sit="shop_flood"><span class="card-ic">🏪</span><b data-i18n="sit.shop">가게가 잠겼어요</b><small data-i18n="sit.shop.s">소상공인 지원·융자</small></button>
@@ -65,6 +68,7 @@
           </div>
           <div class="region-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSaveHome"></button><button type="button" class="btn btn-ghost btn-sm" id="btnResetSel" data-i18n="sel.reset">선택 초기화</button></div>
           <div class="level-guide" id="levelGuide"></div>
+          <div class="todo-card" id="todoCard" hidden></div>
           <div class="wx-card" id="wxCard"></div>
           <div class="warn-card" id="warnCard"></div>
           <div class="kv" id="regionKv"></div>
@@ -165,6 +169,7 @@
     <div class="search" id="search">
       <input id="searchInput" type="search" data-i18n-ph="search.ph" placeholder="동·읍·면 이름으로 찾기 (예: 신림동, 진안읍)" autocomplete="off" aria-label="지역 검색">
       <ul id="searchList" class="search-list" hidden></ul>
+      <button type="button" class="locate" id="btnLocate" data-i18n-title="gps.title" title="내 위치로 찾기" aria-label="내 위치로 찾기"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg></button>
     </div>
     <div class="mapstack" id="mapstack">
     <div class="wxsel" id="wxsel" aria-label="표시할 날씨 항목">

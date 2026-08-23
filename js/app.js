@@ -37,6 +37,7 @@ async function loadCore() {
   emdIdx.forEach(e => state.idx.byEmd.set(String(e.code), e));
   sggIdx.forEach(s => state.idx.bySgg.set(String(s.code), s));
   Object.assign(state.live, { weather, alerts, air });
+  state.sit = sessionStorage.getItem('safepic.sit') || null;
   getJSON('data/ref/psych_centers.json').then(j => { state.psych = j; });
   if (meta) { $('#aboutAdmin').textContent = `${meta.source || ''} ${meta.version || ''}`.trim(); $('#buildDate').textContent = meta.built || ''; }
   if (loadRules) { try { state.rules = await loadRules('rules/'); } catch (e) { console.warn('rules load failed', e); } }
@@ -56,6 +57,37 @@ function bboxOf(features) {
   features.forEach(f => walk(f.geometry.coordinates)); return b;
 }
 const featuresWhere = (fc, key, val) => fc ? fc.features.filter(f => String(f.properties[key]) === String(val)) : [];
+/* point-in-polygon (ray casting) over a GeoJSON feature */
+function pipRing(lon, lat, ring) { let inside = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-12) + xi) inside = !inside; } return inside; }
+function pipFeature(lon, lat, f) { const g = f.geometry; const polys = g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates]; return polys.some(p => pipRing(lon, lat, p[0]) && !p.slice(1).some(h => pipRing(lon, lat, h))); }
+const featureAt = (fc, lon, lat, filter) => fc ? fc.features.find(f => (!filter || filter(f)) && pipFeature(lon, lat, f)) : null;
+/* locate me -> sido/sgg/emd by polygon test, then select */
+async function locateMe() {
+  const btn = $('#btnLocate'); if (!navigator.geolocation) { alert(t('gps.unsupported')); return; }
+  btn.classList.add('is-busy'); btn.disabled = true;
+  const done = () => { btn.classList.remove('is-busy'); btn.disabled = false; };
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lon = pos.coords.longitude, lat = pos.coords.latitude;
+    const sd = featureAt(state.geo.sido, lon, lat);
+    if (!sd) { done(); alert(t('gps.outside')); return; }
+    const sg = featureAt(state.geo.sgg, lon, lat, f => String(f.properties.sido_code) === String(sd.properties.code));
+    await ensureEmd();
+    const em = sg && featureAt(state.geo.emd, lon, lat, f => String(f.properties.sgg_code) === String(sg.properties.code));
+    state.gps = { lon, lat, acc: pos.coords.accuracy, emd: em ? String(em.properties.code) : null };
+    if (em) await selectEmd(em.properties.code); else if (sg) await selectSgg(sg.properties.code); else selectSido(sd.properties.code);
+    showGpsDot(lon, lat, pos.coords.accuracy);
+    done();
+  }, err => { done(); alert(err.code === 1 ? t('gps.denied') : t('gps.fail')); }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+}
+function showGpsDot(lon, lat, acc) {
+  const fc = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: { acc } }] };
+  if (map.getSource('gps')) map.getSource('gps').setData(fc);
+  else {
+    map.addSource('gps', { type: 'geojson', data: fc });
+    map.addLayer({ id: 'gps-halo', type: 'circle', source: 'gps', paint: { 'circle-radius': 18, 'circle-color': '#1a5fc4', 'circle-opacity': 0.15 } });
+    map.addLayer({ id: 'gps-dot', type: 'circle', source: 'gps', paint: { 'circle-radius': 7, 'circle-color': '#1a5fc4', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2.5 } });
+  }
+}
 
 function initMap() {
   map = new maplibregl.Map({
@@ -227,9 +259,22 @@ async function initShelterUI() {
   state.shelters.avail = await initShelters(map);
   const box = $('#shsel'); if (!state.shelters.avail.length) { box.hidden = true; return; }
   box.hidden = false;
-  box.innerHTML = `<button type="button" class="wxsel-t mono" id="shselT">${t('sh.title')}</button>` + state.shelters.avail.map(k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${getLang() === 'en' ? k.en : k.ko}</span></label>`).join('');
+  const GROUPS = [
+    { id: 'evac', ko: '대피', en: 'Evacuate', icon: '🛡️', kinds: ['civil_defense', 'temp_housing', 'quake', 'tsunami'] },
+    { id: 'rest', ko: '쉼터', en: 'Shelters', icon: '🌡️', kinds: ['heat', 'cold', 'dust'] },
+    { id: 'help', ko: '도움', en: 'Help', icon: '🆘', kinds: ['townhall', 'er', 'pharmacy', 'fire', 'police', 'meal', 'water'] },
+  ];
+  const en = getLang() === 'en', K = id => state.shelters.avail.find(a => a.id === id);
+  const chip = k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${en ? k.en : k.ko}</span></label>`;
+  box.innerHTML = `<button type="button" class="wxsel-t mono" id="shselT">${t('sh.title')}</button>` + GROUPS.map(g => {
+    const ks = g.kinds.map(K).filter(Boolean); if (!ks.length) return '';
+    const allOn = ks.every(k => state.shelters.active.has(k.id));
+    return `<div class="shgrp"><button type="button" class="shgrp-t ${allOn ? 'is-on' : ''}" data-grp="${g.id}">${g.icon} ${en ? g.en : g.ko}</button><div class="shgrp-k">${ks.map(chip).join('')}</div></div>`;
+  }).join('');
+  const save = () => { localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); syncShelterLayers(); renderRegion(); };
   $('#shselT').addEventListener('click', () => box.classList.toggle('is-open'));
-  $$('input', box).forEach(i => i.addEventListener('change', () => { i.checked ? state.shelters.active.add(i.value) : state.shelters.active.delete(i.value); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); syncShelterLayers(); renderRegion(); }));
+  $$('input', box).forEach(i => i.addEventListener('change', () => { i.checked ? state.shelters.active.add(i.value) : state.shelters.active.delete(i.value); const g = i.closest('.shgrp'); g.querySelector('.shgrp-t').classList.toggle('is-on', $$('input', g).every(x => x.checked)); save(); }));
+  $$('.shgrp-t', box).forEach(b => b.addEventListener('click', () => { const g = b.closest('.shgrp'), on = !b.classList.contains('is-on'); $$('input', g).forEach(i => { i.checked = on; on ? state.shelters.active.add(i.value) : state.shelters.active.delete(i.value); }); b.classList.toggle('is-on', on); save(); }));
   document.addEventListener('click', e => { if (!e.target.closest('#shsel')) box.classList.remove('is-open'); });
   syncShelterLayers();
 }
@@ -243,10 +288,12 @@ async function renderNearest() {
   const e = state.emd && state.idx.byEmd.get(state.emd);
   if (!e || !state.shelters.avail.length) { box.hidden = true; return; }
   const kinds = [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k));
-  const list = await nearestShelters([e.lon, e.lat], kinds, state.sido, 3);
+  const useGps = state.gps && state.gps.emd === e.code;
+  const origin = useGps ? [state.gps.lon, state.gps.lat] : [e.lon, e.lat];
+  const list = await nearestShelters(origin, kinds, state.sido, 8, true);
   if (state.emd !== e.code) return;
   box.hidden = false;
-  box.innerHTML = `<h3>${t('sh.nearest')}</h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() === 'en' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
+  box.innerHTML = `<h3>${t('sh.nearest')} <small class="muted">${useGps ? t('sh.fromGps') : t('sh.fromEmd')}</small></h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() === 'en' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
   $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5, padding: visiblePadding() }); openPopup(x.c, `<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}</small>`, { fromPanel: true }); }));
 }
 
@@ -282,6 +329,34 @@ function renderCrumb() {
   if (state.sgg) { sep(); add(n.sggName, () => selectSgg(state.sgg), state.level === 'sgg'); }
   if (state.emd) { sep(); add(n.emdName, () => {}, true); }
 }
+/* ---------- today's to-do (3 lines): warnings > situation > season ---------- */
+const ALERT_MAP = { // 특보 종류·단계 → 행동 문구 키 + 자동 시설
+  '폭염': { key: 'heat', kinds: ['heat'] }, '호우': { key: 'rain', kinds: ['temp_housing', 'civil_defense'] }, '대설': { key: 'snow', kinds: ['cold'] },
+  '강풍': { key: 'wind', kinds: [] }, '한파': { key: 'cold', kinds: ['cold'] }, '건조': { key: 'dry', kinds: [] }, '태풍': { key: 'typhoon', kinds: ['temp_housing', 'civil_defense'] },
+  '지진': { key: 'quake', kinds: ['quake'] }, '풍랑': { key: 'sea', kinds: [] }, '황사': { key: 'dust', kinds: ['dust'] },
+};
+function todoItems() {
+  const ws = warningsFor(state.sgg, state.sido), m = new Date().getMonth() + 1, out = [], seen = new Set();
+  const add = (key, kind) => { if (seen.has(key) || out.length >= 3) return; seen.add(key); out.push({ text: t('todo.' + key), kind }); };
+  for (const w of ws) { const a = ALERT_MAP[w.type]; if (!a) continue; const lv = /경보/.test(w.level) ? 'warn' : 'adv'; add(`alert.${a.key}.${lv}`, a.kinds[0]); }
+  if (state.sit === 'house_flood' || state.sit === 'shop_flood') { add('sit.photo'); add('sit.report10', 'townhall'); }
+  if (state.sit === 'evacuating') { add('sit.evac', 'civil_defense'); add('sit.meds', 'pharmacy'); }
+  if (state.sit === 'injury') { add('sit.er', 'er'); add('sit.psych'); }
+  if (state.sit === 'no_news') { add('sit.ask', 'townhall'); }
+  if (m >= 6 && m <= 9) { add('season.summer.water', 'heat'); add('season.summer.drain'); }
+  else if (m === 12 || m <= 2) { add('season.winter.taps', 'cold'); add('season.winter.ice'); }
+  else if (m >= 3 && m <= 5) { add('season.spring.fire'); add('season.spring.dust', 'dust'); }
+  else { add('season.autumn.typhoon', 'temp_housing'); }
+  add('always.shelter', 'civil_defense'); add('always.townhall', 'townhall');
+  return out.slice(0, 3);
+}
+function renderTodo() {
+  const box = $('#todoCard'); if (!box) return;
+  if (!state.sgg) { box.hidden = true; return; }
+  const items = todoItems(); box.hidden = !items.length;
+  box.innerHTML = `<h3>${t('todo.title')}</h3><ol class="todo-list">${items.map((x, i) => `<li><span>${x.text}</span>${x.kind && state.shelters.avail.some(a => a.id === x.kind) ? `<button type="button" class="btn btn-ghost btn-sm" data-kind="${x.kind}">${t('todo.show')}</button>` : ''}</li>`).join('')}</ol>`;
+  $$('button[data-kind]', box).forEach(b => b.addEventListener('click', () => { state.shelters.active.add(b.dataset.kind); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); renderNearest(); }));
+}
 function renderRegion() {
   const landing = $('#nowLanding'), reg = $('#nowRegion');
   if (state.level === 'nation') { landing.hidden = false; reg.hidden = true; return; }
@@ -290,6 +365,7 @@ function renderRegion() {
   $('#regionPath').textContent = [n.sidoName, state.level !== 'sido' && n.sggName].filter(Boolean).join(' › ');
   $('#regionName').textContent = state.level === 'emd' ? n.emdName : state.level === 'sgg' ? n.sggName : n.sidoName;
   $('#levelGuide').innerHTML = ['sido', 'sgg', 'emd'].map(l => `<span class="${state.level === l ? 'on' : ''}">${t('lv.' + l)}</span>`).join('');
+  renderTodo();
   // weather + air
   const wx = $('#wxCard');
   if (state.sgg) {
@@ -335,6 +411,7 @@ function initWxSel() {
 
 /* ---------- search ---------- */
 function initSearch() {
+  $('#btnLocate').addEventListener('click', locateMe);
   const inp = $('#searchInput'), list = $('#searchList'); let hot = -1, items = [];
   const render = () => { list.innerHTML = items.map((it, i) => `<li class="${i === hot ? 'is-hot' : ''}" data-i="${i}"><span>${it.name}</span><small>${it.path}</small></li>`).join(''); list.hidden = !items.length; };
   inp.addEventListener('input', () => {
@@ -378,6 +455,15 @@ function initPanel() {
   g.addEventListener('touchend', e => { const dy = e.changedTouches[0].clientY - y0; if (dy < -30) { if (p.classList.contains('is-collapsed')) p.classList.remove('is-collapsed'); else p.classList.add('is-tall'); } else if (dy > 30) { if (p.classList.contains('is-tall')) p.classList.remove('is-tall'); else p.classList.add('is-collapsed'); } setTimeout(() => map && map.resize(), 280); });
   g.addEventListener('click', () => { p.classList.toggle('is-tall'); p.classList.remove('is-collapsed'); });
 }
+function initPWA() {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  let deferred = null; const row = $('#installRow');
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
+  $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
+  $('#btnInstallX').addEventListener('click', () => { row.hidden = true; localStorage.setItem('safepic.installDismissed', '1'); });
+  const badge = () => document.documentElement.classList.toggle('offline', !navigator.onLine);
+  addEventListener('online', badge); addEventListener('offline', badge); badge();
+}
 function initSize() {
   const root = document.documentElement, KEY = 'safepic.size';
   const apply = v => { root.classList.toggle('big', v === 'big'); $$('.size-btn').forEach(b => b.classList.toggle('is-on', b.dataset.size === v)); setTimeout(() => map && map.resize(), 50); };
@@ -413,7 +499,7 @@ function applyPreset(sit) {
 }
 function initCards() {
   $$('#sitCards .card').forEach(b => b.addEventListener('click', () => {
-    const sit = b.dataset.sit;
+    const sit = b.dataset.sit; state.sit = sit; sessionStorage.setItem('safepic.sit', sit);
     // situation → facilities that matter right now
     const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
     if (AUTO[sit]) { AUTO[sit].forEach(k => state.shelters.active.add(k)); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
@@ -466,11 +552,51 @@ function runResult() {
   const res = evaluate(state.rules, inp); state.lastResult = { res, inp };
   renderResult(res, inp); history.replaceState(null, '', encodeShare(inp));
 }
+/* ⑪ "왜 해당되나": matchRule의 why 토큰 → 사람이 읽는 문구 */
+function whyHTML(why) {
+  if (!why || !why.length) return '';
+  const P = { housing: 'h.', damage: 'd.', household: 'f.' }, out = [];
+  for (const w of why) {
+    const m = /^(housing|damage|household)=(.+)$/.exec(w);
+    if (m) m[2].split('/').forEach(v => { const k = P[m[1]] + ({ near_poor: 'near', single_parent: 'single', disabled: 'dis' }[v] || v); const s = t(k); if (s !== k) out.push(s); });
+    else if (w === '특별재난지역') out.push(t('res.sz'));
+  }
+  return out.length ? `<div class="item-why">✔ ${t('item.why')} ${out.join(' · ')}</div>` : '';
+}
+/* ⑪ "조건이 하나 다르면": 실패 조건이 정확히 1개인 규칙 */
+function nearMisses(inp) {
+  const rules = (state.rules && state.rules.all) || [], input = { housing: inp.housing || null, damage: inp.damage || [], household: inp.household || [], special_zone: inp.special_zone === true, hazard: inp.hazard || 'any' };
+  const out = [];
+  for (const r of rules) {
+    if (!['cash', 'relief_fund', 'indirect', 'insurance'].includes(r.group)) continue;
+    const c = r.conditions || {}, fail = [];
+    if ('housing' in c && !(input.housing && c.housing.includes(input.housing))) fail.push('housing');
+    if ('damage' in c && !input.damage.some(d => c.damage.includes(d))) fail.push('damage');
+    if ('household' in c && !input.household.some(h => c.household.includes(h))) fail.push('household');
+    if ('hazard' in c && !(c.hazard.includes('any') || input.hazard === 'any' || c.hazard.includes(input.hazard))) fail.push('hazard');
+    if ('special_zone' in c && c.special_zone != null && c.special_zone !== input.special_zone) fail.push('special_zone');
+    if (fail.length !== 1 || fail[0] === 'hazard' || fail[0] === 'damage') continue;
+    let cond = '';
+    if (fail[0] === 'special_zone') cond = c.special_zone ? t('miss.sz') : t('miss.nosz');
+    else if (fail[0] === 'household') cond = t('miss.household', { list: c.household.map(v => t('f.' + ({ near_poor: 'near', single_parent: 'single', disabled: 'dis' }[v] || v))).join('·') });
+    else if (fail[0] === 'housing') cond = t('miss.housing', { list: c.housing.map(v => t('h.' + v)).join('·') });
+    out.push({ r, cond });
+  }
+  return out.slice(0, 6);
+}
+/* ⑦ 준비할 서류: 매칭된 항목의 docs 합집합, 체크 상태는 세션에 저장 */
+function docsHTML(res) {
+  const items = [...(res.cash || []), ...(res.relief_fund || []), ...(res.apply || []), ...(res.insurance || [])];
+  const docs = [...new Set(items.flatMap(r => r.docs || []))];
+  if (!docs.length) return '';
+  const done = new Set(JSON.parse(sessionStorage.getItem('safepic.docs') || '[]'));
+  return `<div class="result-block docs"><h3>${t('res.docs')}</h3><ul class="doc-list">${docs.map((d, i) => `<li><label><input type="checkbox" data-doc="${i}" ${done.has(d) ? 'checked' : ''}><span>${d}</span></label></li>`).join('')}</ul><small class="muted">${t('res.docs.s')}</small></div>`;
+}
 function itemHTML(r) {
   const amt = r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '');
   const conf = r.confidence === 'verified' ? '' : `<span class="badge est">${r.confidence === 'reported' ? t('badge.reported') : t('badge.est')}</span>`;
   const sz = r.conditions && r.conditions.special_zone === true ? `<span class="badge sz">${t('res.sz')}</span>` : '';
-  return `<div class="item"><div class="item-row"><b>${r.label}${sz}${conf}</b><span class="item-amt">${amt}</span></div>${r.summary ? `<div class="item-sum">${r.summary}</div>` : ''}<div class="item-basis">${r.where ? `${r.where} · ` : ''}${r.basis || ''}${r.basis_url ? ` · <a href="${r.basis_url}" target="_blank" rel="noopener">${t('item.src')}</a>` : ''}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div></div>`;
+  return `<div class="item"><div class="item-row"><b>${r.label}${sz}${conf}</b><span class="item-amt">${amt}</span></div>${r.summary ? `<div class="item-sum">${r.summary}</div>` : ''}${whyHTML(r._why)}<div class="item-basis">${r.where ? `${r.where} · ` : ''}${r.basis || ''}${r.basis_url ? ` · <a href="${r.basis_url}" target="_blank" rel="noopener">${t('item.src')}</a>` : ''}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div></div>`;
 }
 function renderResult(res, inp) {
   const n = nameOf(), el = $('#result'); el.hidden = false;
@@ -495,11 +621,14 @@ function renderResult(res, inp) {
     ${sec(t('res.auto'), res.auto)}
     ${sec(t('res.apply'), res.apply)}
     ${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}
+    ${docsHTML(res)}
+    ${(() => { const nm = nearMisses(inp); return nm.length ? `<div class="result-block miss"><h3>${t('res.miss')}</h3>${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : ''; })()}
     ${psychHTML}
     <div class="result-block"><h3>${t('res.proc')}</h3><ol class="timeline">${(res.timeline || []).map(s => `<li><b>${s.label}</b>${s.due ? ` <span class="badge">${t('badge.due', { d: s.due })}${s.days_left != null ? (s.days_left < 0 ? ' · ' + t('badge.over') : ` · D-${s.days_left}`) : ''}</span>` : ''}<small>${[s.summary, s.where, s.docs && s.docs.length && s.docs.join(', '), s.typical_days].filter(Boolean).join(' · ')}</small></li>`).join('')}</ol></div>
     <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
     <div class="disclaimer">${t('res.disc')}</div>`;
   $('#btnEdit').onclick = () => { el.hidden = true; $('#panelScroll').scrollTop = 0; };
+  $$('input[data-doc]', el).forEach(c => c.addEventListener('change', () => { const on = $$('input[data-doc]', el).filter(x => x.checked).map(x => x.nextElementSibling.textContent); sessionStorage.setItem('safepic.docs', JSON.stringify(on)); }));
   $('#btnCopy').onclick = async () => { try { await navigator.clipboard.writeText(location.href); $('#copied').textContent = t('res.copied'); setTimeout(() => $('#copied').textContent = '', 2000); } catch { prompt('URL', location.href); } };
   $('#panelScroll').scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
 }
@@ -519,7 +648,7 @@ function renderRulesTable() {
   $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });
   $('#btnStart').addEventListener('click', goStart);
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
-  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initWxSel(); initHome();
+  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome();
   await loadCore(); renderCrumb(); renderLive();
   initMap();
   map.once('idle', () => { if (location.hash) applyShare(location.hash); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => selectEmd(getHome()), 1200); });

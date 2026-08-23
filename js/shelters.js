@@ -73,12 +73,18 @@ export async function setActive(kinds, sido) {
 const R = 6371000;
 function dist(a, b) { const toR = x => x * Math.PI / 180; const dLat = toR(b[1] - a[1]), dLon = toR(b[0] - a[0]); const s = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[1])) * Math.cos(toR(b[1])) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(s)); }
 /** nearest N shelters of the active kinds to [lon,lat]; walking minutes at 67 m/min */
-export async function nearest(lonlat, kinds, sido, n = 3) {
+export async function nearest(lonlat, kinds, sido, n = 3, perKind = false) {
   const out = [];
   for (const kind of kinds) {
     const fc = await load(kind, sido); if (!fc) continue;
     const k = KINDS.find(x => x.id === kind);
-    for (const f of fc.features) { const d = dist(lonlat, f.geometry.coordinates); if (d < 5000) out.push({ kind, k, d, walk: Math.round(d / 67), p: f.properties, c: f.geometry.coordinates }); }
+    let best = null;
+    for (const f of fc.features) {
+      const d = dist(lonlat, f.geometry.coordinates); if (d >= 5000) continue;
+      const item = { kind, k, d, walk: Math.round(d / 67), p: f.properties, c: f.geometry.coordinates };
+      if (perKind) { if (!best || d < best.d) best = item; } else out.push(item);
+    }
+    if (perKind && best) out.push(best);
   }
   return out.sort((a, b) => a.d - b.d).slice(0, n);
 }

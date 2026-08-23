@@ -56,7 +56,21 @@ export const DICT = {
     'eastsea': '동해',
     'home.go': '저장된 내 동네로 가기 · {name}', 'home.forget': '저장 해제', 'home.save': '☆ 내 동네로 저장', 'home.saved': '★ 저장됨', 'sel.reset': '선택 초기화',
     'grid.title': '격자 분석 (시범)', 'grid.nodata': '데이터 없음', 'grid.note': 'H3 격자(약 0.1 km²). 값이 있는 항목만 표시하며, 회색은 아직 데이터가 없는 셀입니다.',
-    'res.psych': '마음 회복 지원 (재난심리회복지원센터)', 'res.psych.hot': '전국 공통 · 유선·방문 상담 무료', 'res.psych.src': '행정안전부 재난심리회복지원센터 현황(2024-08) · 대한적십자사 운영', 'sh.title': '표시할 시설', 'sh.nearest': '가까운 대피소·쉼터', 'sh.walk': '도보 {n}분', 'sh.none': '5km 안에 표시할 시설이 없습니다',
+    'res.psych': '마음 회복 지원 (재난심리회복지원센터)', 'res.psych.hot': '전국 공통 · 유선·방문 상담 무료', 'res.psych.src': '행정안전부 재난심리회복지원센터 현황(2024-08) · 대한적십자사 운영', 'item.why': '해당 이유:', 'res.docs': '준비할 서류', 'res.docs.s': '체크하며 준비하세요. 인쇄하면 같이 나옵니다. 지자체마다 서식이 조금 다를 수 있어요.', 'res.miss': '조건이 하나 다르면 받을 수 있는 것', 'miss.sz': '특별재난지역으로 선포되면', 'miss.nosz': '특별재난지역이 아닌 일반 재난지역이면', 'miss.household': '{list} 중 하나에 해당하면', 'miss.housing': '{list}이면', 'todo.title': '오늘 할 일', 'todo.show': '지도에서 보기',
+    'todo.alert.heat.adv': '폭염주의보 — 낮 2~5시 외출을 피하고, 물을 자주 드세요.', 'todo.alert.heat.warn': '폭염경보 — 여긴 지금 사막이에요. 가까운 무더위쉼터로 가세요.',
+    'todo.alert.rain.adv': '호우주의보 — 우산보다 장화. 하천·지하차도 근처를 피하세요.', 'todo.alert.rain.warn': '호우경보 — 반지하·지하주차장에서 지금 나오세요.',
+    'todo.alert.snow.adv': '대설주의보 — 길이 미끄러워요. 차는 두고 걷기 전에 한 번 더 생각하세요.', 'todo.alert.snow.warn': '대설경보 — 외출을 미루세요.',
+    'todo.alert.wind.adv': '강풍주의보 — 간판·가림막 아래를 피하세요.', 'todo.alert.wind.warn': '강풍경보 — 창문을 닫고 밖에 나가지 마세요.',
+    'todo.alert.cold.adv': '한파주의보 — 수도꼭지를 조금 틀어 두세요.', 'todo.alert.cold.warn': '한파경보 — 밖이 위험해요. 한파쉼터로.',
+    'todo.alert.dry.adv': '건조주의보 — 불씨 하나가 산을 태워요.', 'todo.alert.dry.warn': '건조경보 — 야외에서 불을 쓰지 마세요.',
+    'todo.alert.typhoon.adv': '태풍주의보 — 창틀을 고정하고 밖의 물건을 들여놓으세요.', 'todo.alert.typhoon.warn': '태풍경보 — 임시주거시설 위치를 확인하고 대피 준비하세요.',
+    'todo.alert.quake.adv': '지진 — 머리를 보호하고 탁자 아래로. 흔들림이 멈추면 밖으로.', 'todo.alert.quake.warn': '지진 — 머리를 보호하고 탁자 아래로. 흔들림이 멈추면 밖으로.',
+    'todo.alert.sea.adv': '풍랑주의보 — 해안가·방파제에 가지 마세요.', 'todo.alert.sea.warn': '풍랑경보 — 해안가·방파제에 가지 마세요.',
+    'todo.alert.dust.adv': '황사 — 마스크, 창문 닫기.', 'todo.alert.dust.warn': '황사경보 — 외출을 줄이고 미세먼지쉼터를 이용하세요.',
+    'todo.sit.photo': '치우기 전에 사진부터 찍으세요 (침수 높이, 가전, 벽).', 'todo.sit.report10': '재난 끝난 날부터 10일 안에 주민센터에 피해 신고.', 'todo.sit.evac': '가까운 대피소로 이동, 가스·전기 차단.', 'todo.sit.meds': '상비약·처방약 챙기기 (가까운 약국 확인).', 'todo.sit.er': '응급이면 119, 아니면 가까운 응급의료센터.', 'todo.sit.psych': '재난심리회복지원 1670-9512 (무료).', 'todo.sit.ask': '신고 접수번호를 들고 주민센터에 진행 상황을 물어보세요.',
+    'todo.season.summer.water': '물 자주 마시고, 더우면 무더위쉼터로.', 'todo.season.summer.drain': '집 앞 배수구·빗물받이 막힘 확인.', 'todo.season.winter.taps': '한파 때는 수도꼭지 살짝 틀어 두기.', 'todo.season.winter.ice': '아침 결빙 — 계단·경사로 조심.', 'todo.season.spring.fire': '건조한 봄 — 논밭두렁·쓰레기 태우기 금지.', 'todo.season.spring.dust': '황사·미세먼지 — 마스크, 미세먼지쉼터.', 'todo.season.autumn.typhoon': '태풍 철 — 창문·간판 고정, 임시주거시설 위치 확인.',
+    'todo.always.shelter': '우리 동네 대피소 위치를 한 번 확인해 두세요.', 'todo.always.townhall': '피해가 생기면 10일 안에 주민센터 — 위치를 알아 두세요.',
+    'install.msg': '📲 홈 화면에 추가하면 통신이 끊겨도 내 동네 정보를 볼 수 있어요.', 'install.go': '추가', 'install.later': '나중에', 'offline.badge': '오프라인 · 저장된 정보로 표시 중', 'gps.title': '내 위치로 찾기', 'gps.unsupported': '이 브라우저는 위치 기능을 지원하지 않습니다.', 'gps.denied': '위치 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.', 'gps.fail': '위치를 가져오지 못했습니다. 동 이름으로 검색해 주세요.', 'gps.outside': '현재 위치가 대한민국 밖으로 판정되었습니다.', 'sh.fromGps': '내 위치 기준', 'sh.fromEmd': '동 중심 기준', 'sh.title': '표시할 시설', 'sh.nearest': '가까운 곳 (종류별 1곳)', 'sh.walk': '도보 {n}분', 'sh.none': '5km 안에 표시할 시설이 없습니다',
   },
   en: {
     'brand.sub': 'Your situation, your safety — on one page',
@@ -114,7 +128,21 @@ export const DICT = {
     'eastsea': 'East Sea',
     'home.go': 'Go to my saved area · {name}', 'home.forget': 'Forget', 'home.save': '☆ Save as my area', 'home.saved': '★ Saved', 'sel.reset': 'Reset selection',
     'grid.title': 'Grid analysis (pilot)', 'grid.nodata': 'No data', 'grid.note': 'H3 cells (~0.1 km²). Only attributes with data are shown; grey cells have no data yet.',
-    'res.psych': 'Mental-health recovery support', 'res.psych.hot': 'Nationwide · free phone/visit counselling', 'res.psych.src': 'MOIS disaster mental-health centers (2024-08), run by Korean Red Cross', 'sh.title': 'Facilities', 'sh.nearest': 'Nearest shelters', 'sh.walk': '{n} min walk', 'sh.none': 'No facilities within 5 km',
+    'res.psych': 'Mental-health recovery support', 'res.psych.hot': 'Nationwide · free phone/visit counselling', 'res.psych.src': 'MOIS disaster mental-health centers (2024-08), run by Korean Red Cross', 'item.why': 'Because:', 'res.docs': 'Documents to prepare', 'res.docs.s': 'Tick as you go; printed with the result. Forms vary slightly by municipality.', 'res.miss': 'Available if one condition differs', 'miss.sz': 'if the area is declared a special disaster zone', 'miss.nosz': 'if it is a regular (not special) disaster area', 'miss.household': 'if you are one of: {list}', 'miss.housing': 'if you are: {list}', 'todo.title': 'Today', 'todo.show': 'Show on map',
+    'todo.alert.heat.adv': 'Heat advisory — avoid 2–5 pm outdoors, drink often.', 'todo.alert.heat.warn': 'Heat warning — it is a desert out there. Go to a cooling center.',
+    'todo.alert.rain.adv': 'Rain advisory — boots, not umbrellas. Stay away from streams and underpasses.', 'todo.alert.rain.warn': 'Heavy-rain warning — leave basements and underground parking now.',
+    'todo.alert.snow.adv': 'Snow advisory — icy roads. Leave the car.', 'todo.alert.snow.warn': 'Snow warning — postpone going out.',
+    'todo.alert.wind.adv': 'Wind advisory — avoid walking under signboards.', 'todo.alert.wind.warn': 'Wind warning — close windows, stay in.',
+    'todo.alert.cold.adv': 'Cold advisory — let taps drip.', 'todo.alert.cold.warn': 'Cold warning — outside is dangerous. Warming center.',
+    'todo.alert.dry.adv': 'Dry advisory — one spark burns a mountain.', 'todo.alert.dry.warn': 'Dry warning — no open fire outdoors.',
+    'todo.alert.typhoon.adv': 'Typhoon advisory — fix window frames, bring things inside.', 'todo.alert.typhoon.warn': 'Typhoon warning — know your temporary housing site, prepare to evacuate.',
+    'todo.alert.quake.adv': 'Earthquake — cover your head, get under a table; go out when shaking stops.', 'todo.alert.quake.warn': 'Earthquake — cover your head, get under a table; go out when shaking stops.',
+    'todo.alert.sea.adv': 'Sea advisory — stay off breakwaters.', 'todo.alert.sea.warn': 'Sea warning — stay off breakwaters.',
+    'todo.alert.dust.adv': 'Yellow dust — mask, close windows.', 'todo.alert.dust.warn': 'Dust warning — stay in or use a clean-air shelter.',
+    'todo.sit.photo': 'Photograph before cleaning (water line, appliances, walls).', 'todo.sit.report10': 'Report damage at the community center within 10 days of the disaster end.', 'todo.sit.evac': 'Move to the nearest shelter; shut off gas and power.', 'todo.sit.meds': 'Take medicines (check nearest pharmacy).', 'todo.sit.er': 'Emergency: 119. Otherwise nearest emergency room.', 'todo.sit.psych': 'Disaster mental-health line 1670-9512 (free).', 'todo.sit.ask': 'Bring your report number and ask the community center for status.',
+    'todo.season.summer.water': 'Drink water often; cooling center if hot.', 'todo.season.summer.drain': 'Check the drain in front of your home is clear.', 'todo.season.winter.taps': 'Let taps drip on cold-wave days.', 'todo.season.winter.ice': 'Morning ice — careful on stairs and slopes.', 'todo.season.spring.fire': 'Dry spring — no burning of field edges or trash.', 'todo.season.spring.dust': 'Dust season — mask, clean-air shelter.', 'todo.season.autumn.typhoon': 'Typhoon season — fix windows, know your temporary housing site.',
+    'todo.always.shelter': 'Know where your nearest shelter is.', 'todo.always.townhall': 'If damaged: community center within 10 days — know where it is.',
+    'install.msg': '📲 Add to home screen to keep your area info when the network is down.', 'install.go': 'Add', 'install.later': 'Later', 'offline.badge': 'Offline · showing saved data', 'gps.title': 'Use my location', 'gps.unsupported': 'Geolocation is not supported here.', 'gps.denied': 'Location permission denied. Allow it in browser settings.', 'gps.fail': 'Could not get your location. Try searching by name.', 'gps.outside': 'Your location appears to be outside Korea.', 'sh.fromGps': 'from my location', 'sh.fromEmd': 'from neighborhood center', 'sh.title': 'Facilities', 'sh.nearest': 'Nearest (one per type)', 'sh.walk': '{n} min walk', 'sh.none': 'No facilities within 5 km',
   },
 };
 let lang = localStorage.getItem('safepic.lang') || ((navigator.language || 'ko').startsWith('ko') ? 'ko' : 'en');
@@ -124,6 +152,7 @@ export function applyStatic(root = document) {
   root.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   root.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   root.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  const top = document.querySelector('.top'); if (top) top.setAttribute('data-offline', t('offline.badge'));
   document.documentElement.lang = lang;
 }
 export function setLang(l, onChange) { lang = l === 'en' ? 'en' : 'ko'; localStorage.setItem('safepic.lang', lang); applyStatic(); if (onChange) onChange(lang); }

@@ -1,0 +1,25 @@
+{
+ "name": "SafePic — 내 상황에 맞는 안전, 한 장으로",
+ "short_name": "SafePic",
+ "description": "내 동네 오늘의 위험과, 내 상황에 맞는 재난 지원을 한 화면에.",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#ffffff",
+ "theme_color": "#ffffff",
+ "lang": "ko",
+ "icons": [
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-maskable.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "maskable"
+  }
+ ]
+}

@@ -735,6 +735,51 @@ def build_townhall() -> list[dict]:
     return feats
 
 
+def build_underpass() -> list[dict]:
+    """지하차도 (위험 지점) — geometry from OpenStreetMap tunnel ways (centre point), attributes joined by name
+    from 국토교통부 '시설물안전법 대상 지하차도 현황' (data.go.kr 15124755, 938 rows; addresses only, no coords).
+    Unmatched MOLIT rows are NOT placed (no geocoding)."""
+    kind = "underpass"
+    q = ('[out:json][timeout:240];area["ISO3166-1"="KR"]->.kr;(way["name"~"지하차도|지하도로|굴다리|언더패스"]["highway"](area.kr);'
+         'way["tunnel"]["highway"]["name"~"지하"](area.kr););out center tags;')
+    raw = cached("osm_underpass.json", lambda: http("https://overpass-api.de/api/interpreter", data=urllib.parse.urlencode({"data": q}).encode(), headers={"User-Agent": "safepic/0.1"}, timeout=300))
+    j = json.loads(raw)
+    molit_raw = cached("molit_underpass.csv", lambda: http("https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000002881351&fileDetailSn=1&insertDataPrcus=N", headers={"User-Agent": "Mozilla/5.0"}), binary=True)
+    import csv, io
+    norm = lambda t: re.sub(r"\s|\(.*?\)|제|지하차도|지하도로|지하도|굴다리|언더패스|_", "", t or "")
+    molit = {}
+    for r in csv.DictReader(io.StringIO(molit_raw.decode("cp949", "ignore"))):
+        molit.setdefault(norm(r.get("시설물명")), []).append(r)
+    feats, seen = [], set()
+    for e in j.get("elements", []):
+        t = e.get("tags", {}); name = clean(t.get("name")); c = e.get("center") or {}
+        if not name or "보도" in name: continue  # 지하보도(pedestrian) excluded
+        STATS.add(kind, "raw_ways")
+        lon, lat = to_float(c.get("lon")), to_float(c.get("lat"))
+        key = (norm(name), round(lon or 0, 2), round(lat or 0, 2))
+        if key in seen: STATS.add(kind, "dropped_duplicate_way"); continue
+        seen.add(key)
+        sgg = sgg_from_point(lon, lat) if in_bounds(lon, lat) else None
+        m = molit.get(norm(name), [])
+        # disambiguate by sido name in 위치 vs matched sgg's sido
+        mrow = None
+        if m:
+            prov = (t.get("addr:province", "") + t.get("addr:city", ""))
+            mrow = m[0] if len(m) == 1 else next((r for r in m if r.get("위치", "").split(" ")[0][:2] in prov), None)
+        typ = None
+        if mrow:
+            STATS.add(kind, "molit_matched")
+            typ = f"{mrow.get('종별') or ''} · {mrow.get('항목명') or ''}".strip(" ·")
+        addr = (mrow or {}).get("위치") or t.get("addr:full") or None
+        f = feature(kind, lon, lat, name, addr, None, typ, "osm+molit" if mrow else "osm", TODAY, sgg=sgg)
+        if f: feats.append(f)
+    SOURCES[kind].append({"name": "OpenStreetMap 지하차도 tunnel ways (centre points) + 국토교통부 시설물안전법 대상 지하차도 현황(15124755) 이름 대조",
+                          "url": "https://www.data.go.kr/data/15124755/fileData.do", "endpoint": "https://overpass-api.de/api/interpreter",
+                          "fetched": TODAY, "raw_rows": len(j.get("elements", [])), "molit_rows": sum(len(v) for v in molit.values()),
+                          "license": "ODbL 1.0 (OSM) · 공공누리 (MOLIT)"})
+    return feats
+
+
 BUILDERS = {
     "civil_defense": build_civil_defense,
     "heat": build_heat,
@@ -754,6 +799,7 @@ BUILDERS = {
     "health": make_sk_builder("health", "health", "보건소"),
     "steep": make_sk_builder("steep", "steep", "급경사지(붕괴위험 관리지점)"),
     "wildfire_hist": make_sk_builder("wildfire_hist", "wildfire_hist", "산불발생이력(2013~)"),
+    "underpass": build_underpass,
 }
 
 NOT_OBTAINABLE = [

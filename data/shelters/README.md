@@ -26,6 +26,7 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
 | health | 2,350 | `health.geojson` | 696,232 |
 | steep | 33,994 | `steep/{sido}.geojson` x15 (see index.json) | 7,936,298 |
 | wildfire_hist | 9,507 | `wildfire_hist.geojson` | 2,567,727 |
+| underpass | 559 | `underpass.geojson` | 143,439 |
 
 `index.json` maps `{kind: {sido_code: path}}` for kinds split per sido (file would exceed 6 MB).
 
@@ -200,6 +201,15 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
   - raw_rows: 9515
   - license: 공공누리 제1유형 (국민안전24 저작권정책)
 
+### underpass
+- **OpenStreetMap 지하차도 tunnel ways (centre points) + 국토교통부 시설물안전법 대상 지하차도 현황(15124755) 이름 대조**
+  - url: https://www.data.go.kr/data/15124755/fileData.do
+  - endpoint: https://overpass-api.de/api/interpreter
+  - fetched: 2026-08-23
+  - raw_rows: 1087
+  - molit_rows: 938
+  - license: ODbL 1.0 (OSM) · 공공누리 (MOLIT)
+
 ## Processing stats (per kind)
 
 - **civil_defense**: {"raw_rows": 18829, "dropped_not_in_use": 1593, "dropped_no_or_bad_coords": 7, "dropped_military": 5}
@@ -220,6 +230,7 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
 - **health**: {"raw_rows": 2350}
 - **steep**: {"raw_rows": 36383, "dropped_no_or_bad_coords": 2384, "dropped_military": 5}
 - **wildfire_hist**: {"raw_rows": 9515, "dropped_military": 8}
+- **underpass**: {"raw_ways": 1067, "molit_matched": 330, "dropped_duplicate_way": 508, "sgg_unmatched": 1}
 
 Notes:
 - civil_defense keeps only `운영상태 = 사용중` (사용중지/일시중지 dropped, see status_breakdown). `type` = 시설구분 / 지상·지하.

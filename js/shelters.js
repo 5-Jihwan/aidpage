@@ -19,6 +19,7 @@ const KINDS = [
   // hazard points (not facilities): drawn as small triangles-ish dots in warm colors
   { id: 'steep', ko: '급경사지(붕괴위험 관리지점)', en: 'Steep slope (managed risk site)', color: '#c8432b', icon: '⛰️', hazard: true },
   { id: 'wildfire_hist', ko: '산불 발생 이력(2013~)', en: 'Wildfire history (2013–)', color: '#e0701a', icon: '🔥', hazard: true },
+  { id: 'underpass', ko: '지하차도(호우 시 진입 금지)', en: 'Road underpass (avoid in heavy rain)', color: '#0f4a9e', icon: '🚇', hazard: true },
 ];
 const cache = new Map(); // kind -> FeatureCollection | null
 let index = null; // optional split index {kind:{sido_code:path}}

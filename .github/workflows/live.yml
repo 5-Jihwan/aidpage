@@ -32,6 +32,8 @@ jobs:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
           HRFCO_KEY: ${{ secrets.HRFCO_KEY }}
+          KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
+          JUSO_KEY: ${{ secrets.JUSO_KEY }}
         run: python scripts/fetch_live.py
 
       - name: Report cadence hint

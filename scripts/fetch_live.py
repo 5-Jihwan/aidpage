@@ -42,6 +42,7 @@ MAX_CALLS = int(os.environ.get("LIVE_MAX_CALLS", "560"))
 TIMEOUT = 15
 
 KEY_KMA = os.environ.get("DATA_GO_KR_KEY", "").strip()
+KEY_HUB = os.environ.get("KMA_APIHUB_KEY", "").strip()  # 기상청 API허브 — data.go.kr이 403이면 같은 서비스의 허브 판으로 재시도
 KEY_SAFETY = os.environ.get("SAFETYDATA_KEY", "").strip()
 KEY_HRFCO = os.environ.get("HRFCO_KEY", "").strip()
 
@@ -95,8 +96,21 @@ def http_get(url: str, params: dict | None = None, raw_key: str | None = None) -
         raise HttpError("timeout" if "timed out" in str(e) else "net")
 
 
+HUB_MAP = {  # data.go.kr 경로 → API허브 typ02 경로 (응답 형식 동일, 인증은 authKey)
+    "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0": "https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0",
+    "https://apis.data.go.kr/1360000/WthrWrnInfoService": "https://apihub.kma.go.kr/api/typ02/openApi/WthrWrnInfoService",
+}
+
+
 def get_json(url, params=None, raw_key=None):
-    txt = http_get(url, params, raw_key)
+    try:
+        txt = http_get(url, params, raw_key)
+    except HttpError as e:
+        hub = next((url.replace(k, v) for k, v in HUB_MAP.items() if url.startswith(k)), None)
+        if hub and KEY_HUB and e.code in ("403", "401", "kma30", "kma31", "kma32"):
+            txt = http_get(hub, dict(params or {}, authKey=KEY_HUB))
+        else:
+            raise
     try:
         return json.loads(txt)
     except ValueError:

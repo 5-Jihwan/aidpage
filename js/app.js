@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823q';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823q';
-import { getReports, postReport, flagReport } from './api.js?v=20260823q';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823q';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824a';
+import { getReports, postReport, flagReport } from './api.js?v=20260824a';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260823q'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260824a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -29,16 +29,16 @@ async function getJSON(url, fallback = null) {
   try { const r = await fetch(url, { cache: 'no-cache' }); if (!r.ok) throw 0; return await r.json(); } catch { return fallback; }
 }
 async function loadCore() {
-  const [sido, sgg, emdIdx, sggIdx, meta, weather, alerts, air] = await Promise.all([
+  const [sido, sgg, emdIdx, sggIdx, meta, weather, alerts, air, er] = await Promise.all([
     getJSON('data/admin/kr_sido.geojson'), getJSON('data/admin/kr_sgg.geojson'),
     getJSON('data/admin/emd_index.json', []), getJSON('data/admin/sgg_index.json', []),
-    getJSON('data/admin/meta.json'), getJSON('data/live/weather.json'), getJSON('data/live/alerts.json'), getJSON('data/live/air.json'),
+    getJSON('data/admin/meta.json'), getJSON('data/live/weather.json'), getJSON('data/live/alerts.json'), getJSON('data/live/air.json'), getJSON('data/live/er.json'),
   ]);
   Object.assign(state.geo, { sido, sgg }); state.meta = meta;
   state.idx.emd = emdIdx; state.idx.sgg = sggIdx;
   emdIdx.forEach(e => state.idx.byEmd.set(String(e.code), e));
   sggIdx.forEach(s => state.idx.bySgg.set(String(s.code), s));
-  Object.assign(state.live, { weather, alerts, air });
+  Object.assign(state.live, { weather, alerts, air, er });
   state.sit = sessionStorage.getItem('safepic.sit') || null;
   getJSON('data/ref/psych_centers.json').then(j => { state.psych = j; });
   getJSON('data/ref/tips.json').then(j => { state.tips = j; renderTip(); });
@@ -567,6 +567,18 @@ function renderTip(step = 0) {
   box.innerHTML = `<div class="tip-head"><span class="tip-label">${t('tip.title')}</span><span class="tip-nav"><button type="button" class="tip-btn" data-d="-1" aria-label="prev">‹</button><span class="mono">${state._tipIdx + 1}/${tips.length}</span><button type="button" class="tip-btn" data-d="1" aria-label="next">›</button></span></div><p class="tip-text">${en ? tp.en : tp.ko}</p><small class="tip-src">${t('tip.src')} ${tp.src}</small>`;
   $$('.tip-btn', box).forEach(b => b.addEventListener('click', () => renderTip(+b.dataset.d)));
 }
+/* 지금 받아주는 응급실 (E-Gen 실시간 가용병상, 하루 3회 갱신) */
+function renderER() {
+  const box = $('#erCard'); if (!box) return;
+  const E = state.live.er; const rows = E && E.by_sgg && state.sgg ? E.by_sgg[state.sgg] : null;
+  if (!rows || !rows.length) { box.hidden = true; return; }
+  const open = rows.filter(r => (r.beds || 0) > 0).sort((a, b) => (b.beds || 0) - (a.beds || 0));
+  const stale = E.updated && (Date.now() - Date.parse(E.updated)) > 10 * 3600 * 1000;
+  box.hidden = false;
+  box.innerHTML = `<h3>${t('er.title')} <small class="muted">${open.length}/${rows.length}${t('er.cnt')}</small></h3>` +
+    (open.length ? open.slice(0, 4).map(r => `<div class="er-item"><b>${r.name}</b><span class="er-meta">${t('er.beds')} <b class="mono">${r.beds}</b>${r.ct ? ' · CT' : ''}${r.mri ? ' · MRI' : ''}${r.icu ? ` · ${t('er.icu')} ${r.icu}` : ''}</span>${r.tel ? `<a href="tel:${r.tel.replace(/[^0-9-]/g, '')}" class="er-tel">📞 ${r.tel}</a>` : ''}</div>`).join('') : `<div class="muted">${t('er.none')}</div>`) +
+    `<small class="muted er-src">${t('er.src')} · ${fmtTime(E.updated)}${stale ? ` · ${t('er.stale')}` : ''} · ${t('er.call')}</small>`;
+}
 function renderRegion() {
   const landing = $('#nowLanding'), reg = $('#nowRegion');
   if (state.level === 'nation') { landing.hidden = false; reg.hidden = true; return; }
@@ -575,7 +587,7 @@ function renderRegion() {
   $('#regionPath').textContent = [n.sidoName, state.level !== 'sido' && n.sggName].filter(Boolean).join(' › ');
   $('#regionName').textContent = state.level === 'emd' ? n.emdName : state.level === 'sgg' ? n.sggName : n.sidoName;
   $('#levelGuide').innerHTML = ['sido', 'sgg', 'emd'].map(l => `<span class="${state.level === l ? 'on' : ''}">${t('lv.' + l)}</span>`).join('');
-  renderTodo(); renderInsurance(); renderReports(); renderRiskLine();
+  renderTodo(); renderInsurance(); renderReports(); renderRiskLine(); renderER();
   // weather + air
   const wx = $('#wxCard');
   if (state.sgg) {
@@ -691,7 +703,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823q').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824a').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

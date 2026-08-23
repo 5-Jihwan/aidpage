@@ -33,6 +33,7 @@ SGG_INDEX = os.environ.get("SGG_INDEX") or os.path.join(ROOT, "data", "admin", "
 WEATHER_PATH = os.path.join(LIVE_DIR, "weather.json")
 ALERTS_PATH = os.path.join(LIVE_DIR, "alerts.json")
 AIR_PATH = os.path.join(LIVE_DIR, "air.json")
+ER_PATH = os.path.join(LIVE_DIR, "er.json")
 AIR_STATIONS_PATH = os.path.join(LIVE_DIR, "air_stations.json")
 HOT_FLAG = os.path.join(LIVE_DIR, ".hot")
 
@@ -51,6 +52,8 @@ HRFCO = "https://api.hrfco.go.kr"
 KFS_LANDSLIDE = "https://apis.data.go.kr/1400000/predictionInfoService/predictionInfoList"
 AIR_RLTM = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty"
 AIR_STN = "https://apis.data.go.kr/B552584/MsrstnInfoInqireSvc/getMsrstnList"
+EGEN_BEDS = "https://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire"
+ER_HOURS = {int(h) for h in os.environ.get("LIVE_ER_HOURS", "6,14,22").split(",") if h.strip().isdigit()}
 
 _calls = 0
 
@@ -466,6 +469,46 @@ def fetch_landslide(sgg, prev):
     return sec
 
 
+# --------------------------------------------------------------------------- 5b. 응급실 실시간 가용병상 (E-Gen)
+def fetch_er(sgg, prev):
+    """중앙응급의료센터 E-Gen 응급실 실시간 가용병상 (data.go.kr B552657, 일 1,000건).
+    시군구 250곳 × 1회를 하루 3번(LIVE_ER_HOURS, KST)만 돌려 ~750건/일. 다른 시각엔 이전 파일 유지."""
+    import xml.etree.ElementTree as ET
+    sec = {"status": "ok", "by_sgg": {}, "source": "중앙응급의료센터 E-Gen", "updated": now_kst().isoformat(timespec="seconds")}
+    if not KEY_KMA:
+        sec["status"] = "no_key"
+        return sec
+    if now_kst().hour not in ER_HOURS and isinstance(prev, dict) and prev.get("by_sgg"):
+        return dict(prev, status=prev.get("status", "ok"), skipped="off-hour")
+    errs = 0
+    for s in sgg:
+        try:
+            txt = http_get(EGEN_BEDS, {"STAGE1": s.get("sido_name", ""), "STAGE2": s.get("name", ""), "pageNo": 1, "numOfRows": 30}, KEY_KMA)
+            root = ET.fromstring(txt)
+            code = root.findtext(".//resultCode")
+            if code not in (None, "00"):
+                errs += 1
+                continue
+            rows = []
+            for it in root.iter("item"):
+                g = lambda k: (it.findtext(k) or "").strip()
+                rows.append({"id": g("hpid"), "name": g("dutyName"), "tel": g("dutyTel3") or g("dutyTel1"),
+                             "beds": fnum(g("hvec")), "or": fnum(g("hvoc")), "ct": g("hvctayn") == "Y", "mri": g("hvmriayn") == "Y",
+                             "icu": fnum(g("hvicc")), "at": g("hvidate")})
+            if rows:
+                sec["by_sgg"][str(s["code"])] = rows
+        except HttpError as e:
+            errs += 1
+            if e.code == "budget":
+                sec["status"] = "partial:budget"
+                break
+    if not sec["by_sgg"]:
+        sec = dict(prev or {}, status="error:egen")
+    elif errs:
+        sec["errors"] = errs
+    return sec
+
+
 # --------------------------------------------------------------------------- 6. 대기질 (에어코리아)
 AIR_SIDOS = ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "경기", "강원", "충북", "충남",
              "전북", "전남", "경북", "경남", "제주", "세종"]
@@ -683,6 +726,7 @@ def main():
     prev_w = load_json(WEATHER_PATH, {})
     prev_a = load_json(ALERTS_PATH, {})
     prev_air = load_json(AIR_PATH, {})
+    prev_er = load_json(ER_PATH, {})
 
     def safe(fn, *a):
         try:
@@ -701,15 +745,18 @@ def main():
         "landslide": safe(fetch_landslide, sgg, prev_a.get("landslide")),
     }
     air = safe(fetch_air, sgg, prev_air)
+    er = safe(fetch_er, sgg, prev_er)
     weather["calls"] = _calls
     air["calls"] = _calls
-    statuses = [weather.get("status"), air.get("status")] + [alerts[k].get("status") for k in ("warnings", "messages", "river", "landslide")]
+    statuses = [weather.get("status"), air.get("status"), er.get("status")] + [alerts[k].get("status") for k in ("warnings", "messages", "river", "landslide")]
     if all(st in ("no_key", "todo", None) for st in statuses) and os.path.exists(WEATHER_PATH):
         log("all sections no_key: leaving placeholder files untouched (no commit churn)")
     else:
         save_json(WEATHER_PATH, weather)
         save_json(ALERTS_PATH, alerts)
         save_json(AIR_PATH, air)
+        if er.get("status") != "no_key":
+            save_json(ER_PATH, er)
 
     # adaptive cadence flag: active 호우/태풍/대설 경보 -> data/live/.hot
     hot = any(i.get("level") == "경보" and i.get("type") in ("호우", "태풍", "대설")

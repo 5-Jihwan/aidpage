@@ -1,6 +1,6 @@
 // SafePic — app.js (ES module, no build step)
 import { t, getLang, setLang, applyStatic } from './i18n.js';
-import { initGrid, hasGrid, meta as gridMeta, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js';
 import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js';
 let loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; } catch (e) { console.warn('rules.js not available', e); }
@@ -311,6 +311,32 @@ async function syncGrid() {
     `<div class="fine">${t('grid.note')}</div>`;
   for (const el of [box, where]) { if (!el) continue; el.hidden = false; el.innerHTML = `<h3>${t('grid.title')}</h3>` + html; $$('.chip', el).forEach(b => b.addEventListener('click', () => { gridAttr = b.dataset.a; localStorage.setItem('safepic.gridAttr', gridAttr); syncGrid(); })); }
   $('#wherePending').hidden = true;
+  renderCompare();
+}
+/* ---------- 탭③ 동 2개 비교 (격자 집계) ---------- */
+const CMP_ROWS = [
+  { id: 'flood_pct', ko: '침수 이력 있는 격자', en: 'Cells with flood history', fmt: v => (v * 100).toFixed(0) + '%', lowerBetter: true, agg: cs => cs.filter(c => c.flood_hist_n > 0).length / cs.length },
+  { id: 'depth', ko: '최대 침수심', en: 'Max flood depth', fmt: v => v.toFixed(1) + ' m', lowerBetter: true, agg: cs => Math.max(0, ...cs.map(c => c.flood_depth_max_m || 0)) },
+  { id: 'slope', ko: '평균 경사', en: 'Mean slope', fmt: v => v.toFixed(1) + '°', lowerBetter: true, agg: cs => cs.reduce((a, c) => a + (c.slope_mean || 0), 0) / cs.length },
+  { id: 'elderly', ko: '고령 1인세대 비율', en: 'Elderly living alone', fmt: v => (v * 100).toFixed(1) + '%', lowerBetter: true, agg: cs => cs[0].elderly_alone_r ?? null },
+  { id: 'pop', ko: '인구', en: 'Population', fmt: v => v.toLocaleString('ko-KR'), lowerBetter: null, agg: cs => cs[0].pop ?? null },
+];
+function renderCompare() {
+  const box = $('#compareBox'); if (!box) return;
+  const cs = gridCells(state.sgg); if (!cs.length) { box.hidden = true; return; }
+  const byEmd = new Map(); for (const f of cs) { const p = f.properties; if (!byEmd.has(p.emd_name)) byEmd.set(p.emd_name, []); byEmd.get(p.emd_name).push(p); }
+  const names = [...byEmd.keys()].sort((a, b) => a.localeCompare(b, 'ko'));
+  const cur = state.emd && state.idx.byEmd.get(state.emd), curName = cur && names.includes(cur.name) ? cur.name : names[0];
+  const saved = JSON.parse(sessionStorage.getItem('safepic.cmp') || 'null') || [curName, names.find(n => n !== curName)];
+  if (!names.includes(saved[0])) saved[0] = curName; if (!names.includes(saved[1])) saved[1] = names.find(n => n !== saved[0]);
+  const en = getLang() === 'en', all = [...byEmd.values()].flat();
+  const sel = (i) => `<select class="cmp-sel" data-i="${i}">${names.map(n => `<option ${n === saved[i] ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
+  const A = byEmd.get(saved[0]), B = byEmd.get(saved[1]);
+  const rows = CMP_ROWS.map(r => { const a = r.agg(A), b = r.agg(B), g = r.agg(all); if (a == null || b == null) return ''; const win = r.lowerBetter == null ? 0 : (a === b ? 0 : (a < b) === r.lowerBetter ? 1 : 2); return `<tr><td>${en ? r.en : r.ko}</td><td class="${win === 1 ? 'win' : ''}">${r.fmt(a)}</td><td class="${win === 2 ? 'win' : ''}">${r.fmt(b)}</td><td class="muted">${g != null ? r.fmt(g) : '—'}</td></tr>`; }).join('');
+  const verdict = (() => { const parts = []; for (const r of CMP_ROWS) { if (r.lowerBetter == null) continue; const a = r.agg(A), b = r.agg(B); if (a == null || b == null || a === b) continue; const w = (a < b) === r.lowerBetter ? saved[0] : saved[1]; parts.push(t('cmp.v.' + r.id, { w })); } return parts.slice(0, 3).join(' '); })();
+  box.hidden = false;
+  box.innerHTML = `<h3>${t('cmp.title')}</h3><div class="cmp-head">${sel(0)}<span class="muted">vs</span>${sel(1)}</div><div class="table-wrap"><table class="cmp-table"><thead><tr><th></th><th>${saved[0]}</th><th>${saved[1]}</th><th class="muted">${t('cmp.avg', { name: nameOf().sggName })}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="cmp-verdict">${verdict}</p><div class="fine">${t('cmp.note')}</div>`;
+  $$('.cmp-sel', box).forEach(s => s.addEventListener('change', () => { const v = [...$$('.cmp-sel', box)].map(x => x.value); sessionStorage.setItem('safepic.cmp', JSON.stringify(v)); renderCompare(); }));
 }
 function initGridClick() {
   map.on('click', 'grid-fill', e => {

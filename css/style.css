@@ -367,3 +367,12 @@ html.contrast .tab.is-active{background:#000;color:#fff} html.contrast .todo-car
 /* read-aloud */
 .speak-mini{border:1px solid var(--line);background:#fff;border-radius:999px;padding:1px 8px;font-size:.85rem;margin-left:6px;vertical-align:middle} .speak-mini.is-on,#btnSpeak.is-on{background:var(--gold);color:#fff;border-color:var(--gold)}
 .result-tools{display:flex;gap:6px;align-items:flex-start;flex:none}
+
+/* tab 3: compare */
+.compare{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.compare h3{margin:0 0 8px}
+.cmp-head{display:flex;align-items:center;gap:8px;margin-bottom:8px} .cmp-sel{flex:1;min-width:0;height:40px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font:inherit;font-weight:700;color:var(--ink);background:#fff}
+.table-wrap{overflow-x:auto} .cmp-table{width:100%;border-collapse:collapse;font-size:.9rem} .cmp-table th,.cmp-table td{text-align:right;padding:6px 6px;border-bottom:1px dashed var(--line);white-space:nowrap} .cmp-table th:first-child,.cmp-table td:first-child{text-align:left;color:var(--mute);font-weight:400}
+.cmp-table td{font-family:var(--mono);color:var(--ink)} .cmp-table td.win{color:var(--teal);font-weight:700;background:rgba(15,157,122,.08)}
+.cmp-verdict{margin:10px 0 4px;font-weight:600;color:var(--ink)}
+html.big .cmp-table{font-size:1.02rem} html.big .cmp-sel{height:48px;font-size:1.05rem}

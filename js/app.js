@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824b';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824b';
-import { getReports, postReport, flagReport } from './api.js?v=20260824b';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824b';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824c';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824c';
+import { getReports, postReport, flagReport } from './api.js?v=20260824c';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824c';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260824b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260824c'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -704,7 +704,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824b').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824c').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -778,12 +778,12 @@ function applyPreset(sit) {
   (p.damage || []).forEach(v => { const c = f.querySelector(`input[name=damage][value=${v}]`); if (c) c.checked = true; });
 }
 /* ---------- 상황 = 필터. 상황이 바뀌면 (1) 자동 시설 (2) 펼칠 카드 (3) 동선이 바뀐다 ---------- */
-const SITS = ['house_flood', 'shop_flood', 'evacuating', 'before_rain', 'injury', 'no_news', 'proxy'];
-const SIT_ICON = { house_flood: '🏠', shop_flood: '🏪', evacuating: '🚨', before_rain: '🌧️', injury: '🩹', no_news: '⏳', proxy: '👥' };
-const SIT_KEY = { house_flood: 'sit.house', shop_flood: 'sit.shop', evacuating: 'sit.evac', before_rain: 'sit.before', injury: 'sit.injury', no_news: 'sit.nonews', proxy: 'sit.proxy' };
+const SITS = ['house_flood', 'shop_flood', 'evacuating', 'before_rain', 'injury', 'no_news', 'past', 'proxy'];
+const SIT_ICON = { house_flood: '🏠', shop_flood: '🏪', evacuating: '🚨', before_rain: '🌧️', injury: '🩹', no_news: '⏳', past: '🗓️', proxy: '👥' };
+const SIT_KEY = { house_flood: 'sit.house', shop_flood: 'sit.shop', evacuating: 'sit.evac', before_rain: 'sit.before', injury: 'sit.injury', no_news: 'sit.nonews', past: 'sit.past', proxy: 'sit.proxy' };
 const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
 // 상황별로 펼쳐 두는 카드 (나머지는 제목 한 줄로 접힘). null = 상황 없음
-const OPEN = { null: ['wx', 'near'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], proxy: ['near', 'wx'] };
+const OPEN = { null: ['wx', 'near'], past: ['near', 'ins', 'grid'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], proxy: ['near', 'wx'] };
 function applySituation(sit, navigate) {
   state.sit = sit; if (sit) sessionStorage.setItem('safepic.sit', sit); else sessionStorage.removeItem('safepic.sit');
   state._foldOverride = {}; // 상황이 바뀌면 사용자가 손으로 접고 편 기록은 초기화
@@ -791,6 +791,7 @@ function applySituation(sit, navigate) {
   if (AUTO[sit]) { const extra = [...(PP.senior ? ['heat', 'cold'] : []), ...(PP.mob ? ['temp_housing'] : []), ...(PP.child || PP.senior ? ['er'] : [])]; [...AUTO[sit], ...extra].forEach(k => state.shelters.active.add(k)); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
   if (!navigate) { renderRegion(); return; }
   if (sit === 'proxy') { $('#wizard').reset(); $('#qProxy').checked = true; setTab('find'); syncWizardLoc(); return; }
+  if (sit === 'past') { $('#wizard').reset(); $('#pastHint').hidden = false; setTab('find'); syncWizardLoc(); setTimeout(() => $('#qEnd').focus(), 200); return; }
   if (sit === 'evacuating' || sit === 'before_rain') { $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden'); $('#searchInput').focus(); return; }
   applyPreset(sit); setTab('find'); syncWizardLoc();
   if (sit === 'no_news') setTimeout(() => $('#wizard').requestSubmit(), 50);
@@ -850,7 +851,14 @@ async function applyShare(hash) {
   if (p.get('emd')) await selectEmd(p.get('emd')); else if (p.get('sgg')) await selectSgg(p.get('sgg'));
   setTab('find'); f.requestSubmit();
 }
+function initHouseholdOpts() {
+  const none = $('#qNone'), unk = $('#qUnknown'), others = $$('#wizard input[name=household]');
+  none.addEventListener('change', () => { if (none.checked) { others.forEach(o => o.checked = false); unk.checked = false; } });
+  unk.addEventListener('change', () => { if (unk.checked) none.checked = false; });
+  others.forEach(o => o.addEventListener('change', () => { if (o.checked) none.checked = false; }));
+}
 function initWizard() {
+  initHouseholdOpts();
   const f = $('#wizard');
   f.addEventListener('submit', e => { e.preventDefault(); runResult(); });
   f.addEventListener('reset', () => { $('#result').hidden = true; state.lastResult = null; history.replaceState(null, '', location.pathname); });
@@ -918,6 +926,8 @@ function renderResult(res, inp) {
     ? `<div class="deadline ${dl.days_left < 0 ? 'over' : ''}"><div class="d">${dl.days_left < 0 ? t('res.dl.over', { n: -dl.days_left }) : dl.days_left === 0 ? t('res.dl.today') : t('res.dl.d', { n: dl.days_left })}</div><div><b>${dl.label}</b><br><small class="muted">${t('res.dl.ext', { due: dl.due })}</small></div></div>`
     : `<div class="deadline"><div class="d">${t('res.dl.10')}</div><div><b>${t('res.dl.title')}</b><br><small class="muted">${t('res.dl.s')}</small></div></div>`;
   const icsBtn = dl && dl.days_left >= 0 ? `<button type="button" class="btn btn-ghost btn-sm ics" id="btnIcs">📅 ${t('res.ics')}</button>` : '';
+  // 기한이 지난 사람에게: 막다른 길이 아니라 "아직 가능한 것"
+  const lateHTML = dl && dl.days_left < 0 ? `<div class="result-block late"><h3>${t('late.title')}</h3><ol class="late-list"><li>${t('late.ext')}</li><li>${t('late.cert')}</li><li>${t('late.fund')}</li><li>${t('late.appeal')}</li><li>${t('late.psych')}</li><li>${t('late.ins')}</li></ol><small class="muted">${t('late.src')}</small></div>` : '';
   const sec = (title, arr) => `<div class="result-block"><h3>${title}</h3>${arr && arr.length ? arr.map(itemHTML).join('') : `<div class="muted" style="font-size:.9rem">${t('res.none')}</div>`}</div>`;
   const cashItems = [...(res.cash || []), ...(res.relief_fund || [])];
   // 재난심리회복지원센터: 사람이 다치거나 사망한 경우 — 좌표 대신 전화·주소(행안부 현황 2024-08)
@@ -929,7 +939,7 @@ function renderResult(res, inp) {
   el.innerHTML = `
     <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><div class="result-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSpeak" title="${t('tts.title')}">🔊</button><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div></div>
     <div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>
-    ${dlHTML}${icsBtn}
+    ${dlHTML}${icsBtn}${lateHTML}
     <div class="print-head"><div>${place} · ${inp.today}</div><div>${t('res.print.for')}</div></div>
     <div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>
     ${sec(t('res.auto'), res.auto)}

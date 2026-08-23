@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260824b">
+<link rel="stylesheet" href="css/style.css?v=20260824c">
 </head>
 <body>
 
@@ -82,6 +82,7 @@
             <button class="card" data-sit="before_rain"><span class="card-ic">🌧️</span><b data-i18n="sit.before">비 오기 전이에요</b><small data-i18n="sit.before.s">우리 동네 위험·보험</small></button>
             <button class="card" data-sit="injury"><span class="card-ic">🩹</span><b data-i18n="sit.injury">가족이 다쳤어요</b><small data-i18n="sit.injury.s">의연금·심리지원</small></button>
             <button class="card" data-sit="no_news"><span class="card-ic">⏳</span><b data-i18n="sit.nonews">신고했는데 소식이 없어요</b><small data-i18n="sit.nonews.s">절차와 기한</small></button>
+            <button class="card" data-sit="past"><span class="card-ic">🗓️</span><b data-i18n="sit.past">예전 재난, 이제 알아봐요</b><small data-i18n="sit.past.s">기한이 지났어도 가능한 것</small></button>
             <button class="card card-proxy" data-sit="proxy"><span class="card-ic">👥</span><b data-i18n="sit.proxy">부모님·이웃 대신 확인해요</b><small data-i18n="sit.proxy.s">인쇄·공유하기 좋게</small></button>
           </div>
           <div class="tip-card" id="tipCard" hidden></div>
@@ -141,12 +142,14 @@
               <label><input type="checkbox" name="household" value="single_parent"><span data-i18n="f.single">한부모</span></label>
               <label><input type="checkbox" name="household" value="senior"><span data-i18n="f.senior">65세 이상</span></label>
               <label><input type="checkbox" name="household" value="disabled"><span data-i18n="f.dis">장애</span></label>
+              <label class="opt-none"><input type="checkbox" name="household_none" id="qNone"><span data-i18n="f.none">해당 없음 (일반 가구)</span></label>
               <label class="opt-unknown"><input type="checkbox" name="household_unknown" id="qUnknown"><span data-i18n="f.unknown">잘 모르겠어요</span></label>
             </div>
           </fieldset>
           <fieldset class="q"><legend data-i18n="wiz.q5">5. 재난이 끝난 날</legend>
             <input type="date" name="event_end" id="qEnd">
             <small class="muted" data-i18n="wiz.q5.s">피해신고 기한(재난 종료일부터 10일)을 계산합니다. 모르면 비워두세요.</small>
+            <div class="past-hint" id="pastHint" hidden data-i18n="wiz.past.hint">예전 재난이면 끝난 날짜를 대략이라도 넣어 주세요 — 기한이 지났어도 받을 수 있는 것을 따로 보여드립니다.</div>
           </fieldset>
           <label class="chk proxy"><input type="checkbox" id="qProxy"> <span data-i18n="wiz.proxy">다른 분을 대신해서 확인하고 있어요</span> <small data-i18n="wiz.proxy.s">(결과를 인쇄·공유하기 좋게 보여드립니다)</small></label>
           <div class="actions">
@@ -233,6 +236,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260824b"></script>
+<script type="module" src="js/app.js?v=20260824c"></script>
 </body>
 </html>

@@ -472,3 +472,10 @@ html.big .risk-line{font-size:1.1rem}
   html.big .map-legend:not(.is-min){bottom:calc(56dvh + 60px)}
 }
 @media (max-width:900px) and (orientation:landscape), (max-height:500px){ .map-legend:not(.is-min){bottom:calc(60dvh + 60px);max-height:70px} }
+
+/* one line for today */
+.tip-card{margin-top:14px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:10px 14px}
+.tip-head{display:flex;justify-content:space-between;align-items:center;gap:8px} .tip-label{font-family:var(--mono);font-size:.78rem;color:var(--gold);font-weight:600}
+.tip-nav{display:inline-flex;align-items:center;gap:4px;color:var(--mute);font-size:.78rem} .tip-btn{border:1px solid var(--line);background:#fff;border-radius:6px;width:26px;height:26px;line-height:1;color:var(--ink)}
+.tip-text{margin:6px 0 4px;font-size:1rem;color:var(--ink);line-height:1.5} .tip-src{font-family:var(--mono);font-size:.72rem;color:var(--mute)}
+html.big .tip-text{font-size:1.15rem} html.big .tip-btn{width:34px;height:34px}

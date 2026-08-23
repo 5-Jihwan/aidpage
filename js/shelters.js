@@ -14,6 +14,11 @@ const KINDS = [
   { id: 'meal', ko: '무료급식소', en: 'Free meal site', color: '#9a7328', icon: '🍚' },
   { id: 'water', ko: '비상급수시설', en: 'Emergency water', color: '#0f9d7a', icon: '🚰' },
   { id: 'dust', ko: '미세먼지쉼터', en: 'Clean-air shelter', color: '#566577', icon: '😷' },
+  { id: 'chem', ko: '화학사고 대피소', en: 'Chemical-accident shelter', color: '#6b4f00', icon: '🧪' },
+  { id: 'health', ko: '보건소', en: 'Public health center', color: '#0f9d7a', icon: '🩺' },
+  // hazard points (not facilities): drawn as small triangles-ish dots in warm colors
+  { id: 'steep', ko: '급경사지(붕괴위험 관리지점)', en: 'Steep slope (managed risk site)', color: '#c8432b', icon: '⛰️', hazard: true },
+  { id: 'wildfire_hist', ko: '산불 발생 이력(2013~)', en: 'Wildfire history (2013–)', color: '#e0701a', icon: '🔥', hazard: true },
 ];
 const cache = new Map(); // kind -> FeatureCollection | null
 let index = null; // optional split index {kind:{sido_code:path}}

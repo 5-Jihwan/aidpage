@@ -88,5 +88,22 @@
   "50": "pharmacy/50.geojson",
   "51": "pharmacy/51.geojson",
   "52": "pharmacy/52.geojson"
+ },
+ "steep": {
+  "11": "steep/11.geojson",
+  "26": "steep/26.geojson",
+  "27": "steep/27.geojson",
+  "28": "steep/28.geojson",
+  "30": "steep/30.geojson",
+  "31": "steep/31.geojson",
+  "36": "steep/36.geojson",
+  "41": "steep/41.geojson",
+  "43": "steep/43.geojson",
+  "44": "steep/44.geojson",
+  "47": "steep/47.geojson",
+  "48": "steep/48.geojson",
+  "50": "steep/50.geojson",
+  "51": "steep/51.geojson",
+  "52": "steep/52.geojson"
  }
 }

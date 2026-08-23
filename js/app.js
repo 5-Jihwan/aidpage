@@ -1,9 +1,9 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823f';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823f';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823f';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823g';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823g';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823g';
 let loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260823f'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260823g'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -356,7 +356,8 @@ async function initShelterUI() {
   const GROUPS = [
     { id: 'evac', ko: '대피', en: 'Evacuate', icon: '🛡️', kinds: ['civil_defense', 'temp_housing', 'quake', 'tsunami'] },
     { id: 'rest', ko: '쉼터', en: 'Shelters', icon: '🌡️', kinds: ['heat', 'cold', 'dust'] },
-    { id: 'help', ko: '도움', en: 'Help', icon: '🆘', kinds: ['townhall', 'er', 'pharmacy', 'fire', 'police', 'meal', 'water'] },
+    { id: 'help', ko: '도움', en: 'Help', icon: '🆘', kinds: ['townhall', 'er', 'pharmacy', 'health', 'fire', 'police', 'meal', 'water', 'chem'] },
+    { id: 'hazard', ko: '위험 지점', en: 'Hazards', icon: '⚠️', kinds: ['steep', 'wildfire_hist'] },
   ];
   const en = getLang() === 'en', K = id => state.shelters.avail.find(a => a.id === id);
   const chip = k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${en ? k.en : k.ko}</span></label>`;
@@ -395,7 +396,7 @@ async function renderNearest() {
   const box = $('#nearBox'); if (!box) return;
   const e = state.emd && state.idx.byEmd.get(state.emd);
   if (!e || !state.shelters.avail.length) { box.hidden = true; return; }
-  const kinds = [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k));
+  const kinds = [...state.shelters.active].filter(k => { const a = state.shelters.avail.find(x => x.id === k); return a && !a.hazard; });
   const useGps = state.gps && state.gps.emd === e.code;
   const origin = useGps ? [state.gps.lon, state.gps.lat] : [e.lon, e.lat];
   const list = await nearestShelters(origin, kinds, state.sido, 8, true);
@@ -446,7 +447,16 @@ const ALERT_MAP = { // 특보 종류·단계 → 행동 문구 키 + 자동 시�
 function todoItems() {
   const ws = warningsFor(state.sgg, state.sido), m = new Date().getMonth() + 1, out = [], seen = new Set();
   const add = (key, kind) => { if (seen.has(key) || out.length >= 3) return; seen.add(key); out.push({ text: t('todo.' + key), kind }); };
-  for (const w of ws) { const a = ALERT_MAP[w.type]; if (!a) continue; const lv = /경보/.test(w.level) ? 'warn' : 'adv'; add(`alert.${a.key}.${lv}`, a.kinds[0]); }
+  const P = getProfile();
+  for (const w of ws) { const a = ALERT_MAP[w.type]; if (!a) continue; let lv = /경보/.test(w.level) ? 'warn' : 'adv';
+    if (P.floor === 'semi' && a.key === 'rain') lv = 'warn';                       // 반지하: 호우는 주의보도 경보 문구로
+    if (a.key === 'heat' && (P.senior || P.child)) add('prof.heat.senior', 'heat');  // 어르신·영유아: 폭염 우선 문구
+    if (a.key === 'wind' && P.floor === 'high') add('prof.wind.high');
+    add(`alert.${a.key}.${lv}`, a.kinds[0]); }
+  if (P.floor === 'semi' && (m >= 6 && m <= 9)) add('prof.semi.summer', 'temp_housing');
+  if (P.mob) add('prof.mob', 'temp_housing');
+  if (P.pet && (state.sit === 'evacuating' || ws.length)) add('prof.pet');
+  if (P.car && ws.some(w => w.type === '호우' || w.type === '태풍')) add('prof.car');
   if (state.sit === 'house_flood' || state.sit === 'shop_flood') { add('sit.photo'); add('sit.report10', 'townhall'); }
   if (state.sit === 'evacuating') { add('sit.evac', 'civil_defense'); add('sit.meds', 'pharmacy'); }
   if (state.sit === 'injury') { add('sit.er', 'er'); add('sit.psych'); }
@@ -466,6 +476,20 @@ function renderTodo() {
   $('#todoSpeak').addEventListener('click', () => speak(items.map((x, i) => `${i + 1}. ${x.text}`).join('. '), $('#todoSpeak')));
   $$('button[data-kind]', box).forEach(b => b.addEventListener('click', () => { state.shelters.active.add(b.dataset.kind); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); renderNearest(); }));
 }
+/* ---------- 풍수해보험 안내 (사전 대비) — 보험료표는 공개 자료가 없어 지원율·창구·동네 이력만 ---------- */
+function renderInsurance() {
+  const box = $('#insCard'); if (!box) return;
+  if (state.level !== 'emd' || !state.rules) { box.hidden = true; return; }
+  const rules = (state.rules.all || []).filter(r => r.group === 'insurance' && (r.conditions.housing || []).includes('own'));
+  if (!rules.length) { box.hidden = true; return; }
+  const gen = rules.find(r => r.id === 'insurance.house_general'), full = rules.find(r => /full/.test(r.id));
+  const cells = gridCells(state.sgg), e = state.idx.byEmd.get(state.emd);
+  const mine = e ? cells.map(f => f.properties).filter(p => p.emd_name === e.name) : [];
+  const flood = mine.length ? mine.filter(p => p.flood_hist_n > 0).length : null;
+  const hist = flood == null ? '' : `<div class="ins-hist">${t('ins.hist', { n: flood, total: mine.length })}</div>`;
+  box.hidden = false;
+  box.innerHTML = `<h3>${t('ins.title')}</h3>${hist}<div class="ins-rate"><b>${gen ? gen.amount_text : ''}</b><small class="muted"> · ${full ? full.amount_text : ''} (${t('ins.full.who')})</small></div><div class="fine">${t('ins.where')} · <a href="https://www.mois.go.kr/frt/sub/a06/b08/pungsuhaeIns/screen.do" target="_blank" rel="noopener">${t('ins.link')}</a> · ${t('badge.asof')} ${(state.rules.insurance && state.rules.insurance.meta && state.rules.insurance.meta.asof) || '2026-08'}</div>`;
+}
 function renderRegion() {
   const landing = $('#nowLanding'), reg = $('#nowRegion');
   if (state.level === 'nation') { landing.hidden = false; reg.hidden = true; return; }
@@ -474,7 +498,7 @@ function renderRegion() {
   $('#regionPath').textContent = [n.sidoName, state.level !== 'sido' && n.sggName].filter(Boolean).join(' › ');
   $('#regionName').textContent = state.level === 'emd' ? n.emdName : state.level === 'sgg' ? n.sggName : n.sidoName;
   $('#levelGuide').innerHTML = ['sido', 'sgg', 'emd'].map(l => `<span class="${state.level === l ? 'on' : ''}">${t('lv.' + l)}</span>`).join('');
-  renderTodo();
+  renderTodo(); renderInsurance();
   // weather + air
   const wx = $('#wxCard');
   if (state.sgg) {
@@ -587,13 +611,23 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823f').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823g').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
   $('#btnInstallX').addEventListener('click', () => { row.hidden = true; localStorage.setItem('safepic.installDismissed', '1'); });
   const badge = () => document.documentElement.classList.toggle('offline', !navigator.onLine);
   addEventListener('online', badge); addEventListener('offline', badge); badge();
+}
+/* ---------- 우리 집 프로필 (localStorage only) ---------- */
+function getProfile() { try { return JSON.parse(localStorage.getItem('safepic.profile') || '{}'); } catch { return {}; } }
+function initProfile() {
+  const P = getProfile();
+  const f = $('#pfFloor'); f.value = P.floor || '';
+  const boxes = { senior: $('#pfSenior'), child: $('#pfChild'), mob: $('#pfMob'), car: $('#pfCar'), pet: $('#pfPet') };
+  for (const k in boxes) boxes[k].checked = !!P[k];
+  const save = () => { const o = { floor: f.value || null }; for (const k in boxes) o[k] = boxes[k].checked; localStorage.setItem('safepic.profile', JSON.stringify(o)); renderRegion(); };
+  f.addEventListener('change', save); Object.values(boxes).forEach(b => b.addEventListener('change', save));
 }
 function initSize() {
   const root = document.documentElement, KEY = 'safepic.size';
@@ -637,7 +671,7 @@ function initCards() {
     const sit = b.dataset.sit; state.sit = sit; sessionStorage.setItem('safepic.sit', sit);
     // situation → facilities that matter right now
     const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
-    if (AUTO[sit]) { AUTO[sit].forEach(k => state.shelters.active.add(k)); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
+    const PP = getProfile(); if (AUTO[sit]) { const extra = [...(PP.senior ? ['heat', 'cold'] : []), ...(PP.mob ? ['temp_housing'] : []), ...(PP.child || PP.senior ? ['er'] : [])]; [...AUTO[sit], ...extra].forEach(k => state.shelters.active.add(k)); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
     if (sit === 'evacuating' || sit === 'before_rain') { $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden'); $('#searchInput').focus(); return; }
     applyPreset(sit); setTab('find'); syncWizardLoc();
     if (sit === 'no_news') setTimeout(() => $('#wizard').requestSubmit(), 50);
@@ -791,7 +825,7 @@ function renderRulesTable() {
   $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });
   $('#btnStart').addEventListener('click', goStart);
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
-  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome();
+  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome(); initProfile();
   let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); }, 150); });
   await loadCore(); renderCrumb(); renderLive();
   initMap();

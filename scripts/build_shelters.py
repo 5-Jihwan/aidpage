@@ -23,6 +23,7 @@ import csv
 import datetime as dt
 import io
 import json
+import math
 import os
 import re
 import ssl
@@ -297,6 +298,11 @@ SK_LAYERS = {
     "dust": ("TFK_FIND_DUST_RSTR_FCLTY_TEMP", "미세먼지쉼터"),
     "water": ("TFK_CIVIL_EMR_FACL_TEMP", "비상급수시설"),
     "tsunami": ("TFK_TSUNAMI_SHELTER_TEMP", "지진해일대피소"),
+    # 2026-08-23 (2): shelters + hazard points
+    "chem": ("TFK_CHMSTRY_ACDNT_SHLTR_TEMP", "화학사고대피소"),
+    "health": ("TB_SFK_HSPTL_INFO", "보건소"),
+    "steep": ("TB_SFK_ASS", "급경사지"),
+    "wildfire_hist": ("TB_SFK_FFIRE_OCRN_HSTRY", "산불발생이력_전체"),
 }
 
 
@@ -577,7 +583,7 @@ def dms(d, m, sec):
     return d + (m or 0) / 60 + (sec or 0) / 3600
 
 
-def make_sk_builder(kind: str, layer: str, label: str, tel_keys=("tel", "dutyTel1", "fcltyTelno", "telRmk")):
+def make_sk_builder(kind: str, layer: str, label: str, tel_keys=("tel", "dutyTel1", "fcltyTelno", "telRmk", "shltrChargerCttpc")):
     """Generic builder for a 시설안전지도 layer: title/adres/lo/la (+tel)."""
     def build() -> list[dict]:
         feats = []
@@ -591,10 +597,19 @@ def make_sk_builder(kind: str, layer: str, label: str, tel_keys=("tel", "dutyTel
                 lon, lat = to_float(r.get("lo")), to_float(r.get("la"))
                 if lon is None and r.get("facilLode") is not None:  # 비상급수시설: DMS
                     lon, lat = dms(r.get("facilLode"), r.get("facilLomi"), r.get("facilLose")), dms(r.get("facilLade"), r.get("facilLami"), r.get("facilLase"))
+                if lon is None and r.get("gisCrdntPnttmLodg") is not None:  # 급경사지: DMS (시점)
+                    lon, lat = dms(r.get("gisCrdntPnttmLodg"), r.get("gisCrdntPnttmLoMin"), r.get("gisCrdntPnttmLoSecnd")), dms(r.get("gisCrdntPnttmLadg"), r.get("gisCrdntPnttmLaMin"), r.get("gisCrdntPnttmLaSecnd"))
+                if lon is not None and abs(lon) > 1000:  # 산불이력: web mercator (EPSG:3857) in lo/la
+                    R_ = 6378137.0
+                    lon, lat = lon / R_ * 180 / math.pi, (2 * math.atan(math.exp(lat / R_)) - math.pi / 2) * 180 / math.pi
                 name = clean(r.get("title")) or clean(r.get("facilityName")) or clean(r.get("facilNm")) or clean(r.get("rstrNm"))
+                if r.get("occuDate"):  # 산불이력: "2017-03-10 입산자 실화"
+                    od = str(r.get("occuDate")); name = f"{od[:4]}-{od[4:6]}-{od[6:8]} {clean(r.get('resn')) or ''}".strip()
                 addr = clean(r.get("adres")) or clean(r.get("addrNm")) or clean(r.get("rnDtlAdres")) or clean(r.get("facilRdAddr")) or clean(r.get("facilAddr"))
-                cap = to_int(r.get("usePsblNmpr")) or to_int(r.get("emgySickbdCnt"))
-                typ = clean(r.get("facilityType")) or clean(r.get("facilGbnNm")) or clean(r.get("fcltyTy")) or (f"{r.get('facilPow')} {r.get('facilUnit')}".strip() if r.get("facilPow") else None)
+                cap = to_int(r.get("usePsblNmpr")) or to_int(r.get("emgySickbdCnt")) or to_int(r.get("aceptncNmpr"))
+                typ = clean(r.get("facilityType")) or clean(r.get("facilGbnNm")) or clean(r.get("fcltyTy")) or clean(r.get("facilGb")) or clean(r.get("prtnfcNm")) or (f"{r.get('facilPow')} {r.get('facilUnit')}".strip() if r.get("facilPow") else None)
+                if r.get("occuYear"):
+                    typ = f"{to_float(r.get('ar'))}ha" if (to_float(r.get("ar")) or 0) > 0 else None
                 f = feature(kind, lon, lat, name, addr, cap, typ, "safekorea",
                             epoch_ms_to_date(r.get("modfTime")) or epoch_ms_to_date(r.get("createDate")) or TODAY, sgg=sgg)
                 if f:
@@ -735,6 +750,10 @@ BUILDERS = {
     "tsunami": make_sk_builder("tsunami", "tsunami", "지진해일대피소"),
     "meal": build_meal,
     "townhall": build_townhall,
+    "chem": make_sk_builder("chem", "chem", "화학사고대피소"),
+    "health": make_sk_builder("health", "health", "보건소"),
+    "steep": make_sk_builder("steep", "steep", "급경사지(붕괴위험 관리지점)"),
+    "wildfire_hist": make_sk_builder("wildfire_hist", "wildfire_hist", "산불발생이력(2013~)"),
 }
 
 NOT_OBTAINABLE = [

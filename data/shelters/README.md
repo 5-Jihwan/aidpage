@@ -16,12 +16,16 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
 | fire | 685 | `fire.geojson` | 192,978 |
 | police | 2,010 | `police.geojson` | 565,148 |
 | pharmacy | 18,225 | `pharmacy/{sido}.geojson` x15 (see index.json) | 5,330,123 |
-| er | 339 | `er.geojson` | 104,447 |
+| er | 339 | `er.geojson` | 104,453 |
 | dust | 6,036 | `dust.geojson` | 1,744,151 |
 | water | 6,242 | `water.geojson` | 1,833,630 |
 | tsunami | 632 | `tsunami.geojson` | 169,345 |
 | meal | 1,158 | `meal.geojson` | 445,382 |
 | townhall | 3,739 | `townhall.geojson` | 892,945 |
+| chem | 1,658 | `chem.geojson` | 490,157 |
+| health | 2,350 | `health.geojson` | 696,232 |
+| steep | 33,994 | `steep/{sido}.geojson` x15 (see index.json) | 7,936,298 |
+| wildfire_hist | 9,507 | `wildfire_hist.geojson` | 2,567,727 |
 
 `index.json` maps `{kind: {sido_code: path}}` for kinds split per sido (file would exceed 6 MB).
 
@@ -164,6 +168,38 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
   - raw_rows: 6443
   - license: ODbL 1.0 — © OpenStreetMap contributors (attribution shown on map)
 
+### chem
+- **국민안전24(safekorea) 시설안전지도 화학사고대피소 (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 1658
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### health
+- **국민안전24(safekorea) 시설안전지도 보건소 (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 2350
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### steep
+- **국민안전24(safekorea) 시설안전지도 급경사지(붕괴위험 관리지점) (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 36383
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
+### wildfire_hist
+- **국민안전24(safekorea) 시설안전지도 산불발생이력(2013~) (행정안전부, 시군구별 조회)**
+  - url: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilitiesSafteyMap.do?menuSn=2
+  - endpoint: https://www.safekorea.go.kr/safekorea-kor/flsm/flsm/facilityDataList.do
+  - fetched: 2026-08-23
+  - raw_rows: 9515
+  - license: 공공누리 제1유형 (국민안전24 저작권정책)
+
 ## Processing stats (per kind)
 
 - **civil_defense**: {"raw_rows": 18829, "dropped_not_in_use": 1593, "dropped_no_or_bad_coords": 7, "dropped_military": 5}
@@ -180,6 +216,10 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
 - **tsunami**: {"raw_rows": 636, "dropped_military": 4}
 - **meal**: {"std_raw_rows": 1267, "dropped_no_or_bad_coords": 109, "sgg_unmatched": 21}
 - **townhall**: {"raw_rows": 6443, "dropped_untagged": 223, "dropped_transit": 2481}
+- **chem**: {"raw_rows": 1658}
+- **health**: {"raw_rows": 2350}
+- **steep**: {"raw_rows": 36383, "dropped_no_or_bad_coords": 2384, "dropped_military": 5}
+- **wildfire_hist**: {"raw_rows": 9515, "dropped_military": 8}
 
 Notes:
 - civil_defense keeps only `운영상태 = 사용중` (사용중지/일시중지 dropped, see status_breakdown). `type` = 시설구분 / 지상·지하.
@@ -214,6 +254,10 @@ Notes:
 - dust: 256/256 — complete
 - water: 256/256 — complete
 - tsunami: 256/256 — complete
+- chem: 256/256 — complete
+- health: 256/256 — complete
+- steep: 256/256 — complete
+- wildfire_hist: 256/256 — complete
 
 Re-run `python scripts/build_shelters.py` (optionally `SK_BUDGET_S=1200`) to fill missing 시군구; fetched ones are cached in .work_shelters/sk_*.json.
 

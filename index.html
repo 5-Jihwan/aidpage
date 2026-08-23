@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260823f">
+<link rel="stylesheet" href="css/style.css?v=20260823g">
 </head>
 <body>
 
@@ -47,6 +47,18 @@
   <section class="drawer-sec"><h4 data-i18n="drawer.lang">언어</h4><div class="lang pill" role="group" aria-label="언어"><button class="lang-btn" data-lang="ko">한국어</button><button class="lang-btn" data-lang="en">English</button></div></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.size">글씨 크기</h4><div class="size pill" role="group" aria-label="글씨 크기"><button class="size-btn" data-size="normal" data-i18n="size.normal">보통</button><button class="size-btn" data-size="big" data-i18n="size.big">큰 글씨</button></div>
     <label class="drawer-row"><input type="checkbox" id="btnContrast"><span data-i18n="size.contrast.t">글자와 배경 대비를 높입니다</span></label></section>
+  <section class="drawer-sec"><h4 data-i18n="drawer.profile">우리 집 (입력은 이 기기에만 저장)</h4>
+    <div class="prof">
+      <label><span data-i18n="prof.floor">사는 층</span><select id="pfFloor"><option value="">—</option><option value="semi" data-i18n="prof.floor.semi">반지하·지하</option><option value="low" data-i18n="prof.floor.low">1~2층</option><option value="mid" data-i18n="prof.floor.mid">3층 이상</option><option value="high" data-i18n="prof.floor.high">고층(10층 이상)</option></select></label>
+      <div class="prof-chk">
+        <label><input type="checkbox" id="pfSenior"><span data-i18n="prof.senior">어르신과 함께</span></label>
+        <label><input type="checkbox" id="pfChild"><span data-i18n="prof.child">영유아</span></label>
+        <label><input type="checkbox" id="pfMob"><span data-i18n="prof.mob">거동 불편·휠체어</span></label>
+        <label><input type="checkbox" id="pfCar"><span data-i18n="prof.car">차량 있음</span></label>
+        <label><input type="checkbox" id="pfPet"><span data-i18n="prof.pet">반려동물</span></label>
+      </div>
+      <small class="fine" data-i18n="prof.note">'오늘 할 일'과 자동으로 켜지는 시설이 우리 집에 맞게 바뀝니다.</small>
+    </div></section>
   <section class="drawer-sec desktop-only"><h4 data-i18n="drawer.panel">화면</h4><button type="button" class="btn btn-ghost btn-sm" id="btnPanelToggle" data-i18n="panel.collapse">패널 접기/펼치기</button></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.more">더 보기</h4><button type="button" class="drawer-link" data-tab="about" data-i18n="tab.about">방법·한계</button><a class="drawer-link" href="https://github.com/5-Jihwan/safepic" target="_blank" rel="noopener">GitHub</a><div class="fine" data-i18n="drawer.note">입력은 서버로 가지 않고 이 브라우저 안에서만 계산됩니다.</div></section>
 </aside>
@@ -80,6 +92,7 @@
           <div class="region-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSaveHome"></button><button type="button" class="btn btn-ghost btn-sm" id="btnResetSel" data-i18n="sel.reset">선택 초기화</button></div>
           <div class="level-guide" id="levelGuide"></div>
           <div class="todo-card" id="todoCard" hidden></div>
+          <div class="ins-card" id="insCard" hidden></div>
           <div class="wx-card" id="wxCard"></div>
           <div class="warn-card" id="warnCard"></div>
           <div class="kv" id="regionKv"></div>
@@ -213,6 +226,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260823f"></script>
+<script type="module" src="js/app.js?v=20260823g"></script>
 </body>
 </html>

@@ -1,13 +1,14 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823d';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823d';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823d';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260823e';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260823e';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260823e';
 let loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260823d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260823e'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const KOREA_CENTER = [127.8, 36.3];
+const MQ_MOBILE = '(max-width:900px), (max-width:1200px) and (orientation:portrait)'; // must match css/style.css
 const WX_KEYS = ['t', 'feels', 'rain', 'reh', 'wind', 'pm10', 'pm25'];
 
 const state = {
@@ -118,7 +119,7 @@ function localizeLabels() {
 }
 /* visible map area (px) after floating UI: left panel / bottom sheet / top-right stack */
 function visiblePadding() {
-  const mobile = matchMedia('(max-width:900px)').matches, p = $('#panel');
+  const mobile = matchMedia(MQ_MOBILE).matches, p = $('#panel');
   if (mobile) {
     const sheet = p.classList.contains('is-collapsed') ? 72 : p.classList.contains('is-tall') ? innerHeight * 0.9 : innerHeight * 0.5;
     return { top: 120, bottom: Math.round(sheet) + 12, left: 12, right: 12 };
@@ -179,7 +180,7 @@ function downloadICS(title, dateISO, desc) {
 }
 /* open a popup and make sure it is not hidden behind the panel/controls */
 function openPopup(lngLat, html, opts = {}) {
-  if (matchMedia('(max-width:900px)').matches && opts.fromPanel) { $('#panel').classList.add('is-collapsed'); $('#panel').classList.remove('is-tall'); setTimeout(() => map.resize(), 260); }
+  if (matchMedia(MQ_MOBILE).matches && opts.fromPanel) { $('#panel').classList.add('is-collapsed'); $('#panel').classList.remove('is-tall'); setTimeout(() => map.resize(), 260); }
   const pop = new maplibregl.Popup({ closeButton: !!opts.closeButton, offset: opts.offset || 8, maxWidth: opts.maxWidth || '280px' }).setLngLat(lngLat).setHTML(html).addTo(map);
   setTimeout(() => {
     const pad = visiblePadding(), pt = map.project(lngLat), W = map.getContainer().clientWidth, H = map.getContainer().clientHeight;
@@ -247,7 +248,7 @@ function setLevelFilters() {
 }
 function fitTo(features) {
   if (!features.length) return;
-  const b = bboxOf(features), mobile = matchMedia('(max-width:900px)').matches;
+  const b = bboxOf(features), mobile = matchMedia(MQ_MOBILE).matches;
   map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 150, bottom: innerHeight * 0.52, left: 24, right: 24 } : { top: 90, bottom: 60, left: ($('#panel').classList.contains('is-collapsed') ? 0 : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 60, right: 80 }, duration: 900 });
 }
 
@@ -269,7 +270,7 @@ async function selectEmd(code) {
   if (map.getSource('emd')) { state.geo.emd.features.forEach(f => map.setFeatureState({ source: 'emd', id: f.properties.code }, { sel: false })); map.setFeatureState({ source: 'emd', id: String(code) }, { sel: true }); }
   pushRecent(String(code));
   renderAll(); syncWizardLoc();
-  if (matchMedia('(max-width:900px)').matches) { $('#panel').classList.remove('is-collapsed'); }
+  if (matchMedia(MQ_MOBILE).matches) { $('#panel').classList.remove('is-collapsed'); }
 }
 /* 최근 본 동네 3개 (저장한 내 동네 제외) */
 function pushRecent(code) { const r = JSON.parse(localStorage.getItem('safepic.recent') || '[]').filter(c => c !== code); r.unshift(code); localStorage.setItem('safepic.recent', JSON.stringify(r.slice(0, 4))); }
@@ -385,7 +386,7 @@ function renderLegend(kinds) {
   const g = state._gridLegend;
   if (!sh.length && !g) { box.hidden = true; return; }
   box.hidden = false;
-  const mobile = matchMedia('(max-width:900px)').matches; box.classList.toggle('is-min', mobile && !state._legendOpen);
+  const mobile = matchMedia(MQ_MOBILE).matches; box.classList.toggle('is-min', mobile && !state._legendOpen);
   box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + (sh.length ? `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>` : '') +
     (g ? `<div class="lg-row lg-grid"><b>${g.title}</b>${g.html}</div>` : '') + `<small class="lg-src">${t('legend.src')}</small>`;
   $('#lgToggle').addEventListener('click', () => { state._legendOpen = !state._legendOpen; box.classList.toggle('is-min', mobile && !state._legendOpen); });
@@ -567,7 +568,7 @@ function initPanel() {
   // bottom sheet (mobile): the sheet follows the finger, then snaps to collapsed / half / tall
   const g = $('.panel-grip'); let y0 = 0, h0 = 0, sheetDrag = false, moved = false;
   const snapTo = cls => { p.classList.remove('is-collapsed', 'is-tall'); if (cls) p.classList.add(cls); p.style.height = ''; setTimeout(() => map && map.resize(), 280); };
-  const shStart = e => { if (!matchMedia('(max-width:900px)').matches) return; sheetDrag = true; moved = false; y0 = e.touches[0].clientY; h0 = p.getBoundingClientRect().height; p.style.transition = 'none'; };
+  const shStart = e => { if (!matchMedia(MQ_MOBILE).matches) return; sheetDrag = true; moved = false; y0 = e.touches[0].clientY; h0 = p.getBoundingClientRect().height; p.style.transition = 'none'; };
   const shMove = e => { if (!sheetDrag) return; const dy = e.touches[0].clientY - y0; if (Math.abs(dy) > 4) moved = true; const h = Math.max(64, Math.min(innerHeight - 60, h0 - dy)); p.style.height = h + 'px'; };
   const shEnd = e => { if (!sheetDrag) return; sheetDrag = false; p.style.transition = ''; const h = p.getBoundingClientRect().height, vh = innerHeight, dy = e.changedTouches[0].clientY - y0;
     if (!moved) { snapTo(p.classList.contains('is-tall') ? '' : 'is-tall'); return; }
@@ -578,12 +579,12 @@ function initPanel() {
   g.addEventListener('touchstart', shStart, { passive: true }); g.addEventListener('touchmove', shMove, { passive: true }); g.addEventListener('touchend', shEnd);
   // also allow sheetDrag from the sheet header area when the list is scrolled to the top
   const ps = $('#panelScroll');
-  ps.addEventListener('touchstart', e => { if (ps.scrollTop <= 0 && matchMedia('(max-width:900px)').matches) { shStart(e); sheetDrag = false; y0 = e.touches[0].clientY; } }, { passive: true });
+  ps.addEventListener('touchstart', e => { if (ps.scrollTop <= 0 && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; y0 = e.touches[0].clientY; } }, { passive: true });
   ps.addEventListener('touchmove', e => { if (!sheetDrag && ps.scrollTop <= 0 && e.touches[0].clientY - y0 > 12 && !p.classList.contains('is-collapsed')) { sheetDrag = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = e.touches[0].clientY; p.style.transition = 'none'; } if (sheetDrag) shMove(e); }, { passive: true });
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823d').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260823e').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -775,7 +776,8 @@ function renderResult(res, inp) {
 function renderRulesTable() {
   const box = $('#rulesTable'); if (!state.rules || box.dataset.done) return;
   const all = state.rules.all || []; box.hidden = false; box.dataset.done = 1;
-  box.innerHTML = `<div style="overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th>label</th><th>amount</th><th>basis</th><th>as of</th><th>conf.</th></tr></thead><tbody>${all.map(r => `<tr><td><b>${r.label}</b><br><small>${r.summary || ''}</small></td><td class="mono">${r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '-')}</td><td>${r.basis || ''}${r.basis_url ? ` <a href="${r.basis_url}" target="_blank" rel="noopener">↗</a>` : ''}</td><td class="mono">${r.rate_asof || r.effective_from || ''}</td><td class="mono">${r.confidence || ''}</td></tr>`).join('')}</tbody></table></div><p class="fine">${t('rules.total', { n: all.length })} <a href="https://github.com/5-Jihwan/safepic/issues" target="_blank" rel="noopener">Issue</a></p>`;
+  const conf = c => ({ verified: t('conf.verified'), reported: t('conf.reported'), estimated: t('conf.estimated'), pending: t('conf.pending') }[c] || c || '');
+  box.innerHTML = `<div class="table-wrap" style="max-height:60vh;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th>${t('rules.h.label')}</th><th>${t('rules.h.amount')}</th><th>${t('rules.h.basis')}</th><th>${t('rules.h.asof')}</th><th>${t('rules.h.conf')}</th></tr></thead><tbody>${all.map(r => `<tr><td><b>${r.label}</b><br><small>${r.summary || ''}</small></td><td class="mono">${r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '-')}</td><td>${r.basis || ''}${r.basis_url ? ` <a href="${r.basis_url}" target="_blank" rel="noopener">↗</a>` : ''}</td><td class="mono">${r.rate_asof || r.effective_from || ''}</td><td><span class="conf conf-${r.confidence || 'na'}">${conf(r.confidence)}</span></td></tr>`).join('')}</tbody></table></div><p class="fine">${t('rules.total', { n: all.length })} <a href="https://github.com/5-Jihwan/safepic/issues" target="_blank" rel="noopener">Issue</a></p>`;
 }
 
 /* ---------- boot ---------- */
@@ -787,6 +789,7 @@ function renderRulesTable() {
   $('#btnStart').addEventListener('click', goStart);
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
   initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome();
+  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); }, 150); });
   await loadCore(); renderCrumb(); renderLive();
   initMap();
   map.once('idle', () => { if (location.hash) applyShare(location.hash); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => selectEmd(getHome()), 1200); });

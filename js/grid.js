@@ -14,7 +14,7 @@ const cache = new Map(); let map = null, current = null, attr = null;
 export function initGrid(m) { map = m; }
 export async function hasGrid(sgg) {
   if (cache.has(sgg)) return !!cache.get(sgg);
-  try { const r = await fetch(`data/grid/${sgg}.geojson`, { cache: 'force-cache' }); const fc = r.ok ? await r.json() : null; cache.set(sgg, fc); return !!fc; } catch { cache.set(sgg, null); return false; }
+  try { let r = await fetch(`data/grid/${sgg}.geojson`, { cache: 'force-cache' }); if (!r.ok) r = await fetch(`data/grid/${sgg}.geojson`, { cache: 'reload' }); const fc = r.ok ? await r.json() : null; cache.set(sgg, fc); return !!fc; } catch { cache.set(sgg, null); return false; }
 }
 export function available(sgg) {
   const fc = cache.get(sgg); if (!fc) return [];

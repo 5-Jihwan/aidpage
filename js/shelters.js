@@ -11,7 +11,14 @@ const cache = new Map(); // kind -> FeatureCollection | null
 let index = null; // optional split index {kind:{sido_code:path}}
 let map = null, activeKinds = new Set(), currentSido = null;
 
-async function getJSON(url) { try { const r = await fetch(url, { cache: 'force-cache' }); if (!r.ok) return null; return await r.json(); } catch { return null; } }
+// big files: reuse the HTTP cache; but never trust a cached 404 (a stale miss from before a deploy) — refetch with 'reload'
+async function getJSON(url, big = false) {
+  try {
+    let r = await fetch(url, { cache: big ? 'force-cache' : 'no-cache' });
+    if (!r.ok && big) r = await fetch(url, { cache: 'reload' });
+    if (!r.ok) return null; return await r.json();
+  } catch { return null; }
+}
 
 export async function initShelters(m) {
   map = m;
@@ -19,7 +26,7 @@ export async function initShelters(m) {
   const avail = [];
   for (const k of KINDS) {
     if (index && index[k.id]) { avail.push(k); continue; }
-    const r = await fetch(`data/shelters/${k.id}.geojson`, { method: 'HEAD', cache: 'force-cache' }).catch(() => null);
+    const r = await fetch(`data/shelters/${k.id}.geojson`, { method: 'HEAD', cache: 'no-cache' }).catch(() => null);
     if (r && r.ok) avail.push(k);
   }
   return avail; // kinds with data
@@ -28,8 +35,8 @@ async function load(kind, sido) {
   const key = index && index[kind] ? `${kind}/${sido}` : kind;
   if (cache.has(key)) return cache.get(key);
   let fc = null;
-  if (index && index[kind]) { const p = index[kind][sido]; fc = p ? await getJSON('data/shelters/' + p) : { type: 'FeatureCollection', features: [] }; }
-  else fc = await getJSON(`data/shelters/${kind}.geojson`);
+  if (index && index[kind]) { const p = index[kind][sido]; fc = p ? await getJSON('data/shelters/' + p, true) : { type: 'FeatureCollection', features: [] }; }
+  else fc = await getJSON(`data/shelters/${kind}.geojson`, true);
   cache.set(key, fc); return fc;
 }
 function ensureLayer(kind) {

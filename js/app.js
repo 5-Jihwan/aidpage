@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824c';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824c';
-import { getReports, postReport, flagReport } from './api.js?v=20260824c';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824c';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824d';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824d';
+import { getReports, postReport, flagReport } from './api.js?v=20260824d';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824d';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260824c'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260824d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -417,9 +417,24 @@ function nameOf() {
   const sidoName = (e && e.sido_name) || (s && s.sido_name) || (state.sido && (featuresWhere(state.geo.sido, 'code', state.sido)[0] || { properties: {} }).properties.name) || '';
   return { sidoName, sggName: (e && e.sgg_name) || (s && s.name) || '', emdName: e ? e.name : '' };
 }
-const weatherFor = sgg => (state.live.weather && state.live.weather.by_sgg && state.live.weather.by_sgg[String(sgg)]) || null;
+const weatherFor = sgg => {
+  const W = state.live.weather; if (!W) return null;
+  const w = W.by_sgg && W.by_sgg[String(sgg)]; if (w) return w;
+  const s = state.idx.bySgg.get(String(sgg)); const h = W.hub && W.hub.by_sido && s && W.hub.by_sido[String(s.sido)];
+  return h ? { ...h, _sido: true } : null; // 시도 대표 관측소 폴백 (단기예보가 열리기 전)
+};
 const airFor = sgg => (state.live.air && state.live.air.by_sgg && state.live.air.by_sgg[String(sgg)]) || null;
+function recentQuake() {
+  const q = state.live.alerts && state.live.alerts.quake; if (!q || !q.items) return null;
+  const it = q.items.find(x => x.mag >= 3.0 && x.at && (Date.now() - new Date(`${x.at.slice(0, 4)}-${x.at.slice(4, 6)}-${x.at.slice(6, 8)}T${x.at.slice(8, 10)}:${x.at.slice(10, 12)}:00+09:00`).getTime()) < 24 * 3600 * 1000);
+  return it || null;
+}
 function warningsFor(sgg, sido) {
+  const a = state.live.alerts; if (!a || !a.warnings || !a.warnings.items) return quakeAsWarning();
+  return [...a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(sgg) || c === String(sido)) || (w.areas || []).some(x => (nameOf().sggName && x.includes(nameOf().sggName)) || (nameOf().sidoName && x === nameOf().sidoName))), ...quakeAsWarning()];
+}
+function quakeAsWarning() { const q = recentQuake(); return q ? [{ type: '지진', level: '속보', areas: [`${q.loc} · M${q.mag}`], since: q.announced }] : []; }
+function _warningsForLegacy(sgg, sido) {
   const a = state.live.alerts; if (!a || !a.warnings || !a.warnings.items) return [];
   const n = nameOf();
   return a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(sgg) || c === String(sido)) || (w.areas || []).some(x => (n.sggName && x.includes(n.sggName)) || (n.sidoName && x === n.sidoName)));
@@ -444,7 +459,7 @@ function renderCrumb() {
   if (state.emd) { sep(); add(n.emdName, () => {}, true); }
 }
 /* ---------- today's to-do (3 lines): warnings > situation > season ---------- */
-const WARN_EN = { '폭염': 'Heat', '호우': 'Heavy rain', '대설': 'Heavy snow', '강풍': 'Strong wind', '한파': 'Cold wave', '건조': 'Dry', '태풍': 'Typhoon', '지진': 'Earthquake', '풍랑': 'High seas', '황사': 'Yellow dust', '주의보': ' advisory', '경보': ' warning' };
+const WARN_EN = { '폭염': 'Heat', '호우': 'Heavy rain', '대설': 'Heavy snow', '강풍': 'Strong wind', '한파': 'Cold wave', '건조': 'Dry', '태풍': 'Typhoon', '지진': 'Earthquake', '풍랑': 'High seas', '황사': 'Yellow dust', '주의보': ' advisory', '경보': ' warning', '속보': ' bulletin' };
 const warnName = (type, level) => getLang() === 'en' ? (WARN_EN[type] || type) + (WARN_EN[level] || ' ' + level) : type + level;
 const ALERT_MAP = { // 특보 종류·단계 → 행동 문구 키 + 자동 시설
   '폭염': { key: 'heat', kinds: ['heat'] }, '호우': { key: 'rain', kinds: ['temp_housing', 'civil_defense', 'underpass'] }, '대설': { key: 'snow', kinds: ['cold'] },
@@ -594,7 +609,8 @@ function renderRegion() {
   if (state.sgg) {
     const items = wxItems(state.sgg);
     if (items.length) {
-      const srcs = [state.emd && t('wx.basis', { name: nameOf().sggName }), weatherFor(state.sgg) && t('wx.src'), airFor(state.sgg) && t('air.src')].filter(Boolean).join(' · ');
+      const wf = weatherFor(state.sgg);
+      const srcs = [wf && wf._sido ? t('wx.basis.stn', { name: wf.stn_name }) : state.emd && t('wx.basis', { name: nameOf().sggName }), wf && (wf._sido ? t('wx.src.asos') : t('wx.src')), airFor(state.sgg) && t('air.src')].filter(Boolean).join(' · ');
       wx.innerHTML = items.map(i => `<div class="wx-item ${i.cls}"><div class="k">${i.label}</div><div class="v">${i.v}<small>${i.unit}</small></div></div>`).join('') + `<div class="wx-src">${srcs} · ${fmtTime((state.live.weather || {}).updated || (state.live.air || {}).updated)}</div>`;
     } else {
       const st = state.live.weather && state.live.weather.status;
@@ -704,7 +720,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824c').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824d').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

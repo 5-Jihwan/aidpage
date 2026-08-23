@@ -102,14 +102,30 @@ HUB_MAP = {  # data.go.kr 경로 → API허브 typ02 경로 (응답 형식 동�
 }
 
 
+_DEAD = set()  # service base URLs that answered 403/401 this run — skip without spending call budget
+
+
+def _base(url):
+    return url.rsplit("/", 1)[0]
+
+
 def get_json(url, params=None, raw_key=None):
+    if _base(url) in _DEAD:
+        raise HttpError("403")
     try:
         txt = http_get(url, params, raw_key)
     except HttpError as e:
         hub = next((url.replace(k, v) for k, v in HUB_MAP.items() if url.startswith(k)), None)
-        if hub and KEY_HUB and e.code in ("403", "401", "kma30", "kma31", "kma32"):
-            txt = http_get(hub, dict(params or {}, authKey=KEY_HUB))
+        if hub and KEY_HUB and e.code in ("403", "401", "kma30", "kma31", "kma32") and _base(hub) not in _DEAD:
+            try:
+                txt = http_get(hub, dict(params or {}, authKey=KEY_HUB))
+            except HttpError as e2:
+                if e2.code in ("403", "401"):
+                    _DEAD.add(_base(hub)); _DEAD.add(_base(url))
+                raise
         else:
+            if e.code in ("403", "401"):
+                _DEAD.add(_base(url))
             raise
     try:
         return json.loads(txt)
@@ -483,6 +499,112 @@ def fetch_landslide(sgg, prev):
     return sec
 
 
+# --------------------------------------------------------------------------- 4b. 기상청 API허브 — 종관관측(ASOS) 시간자료 → 시도 대표값, 지진통보
+HUB_SFC = "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php"
+HUB_EQK = "https://apihub.kma.go.kr/api/typ01/url/eqk_now.php"
+# 시도 → ASOS 대표 관측소 (기상청 공식 지점번호). 광주+전남 통합(12)은 광주 156.
+ASOS_SIDO = {"11": (108, "서울"), "26": (159, "부산"), "27": (143, "대구"), "28": (112, "인천"), "12": (156, "광주"),
+             "30": (133, "대전"), "31": (152, "울산"), "36": (239, "세종"), "41": (119, "수원"), "51": (101, "춘천"),
+             "43": (131, "청주"), "44": (129, "서산"), "52": (146, "전주"), "47": (136, "안동"), "48": (155, "창원"), "50": (184, "제주")}
+
+
+def _hub_text(url, params):
+    """API허브 typ01 텍스트(EUC-KR) — '#' 주석 제외한 데이터 행을 공백 분리 리스트로."""
+    global _calls
+    if _calls >= MAX_CALLS:
+        raise HttpError("budget")
+    _calls += 1
+    q = dict(params, authKey=KEY_HUB)
+    req = urllib.request.Request(url + "?" + urllib.parse.urlencode(q), headers={"User-Agent": "safepic/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+            txt = r.read().decode("euc-kr", "replace")
+    except urllib.error.HTTPError as e:
+        raise HttpError(e.code)
+    except Exception as e:  # noqa: BLE001
+        raise HttpError("timeout" if "timed out" in str(e) else "net")
+    return [ln.split() for ln in txt.splitlines() if ln and not ln.startswith("#")]
+
+
+def _v(x, bad=(-9.0, -99.0, -999.0)):
+    try:
+        f = float(x)
+    except (TypeError, ValueError):
+        return None
+    return None if f in bad else f
+
+
+def fetch_hub_obs(prev):
+    """ASOS 96지점 시간자료(허브 kma_sfctm2) → 시도별 대표 관측값. 단기예보가 열리기 전의 폴백."""
+    sec = {"status": "ok", "by_sido": {}, "source": "기상청 API허브 종관관측(ASOS) 시간자료", "updated": now_kst().isoformat(timespec="seconds")}
+    if not KEY_HUB:
+        sec["status"] = "no_key"
+        return sec
+    try:
+        tm = (now_kst() - timedelta(minutes=70)).strftime("%Y%m%d%H") + "00"
+        rows = _hub_text(HUB_SFC, {"tm": tm, "stn": 0, "help": 0})
+        by_stn = {}
+        for r in rows:
+            if len(r) < 20:
+                continue
+            # cols: TM STN WD WS GST_WD GST_WS GST_TM PA PS PT PR TA TD HM PV RN RN_DAY ...
+            by_stn[int(r[1])] = {"t": _v(r[11]), "reh": _v(r[13]), "wsd": _v(r[3]), "vec": (_v(r[2]) or 0) * 10, "rn1": _v(r[15]), "rn_day": _v(r[16]), "tm": r[0]}
+        month = now_kst().month
+        for sido, (stn, name) in ASOS_SIDO.items():
+            o = by_stn.get(stn)
+            if not o:
+                continue
+            o = dict(o, stn=stn, stn_name=name)
+            if o["t"] is not None and o["reh"] is not None:
+                fl = feels_like(o["t"], o["reh"], o["wsd"] or 0, month)
+                o["feels"], o["feels_kind"] = (fl if isinstance(fl, tuple) else (fl, None))
+            sec["by_sido"][sido] = o
+        sec["base_time"] = f"{tm[:4]}-{tm[4:6]}-{tm[6:8]}T{tm[8:10]}:00+09:00"
+        if not sec["by_sido"]:
+            sec = dict(prev or {}, status="error:empty")
+    except HttpError as e:
+        sec = dict(prev or {}, status=f"error:{e.code}")
+    return sec
+
+
+def fetch_quake(prev):
+    """지진통보(허브 eqk_now): 최근 통보 목록 → 국내 규모 2.0 이상만."""
+    sec = {"status": "ok", "items": [], "source": "기상청 API허브 지진통보", "updated": now_kst().isoformat(timespec="seconds")}
+    if not KEY_HUB:
+        sec["status"] = "no_key"
+        return sec
+    try:
+        global _calls
+        if _calls >= MAX_CALLS:
+            raise HttpError("budget")
+        _calls += 1
+        req = urllib.request.Request(HUB_EQK + "?" + urllib.parse.urlencode({"authKey": KEY_HUB}), headers={"User-Agent": "safepic/1.0"})
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+            txt = r.read().decode("euc-kr", "replace")
+        for ln in txt.splitlines():
+            if not ln or ln.startswith("#"):
+                continue
+            p = ln.split(None, 7)
+            if len(p) < 8:
+                continue
+            try:
+                tp, tm_fc, seq, tm_eqk, mag, lat, lon = int(p[0]), p[1], p[2], p[3], float(p[4]), float(p[5]), float(p[6])
+            except ValueError:
+                continue
+            rest = p[7].split(",")
+            loc = rest[0].strip()
+            domestic = 124.0 <= lon <= 132.5 and 33.0 <= lat <= 39.5
+            if mag >= 2.0 and domestic:
+                sec["items"].append({"type": tp, "announced": tm_fc, "at": tm_eqk[:14], "mag": mag, "lat": lat, "lon": lon, "loc": loc,
+                                     "intensity": (rest[1].strip() if len(rest) > 1 else None)})
+        sec["items"] = sec["items"][:10]
+    except HttpError as e:
+        sec = dict(prev or {}, status=f"error:{e.code}")
+    except Exception as e:  # noqa: BLE001
+        sec = dict(prev or {}, status="error:parse")
+    return sec
+
+
 # --------------------------------------------------------------------------- 5b. 응급실 실시간 가용병상 (E-Gen)
 def fetch_er(sgg, prev):
     """중앙응급의료센터 E-Gen 응급실 실시간 가용병상 (data.go.kr B552657, 일 1,000건).
@@ -751,18 +873,22 @@ def main():
             return dict(prev if isinstance(prev, dict) else {}, status="error:exc")
 
     weather = safe(fetch_weather, sgg, prev_w)
+    weather["hub"] = safe(fetch_hub_obs, (prev_w or {}).get("hub"))
+    if not weather.get("by_sgg") and (weather["hub"] or {}).get("by_sido"):
+        weather["status"] = "partial:sido"
     alerts = {
         "updated": now_kst().isoformat(timespec="seconds"),
         "warnings": safe(fetch_warnings, sgg, prev_a.get("warnings")),
         "messages": safe(fetch_messages, prev_a.get("messages")),
         "river": safe(fetch_river, prev_a.get("river")),
         "landslide": safe(fetch_landslide, sgg, prev_a.get("landslide")),
+        "quake": safe(fetch_quake, prev_a.get("quake")),
     }
     air = safe(fetch_air, sgg, prev_air)
     er = safe(fetch_er, sgg, prev_er)
     weather["calls"] = _calls
     air["calls"] = _calls
-    statuses = [weather.get("status"), air.get("status"), er.get("status")] + [alerts[k].get("status") for k in ("warnings", "messages", "river", "landslide")]
+    statuses = [weather.get("status"), air.get("status"), er.get("status"), (weather.get("hub") or {}).get("status")] + [alerts[k].get("status") for k in ("warnings", "messages", "river", "landslide", "quake")]
     if all(st in ("no_key", "todo", None) for st in statuses) and os.path.exists(WEATHER_PATH):
         log("all sections no_key: leaving placeholder files untouched (no commit churn)")
     else:

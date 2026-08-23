@@ -140,13 +140,23 @@
       </section>
 
       <section class="view" data-view="where">
-        <h1 class="h1" data-i18n="where.h1">어디에 먼저 써야 하나</h1>
-        <p class="lead" data-i18n="where.lead">야구의 WPA처럼 — 같은 1억 원으로 어느 격자의 안전 확률이 가장 많이 오르는지를 봅니다.</p>
+        <h1 class="h1" data-i18n="where.h1">우리 동네는 어디가 더 위험한가</h1>
+        <p class="lead" data-i18n="where.lead">같은 구 안에서 동끼리 비교하고, 격자(약 0.1 km²)로 침수 이력·경사·취약계층을 겹쳐 봅니다. 숫자는 전부 공공 데이터이며, 없는 값은 비워 둡니다.</p>
         <div class="compare" id="compareBox" hidden></div>
         <div class="near" id="whereGrid" hidden></div>
-        <div class="pending" id="wherePending"><b data-i18n="where.pend">시범 지역(서울 관악구) 격자 데이터 준비 중</b><p data-i18n="where.pend.p"></p><p class="fine" data-i18n="where.pend.f"></p></div>
-        <details class="formula"><summary data-i18n="where.formula">계산 방식 미리보기</summary>
-          <p class="mono">SE<sub>i</sub> = σ(b₀ + b₁·C<sub>i</sub> − b₂·H<sub>i</sub> − b₃·E<sub>i</sub> − b₄·V<sub>i</sub>)<br>SPA<sub>i</sub>(a) = SE′<sub>i</sub> − SE<sub>i</sub> &nbsp; · &nbsp; Eff<sub>i</sub>(a) = ΔE[Loss]<sub>i</sub> / Cost(a)</p>
+        <div class="pending" id="wherePending"><b data-i18n="where.pend">격자 데이터가 있는 지역: 서울 관악구 (시범)</b><p data-i18n="where.pend.p"></p><p class="fine" data-i18n="where.pend.f"></p></div>
+        <details class="formula" open><summary data-i18n="where.formula">위험도는 이렇게 계산합니다</summary>
+          <div class="math-block">
+            <p class="math-cap" data-i18n="where.f1">① 연평균 기대피해 (EAD) — 재현기간별 피해를 초과확률로 적분</p>
+            <math display="block"><mrow><mi>E</mi><mo stretchy="false">[</mo><mi>L</mi><mo stretchy="false">]</mo><msub><mrow></mrow><mi>i</mi></msub><mo>=</mo><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><msub><mi>L</mi><mi>i</mi></msub><mo stretchy="false">(</mo><mi>p</mi><mo stretchy="false">)</mo><mspace width="0.2em"/><mi>d</mi><mi>p</mi><mo>≈</mo><munderover><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi>R</mi></mrow><mrow></mrow></munderover><mfrac><mn>1</mn><mi>r</mi></mfrac><mo>·</mo><msub><mi>L</mi><mi>i</mi></msub><mo stretchy="false">(</mo><msub><mi>d</mi><mi>r</mi></msub><mo stretchy="false">)</mo></mrow></math>
+            <p class="math-cap" data-i18n="where.f2">② 침수심별 피해 — 다차원법(MD-FDA) 피해율 곡선 × 자산</p>
+            <math display="block"><mrow><msub><mi>L</mi><mi>i</mi></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo><munder><mo>∑</mo><mrow><mi>k</mi><mo>∈</mo><mo>{</mo><mtext>건물,가재,인명</mtext><mo>}</mo></mrow></munder><msub><mi>A</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo>·</mo><msub><mi>φ</mi><mi>k</mi></msub><mo stretchy="false">(</mo><mi>d</mi><mo stretchy="false">)</mo><mo>·</mo><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mi>γ</mi><msub><mi>v</mi><mi>i</mi></msub><mo stretchy="false">)</mo></mrow></math>
+            <p class="math-cap" data-i18n="where.f3">③ 안전 확률 — 최대 가능 피해 대비</p>
+            <math display="block"><mrow><msub><mi>S</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><mi>E</mi><mo stretchy="false">[</mo><mi>L</mi><msub><mo stretchy="false">]</mo><mi>i</mi></msub></mrow><mrow><msubsup><mi>L</mi><mi>i</mi><mi>max</mi></msubsup></mrow></mfrac></mrow></math>
+            <p class="math-cap" data-i18n="where.f4">④ 대책 a의 효율 — FEMA 편익비용비(BCR)와 동일</p>
+            <math display="block"><mrow><msub><mi>BCR</mi><mi>i</mi></msub><mo stretchy="false">(</mo><mi>a</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mi>T</mi></munderover><mfrac><mrow><mi>E</mi><mo stretchy="false">[</mo><mi>L</mi><msub><mo stretchy="false">]</mo><mi>i</mi></msub><mo>−</mo><mi>E</mi><mo stretchy="false">[</mo><mi>L</mi><msubsup><mo stretchy="false">]</mo><mi>i</mi><mi>a</mi></msubsup></mrow><msup><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mi>ρ</mi><mo stretchy="false">)</mo></mrow><mi>t</mi></msup></mfrac></mrow><mrow><mi>C</mi><mo stretchy="false">(</mo><mi>a</mi><mo stretchy="false">)</mo></mrow></mfrac><mo>,</mo><mspace width="1em"/><mi>ρ</mi><mo>=</mo><mn>3.1</mn><mo>%</mo></mrow></math>
+            <p class="fine" data-i18n="where.fnote">H3 격자(약 0.1 km²) 단위. d = 침수심, r = 재현기간(년), φ = 피해율, v = 취약가중(고령 1인세대 비율), ρ = 할인율(FEMA 2024). 새 모델이 아니라 FEMA BCA · EAD · 다차원법을 격자와 안전확률 표현으로 옮긴 것입니다.</p>
+          </div>
         </details>
       </section>
 

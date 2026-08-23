@@ -231,9 +231,11 @@ function addAdminLayers() {
 }
 function setLevelFilters() {
   if (!map || !map.getLayer('sgg-fill')) return;
-  const sggF = state.sido ? ['==', ['get', 'sido_code'], String(state.sido)] : ['==', 1, 0];
-  const emdF = state.sgg ? ['==', ['get', 'sgg_code'], String(state.sgg)] : ['==', 1, 0];
-  ['sgg-fill', 'sgg-line', 'sgg-label'].forEach(l => map.setFilter(l, sggF));
+  const NONE = ['==', ['get', 'code'], '__none__']; // valid "match nothing" (['==',1,0] is rejected by MapLibre)
+  const sggF = state.sido ? ['==', ['get', 'sido_code'], String(state.sido)] : NONE;
+  const emdF = state.sgg ? ['==', ['get', 'sgg_code'], String(state.sgg)] : NONE;
+  map.setFilter('sgg-fill', sggF); map.setFilter('sgg-label', state.sido ? sggF : NONE);
+  map.setFilter('sgg-line', state.sido ? sggF : null); // nation view keeps the thin 시군구 outline (liked by users)
   ['emd-fill', 'emd-line', 'emd-label'].forEach(l => map.setFilter(l, emdF));
   map.setPaintProperty('sido-fill', 'fill-opacity', state.sido ? 0 : ['case', ['boolean', ['feature-state', 'hover'], false], 0.32, 0]);
   // highlight only the deepest selection (emd > sgg); nothing selected = no fill

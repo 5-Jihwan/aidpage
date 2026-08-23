@@ -357,3 +357,13 @@ html.big .route-row a{font-size:.95rem;padding:7px 8px}
 html.big .map-legend{font-size:.92rem}
 /* data badge */
 .src-badge{margin-top:6px;font-family:var(--mono);font-size:.72rem;color:var(--mute);border-top:1px dashed var(--line);padding-top:4px}
+
+/* high-contrast mode */
+html.contrast{--ink:#000;--text:#000;--mute:#333;--line:#555;--bg:#fff;--bg2:#fff;--accent:#003d99;--accent2:#002a6b;--gold:#6b4f00;--teal:#005f45;--danger:#a30000}
+html.contrast .panel{background:#fff} html.contrast .btn-primary{background:#003d99} html.contrast .card,html.contrast .near-item,html.contrast .pill,html.contrast .wxsel{border-color:#333}
+html.contrast .lang-btn.is-on,html.contrast .pill button.is-on,html.contrast .chip.is-on,html.contrast .shgrp-t.is-on{background:#000;color:#fff;border-color:#000}
+html.contrast .tab.is-active{background:#000;color:#fff} html.contrast .todo-card{border-color:#000}
+.contrast-btn.is-on{background:var(--ink);color:#fff!important;border-color:var(--ink)!important}
+/* read-aloud */
+.speak-mini{border:1px solid var(--line);background:#fff;border-radius:999px;padding:1px 8px;font-size:.85rem;margin-left:6px;vertical-align:middle} .speak-mini.is-on,#btnSpeak.is-on{background:var(--gold);color:#fff;border-color:var(--gold)}
+.result-tools{display:flex;gap:6px;align-items:flex-start;flex:none}

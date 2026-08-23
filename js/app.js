@@ -126,6 +126,42 @@ function visiblePadding() {
   const pw = p.classList.contains('is-collapsed') ? 0 : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 32;
   return { top: 70, bottom: 40, left: pw, right: 170 };
 }
+/* 🔊 읽어주기 (Web Speech, 키 불필요) */
+let speaking = false;
+function speak(text, btn) {
+  if (!('speechSynthesis' in window)) { alert(t('tts.unsupported')); return; }
+  if (speaking) { speechSynthesis.cancel(); speaking = false; if (btn) btn.classList.remove('is-on'); return; }
+  const u = new SpeechSynthesisUtterance(text); u.lang = getLang() === 'en' ? 'en-US' : 'ko-KR'; u.rate = document.documentElement.classList.contains('big') ? 0.9 : 1;
+  u.onend = u.onerror = () => { speaking = false; if (btn) btn.classList.remove('is-on'); };
+  speaking = true; if (btn) btn.classList.add('is-on'); speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+const plain = html => { const d = document.createElement('div'); d.innerHTML = html; return d.textContent.replace(/\s+/g, ' ').trim(); };
+/* 🖼 결과 카드 이미지 (카톡·가족방 공유용, 1080×1350) */
+async function shareImage(res, inp) {
+  const W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+  const n = nameOf(), place = state.emd ? `${n.sidoName} ${n.sggName} ${n.emdName}` : state.sgg ? `${n.sidoName} ${n.sggName}` : '';
+  x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#1a5fc4'; x.fillRect(0, 0, W, 14);
+  const F = (sz, w = 400) => `${w} ${sz}px Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+  const wrap = (txt, maxW, font) => { x.font = font; const out = []; let line = ''; for (const ch of String(txt)) { if (x.measureText(line + ch).width > maxW && line) { out.push(line); line = ch; } else line += ch; } if (line) out.push(line); return out; };
+  let y = 90;
+  x.fillStyle = '#14202e'; x.font = F(34, 700); x.fillText('SafePic', 72, y); x.fillStyle = '#566577'; x.font = F(26); x.fillText(place, 72 + 170, y);
+  y += 70; x.fillStyle = '#14202e'; x.font = F(44, 700); x.fillText(inp.proxy ? t('res.proxy') : t('res.mine'), 72, y);
+  y += 90; x.fillStyle = '#f7f9fc'; x.fillRect(72, y - 60, W - 144, 150); x.fillStyle = '#14202e'; x.font = F(72, 700); x.fillText(formatKRW(res.total_cash_krw || 0), 100, y + 30); x.fillStyle = '#566577'; x.font = F(24); x.fillText(t('res.cash.s'), 100, y + 70);
+  y += 150;
+  const dl = (res.deadlines || [])[0];
+  if (dl) { x.fillStyle = '#9a7328'; x.font = F(30, 700); x.fillText(dl.days_left < 0 ? t('res.dl.over', { n: -dl.days_left }) : dl.days_left === 0 ? t('res.dl.today') : t('res.dl.d', { n: dl.days_left }), 72, y); x.fillStyle = '#2b3a4d'; x.font = F(26); x.fillText(`${dl.label} · ${dl.due}`, 72 + 200, y); y += 56; }
+  const items = [...(res.cash || []), ...(res.relief_fund || []), ...(res.apply || [])].slice(0, 6);
+  x.fillStyle = '#14202e'; x.font = F(28, 700); x.fillText(t('res.cash'), 72, y); y += 20;
+  for (const r of items) { y += 52; x.fillStyle = '#dbe3ee'; x.fillRect(72, y - 38, W - 144, 1); x.fillStyle = '#14202e'; x.font = F(28); const lines = wrap(r.label, 640, F(28)); x.fillText(lines[0], 72, y); x.fillStyle = '#0f4a9e'; x.font = F(28, 500); const amt = r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : ''); x.fillText(amt, W - 72 - x.measureText(amt).width, y); }
+  y += 80; x.fillStyle = '#14202e'; x.font = F(28, 700); x.fillText(t('res.todo'), 72, y);
+  for (const td of (res.todo || []).slice(0, 3)) { const lines = wrap('• ' + (td.text || td), W - 144, F(26)); for (const l of lines) { y += 40; x.fillStyle = '#2b3a4d'; x.font = F(26); x.fillText(l, 72, y); } }
+  x.fillStyle = '#566577'; x.font = F(22); x.fillText(t('res.disc').slice(0, 60), 72, H - 90); x.fillStyle = '#1a5fc4'; x.font = F(24, 500); x.fillText('5-jihwan.github.io/safepic', 72, H - 50);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  const file = new File([blob], 'safepic.png', { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'SafePic', text: place }); return; } catch (e) { /* cancelled */ } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'safepic.png'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
 /* 데이터 출처·기준일 배지 (시설·격자·날씨 공통 형식) */
 const SRC_NAME = { safekorea: '국민안전24', osm: 'OpenStreetMap', localdata: '지방행정인허가데이터', datago_std: '공공데이터포털 표준데이터' };
 function srcBadge(src, asof) { const k = Object.keys(SRC_NAME).find(x => String(src || '').startsWith(x)); const name = k ? SRC_NAME[k] : (src || ''); return (name || asof) ? `<div class="src-badge">${asof ? `${t('badge.asof')} ${asof}` : ''}${asof && name ? ' · ' : ''}${name}</div>` : ''; }
@@ -395,7 +431,8 @@ function renderTodo() {
   const box = $('#todoCard'); if (!box) return;
   if (!state.sgg) { box.hidden = true; return; }
   const items = todoItems(); box.hidden = !items.length;
-  box.innerHTML = `<h3>${t('todo.title')}</h3><ol class="todo-list">${items.map((x, i) => `<li><span>${x.text}</span>${x.kind && state.shelters.avail.some(a => a.id === x.kind) ? `<button type="button" class="btn btn-ghost btn-sm" data-kind="${x.kind}">${t('todo.show')}</button>` : ''}</li>`).join('')}</ol>`;
+  box.innerHTML = `<h3>${t('todo.title')} <button type="button" class="speak-mini" id="todoSpeak" title="${t('tts.title')}">🔊</button></h3><ol class="todo-list">${items.map((x, i) => `<li><span>${x.text}</span>${x.kind && state.shelters.avail.some(a => a.id === x.kind) ? `<button type="button" class="btn btn-ghost btn-sm" data-kind="${x.kind}">${t('todo.show')}</button>` : ''}</li>`).join('')}</ol>`;
+  $('#todoSpeak').addEventListener('click', () => speak(items.map((x, i) => `${i + 1}. ${x.text}`).join('. '), $('#todoSpeak')));
   $$('button[data-kind]', box).forEach(b => b.addEventListener('click', () => { state.shelters.active.add(b.dataset.kind); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); renderNearest(); }));
 }
 function renderRegion() {
@@ -511,7 +548,11 @@ function initSize() {
   const set = v => { localStorage.setItem(KEY, v); apply(v); };
   const saved = localStorage.getItem(KEY);
   apply(saved || 'normal');
-  $$('.size-btn').forEach(b => b.addEventListener('click', () => set(b.dataset.size)));
+  $$('.size-btn[data-size]').forEach(b => b.addEventListener('click', () => set(b.dataset.size)));
+  const cb = $('#btnContrast'), CK = 'safepic.contrast';
+  const applyC = on => { root.classList.toggle('contrast', on); cb.classList.toggle('is-on', on); };
+  applyC(localStorage.getItem(CK) === '1');
+  cb.addEventListener('click', () => { const on = !root.classList.contains('contrast'); localStorage.setItem(CK, on ? '1' : '0'); applyC(on); });
   if (!saved && !localStorage.getItem('safepic.sizeCoach')) {
     const c = $('#sizeCoach'); c.hidden = false;
     const done = () => { c.hidden = true; localStorage.setItem('safepic.sizeCoach', '1'); };
@@ -656,7 +697,7 @@ function renderResult(res, inp) {
     psychHTML = `<div class="result-block psych"><h3>${t('res.psych')}</h3><div class="psych-hot">📞 <a href="tel:${state.psych.hotline}"><b>${state.psych.hotline}</b></a> <small class="muted">${t('res.psych.hot')}</small></div>${cs.map(c => `<div class="psych-c"><b>${c.name}</b> <a href="tel:${c.tel}" class="mono">${c.tel}</a><br><small class="muted">${c.addr}</small></div>`).join('')}<small class="muted">${t('res.psych.src')}</small></div>`;
   }
   el.innerHTML = `
-    <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div>
+    <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><div class="result-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSpeak" title="${t('tts.title')}">🔊</button><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div></div>
     <div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>
     ${dlHTML}${icsBtn}
     <div class="print-head"><div>${place} · ${inp.today}</div><div>${t('res.print.for')}</div></div>
@@ -668,9 +709,11 @@ function renderResult(res, inp) {
     ${(() => { const nm = nearMisses(inp); return nm.length ? `<div class="result-block miss ${inp.household_unknown ? 'is-unknown' : ''}"><h3>${inp.household_unknown ? t('res.maybe') : t('res.miss')}</h3>${inp.household_unknown ? `<small class="muted">${t('res.maybe.s')}</small>` : ''}${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : ''; })()}
     ${psychHTML}
     <div class="result-block"><h3>${t('res.proc')}</h3><ol class="timeline">${(res.timeline || []).map(s => `<li><b>${s.label}</b>${s.due ? ` <span class="badge">${t('badge.due', { d: s.due })}${s.days_left != null ? (s.days_left < 0 ? ' · ' + t('badge.over') : ` · D-${s.days_left}`) : ''}</span>` : ''}<small>${[s.summary, s.where, s.docs && s.docs.length && s.docs.join(', '), s.typical_days].filter(Boolean).join(' · ')}</small></li>`).join('')}</ol></div>
-    <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
+    <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><button type="button" class="btn btn-ghost" id="btnImg">🖼 ${t('res.img')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
     <div class="disclaimer">${t('res.disc')}</div>`;
   $('#btnEdit').onclick = () => { el.hidden = true; $('#panelScroll').scrollTop = 0; };
+  $('#btnImg').onclick = () => shareImage(res, inp);
+  $('#btnSpeak').onclick = () => { const txt = [place, formatKRW(res.total_cash_krw || 0) + ' ' + t('res.cash.s'), dl ? `${dl.label} ${dl.due}` : '', ...(res.todo || []).map(x => x.text || x), ...cashItems.map(r => `${r.label} ${r.amount_text || ''}`)].filter(Boolean).join('. '); speak(txt, $('#btnSpeak')); };
   const ib = $('#btnIcs'); if (ib && dl) ib.onclick = () => downloadICS(`${dl.label} — SafePic`, dl.due, `${place}\n${t('res.dl.ext', { due: dl.due })}\n${location.href}`);
   // print-only: nearest community center (피해신고 접수처)
   if (state.emd && state.shelters.avail.some(a => a.id === 'townhall')) { const e = state.idx.byEmd.get(state.emd); nearestShelters([e.lon, e.lat], ['townhall'], state.sido, 1, true).then(l => { if (l[0] && !el.hidden) { const d = document.createElement('div'); d.className = 'result-block print-only'; d.innerHTML = `<h3>${t('res.print.townhall')}</h3><b>${l[0].p.name}</b><br>${l[0].p.addr || ''}${l[0].p.tel ? ` · ${l[0].p.tel}` : ''} · ${t('sh.walk', { n: l[0].walk })}`; el.querySelector('.share-row').before(d); } }); }

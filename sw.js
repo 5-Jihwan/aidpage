@@ -5,7 +5,7 @@
    - live data (data/live/*): network-first, fall back to cache
    - facility/grid files (data/shelters, data/grid): cache-first once fetched (only what the user opened)
    - map tiles / fonts / CDN: never cached here (too big; browser HTTP cache handles them) */
-const VERSION = 'safepic-v1';
+const VERSION = 'safepic-20260823d';
 const SHELL = [
   './', './index.html', './css/style.css', './js/app.js', './js/i18n.js', './js/rules.js', './js/shelters.js', './js/grid.js',
   './manifest.webmanifest',
@@ -37,6 +37,8 @@ async function cacheFirst(req, bigData) {
 }
 async function networkFirst(req) {
   const c = await caches.open(VERSION);
-  try { const r = await fetch(req); if (r.ok) c.put(req, r.clone()); return r; } catch { return (await c.match(req)) || Response.error(); }
+  // bypass the HTTP cache for the app shell so a fixed deploy reaches users immediately
+  const fresh = new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' });
+  try { const r = await fetch(fresh); if (r.ok) c.put(req, r.clone()); return r; } catch { return (await c.match(req, { ignoreSearch: true })) || Response.error(); }
 }
 function refresh(req, c) { fetch(req).then(r => { if (r.ok) c.put(req, r.clone()); }).catch(() => {}); }

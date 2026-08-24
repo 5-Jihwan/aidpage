@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260824j';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260824j';
-import { getReports, postReport, flagReport } from './api.js?v=20260824j';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260824j';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260825a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260825a';
+import { getReports, postReport, flagReport } from './api.js?v=20260825a';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260825a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260824j'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260825a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -436,11 +436,6 @@ function warningsFor(sgg, sido) {
   return [...a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(sgg) || c === String(sido)) || (w.areas || []).some(x => (nameOf().sggName && x.includes(nameOf().sggName)) || (nameOf().sidoName && x === nameOf().sidoName))), ...quakeAsWarning()];
 }
 function quakeAsWarning() { const q = recentQuake(); const T = state.live.alerts && state.live.alerts.typhoon; const out = q ? [{ type: '지진', level: '속보', areas: [`${q.loc} · M${q.mag}`], since: q.announced }] : []; for (const t of (T && T.items) || []) { const a = t.analysis || (t.forecast || [])[0]; if (a) out.push({ type: '태풍', level: '정보', areas: [`${t.year} ${t.no}호 · ${a.wind || '?'}m/s · ${a.pressure || '?'}hPa`], since: a.tm }); } return out; }
-function _warningsForLegacy(sgg, sido) {
-  const a = state.live.alerts; if (!a || !a.warnings || !a.warnings.items) return [];
-  const n = nameOf();
-  return a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(sgg) || c === String(sido)) || (w.areas || []).some(x => (n.sggName && x.includes(n.sggName)) || (n.sidoName && x === n.sidoName)));
-}
 const pmGrade = (v, pm25) => v == null ? '' : pm25 ? (v <= 15 ? 'g-good' : v <= 35 ? 'g-mod' : v <= 75 ? 'g-bad' : 'g-vbad') : (v <= 30 ? 'g-good' : v <= 80 ? 'g-mod' : v <= 150 ? 'g-bad' : 'g-vbad');
 function wxItems(sgg) {
   const w = weatherFor(sgg), a = airFor(sgg), out = [];
@@ -552,7 +547,11 @@ async function renderReports() {
     $$('.rep-flag', list).forEach(b => b.addEventListener('click', async () => { b.disabled = true; const r = await flagReport(sgg, b.dataset.id); b.textContent = r.status === 'ok' ? '✓' : '⚑'; }));
     paintReportMarkers(items);
   };
-  const res = await getReports(sgg); if (state.sgg !== sgg) return; applyFolds();
+  state._repCache = state._repCache || {};
+  const c = state._repCache[sgg];
+  const res = c && Date.now() - c.t < 60000 ? c.res : await getReports(sgg);
+  state._repCache[sgg] = { t: Date.now(), res };
+  if (state.sgg !== sgg) return; applyFolds();
   if (res.status !== 'ok') { list.innerHTML = `<div class="muted">${t(res.status === 'offline' ? 'rep.offline' : 'rep.err')}</div>`; } else paint(res.items);
   $('#repForm').addEventListener('submit', async e => {
     e.preventDefault(); const f = e.target, btn = f.querySelector('button'); btn.disabled = true;
@@ -837,7 +836,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260824j').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260825a').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

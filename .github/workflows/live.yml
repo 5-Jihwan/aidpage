@@ -34,6 +34,7 @@ jobs:
           HRFCO_KEY: ${{ secrets.HRFCO_KEY }}
           KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
           JUSO_KEY: ${{ secrets.JUSO_KEY }}
+          TAAS_API: ${{ secrets.TAAS_API }}
         run: python scripts/fetch_live.py
 
       - name: Report cadence hint

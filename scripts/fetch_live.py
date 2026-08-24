@@ -652,7 +652,8 @@ def fetch_er(sgg, prev):
     if not KEY_KMA:
         sec["status"] = "no_key"
         return sec
-    if now_kst().hour not in ER_HOURS and isinstance(prev, dict) and prev.get("by_sgg"):
+    _n = now_kst()
+    if (_n.hour not in ER_HOURS or _n.minute >= 15) and isinstance(prev, dict) and prev.get("by_sgg"):  # 시각당 1회만 (30분 크론이 시간당 2번 돌므로)
         return dict(prev, status=prev.get("status", "ok"), skipped="off-hour")
     errs = 0
     for s in sgg:

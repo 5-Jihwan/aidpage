@@ -894,6 +894,7 @@ def fetch_air(sgg, prev):
 
 # --------------------------------------------------------------------------- main
 def main():
+    log(f"keys present: datago={bool(KEY_KMA)} hub={bool(KEY_HUB)} safety={bool(KEY_SAFETY)} hrfco={bool(KEY_HRFCO)} taas={bool(os.environ.get('TAAS_API'))}")
     sgg = load_json(SGG_INDEX, None)
     if not isinstance(sgg, list):
         log("sgg_index missing, using fixture")

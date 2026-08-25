@@ -1,0 +1,44 @@
+name: daily-ref
+
+on:
+  schedule:
+    # 04:20 KST daily — 법령 본문·개정 감지 (LAW_OC 미설정 시 no-op)
+    - cron: "20 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-ref
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch law reference data
+        env:
+          LAW_OC: ${{ secrets.LAW_OC }}
+        run: python scripts/fetch_daily.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "daily-bot"
+          git config user.email "daily-bot@users.noreply.github.com"
+          [ -d data/ref/law ] && git add data/ref/law || true
+          if git diff --cached --quiet; then
+            echo "no changes"
+            exit 0
+          fi
+          git commit -m "ref: law $(date -u +%F)"
+          git push || (git pull --rebase && git push)

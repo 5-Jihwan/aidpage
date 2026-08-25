@@ -9,7 +9,7 @@ const RULES_DIR = path.join(ROOT, 'rules');
 const { loadRules, evaluate, formatKRW, addDays, diffDays } = await import(pathToFileURL(path.join(ROOT, 'js', 'rules.js')).href);
 
 // ---- 0. 모든 JSON 파싱 + 필수 필드 ----
-const files = (await readdir(RULES_DIR)).filter((f) => f.endsWith('.json'));
+const files = (await readdir(RULES_DIR)).filter((f) => f.endsWith('.json') && f !== 'en.json' && f !== 'changelog.json'); // en=언어 오버레이(객체), changelog=이력
 const stats = { files: {}, confidence: { verified: 0, reported: 0, estimate: 0 } };
 for (const f of files) {
   const doc = JSON.parse(await readFile(path.join(RULES_DIR, f), 'utf8'));

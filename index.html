@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260825a">
+<link rel="stylesheet" href="css/style.css?v=20260825b">
 </head>
 <body>
 
@@ -163,11 +163,11 @@
 
       <section class="view" data-view="where">
         <h1 class="h1" data-i18n="where.h1">우리 동네는 어디가 더 위험한가</h1>
-        <p class="lead" data-i18n="where.lead">같은 구 안에서 동끼리 비교하고, 격자(약 0.1 km²)로 침수 이력·경사·취약계층을 겹쳐 봅니다. 숫자는 전부 공공 데이터이며, 없는 값은 비워 둡니다.</p>
+        <p class="lead" data-i18n="where.lead">동 두 곳을 고르면 어디가 더 안전한지 문장으로 알려드립니다. 모든 숫자는 공공 데이터이고, 없는 값은 비워 둡니다.</p>
         <div class="compare" id="compareBox" hidden></div>
         <div class="near" id="whereGrid" hidden></div>
         <div class="pending" id="wherePending"><b data-i18n="where.pend">격자 데이터가 있는 지역: 서울 관악구 (시범)</b><p data-i18n="where.pend.p"></p><p class="fine" data-i18n="where.pend.f"></p></div>
-        <details class="formula" open><summary data-i18n="where.formula">위험도는 이렇게 계산합니다</summary>
+        <details class="formula"><summary data-i18n="where.formula">위험도는 이렇게 계산합니다</summary>
           <div class="math-block">
             <p class="math-cap" data-i18n="where.f1">① 연평균 기대피해 (EAD) — 재현기간별 피해를 초과확률로 적분</p>
             <math display="block"><mrow><mi>E</mi><mo stretchy="false">[</mo><mi>L</mi><mo stretchy="false">]</mo><msub><mrow></mrow><mi>i</mi></msub><mo>=</mo><msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup><msub><mi>L</mi><mi>i</mi></msub><mo stretchy="false">(</mo><mi>p</mi><mo stretchy="false">)</mo><mspace width="0.2em"/><mi>d</mi><mi>p</mi><mo>≈</mo><munderover><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi>R</mi></mrow><mrow></mrow></munderover><mfrac><mn>1</mn><mi>r</mi></mfrac><mo>·</mo><msub><mi>L</mi><mi>i</mi></msub><mo stretchy="false">(</mo><msub><mi>d</mi><mi>r</mi></msub><mo stretchy="false">)</mo></mrow></math>
@@ -213,6 +213,8 @@
 
   <div class="mapwrap">
     <div id="map" class="map" role="application" aria-label="지도"></div>
+    <div class="wx-fx" id="wxFx" aria-hidden="true"></div>
+    <div class="fx-banner" id="fxBanner" role="status" hidden></div>
     <div class="search" id="search">
       <input id="searchInput" type="search" data-i18n-ph="search.ph" placeholder="동·읍·면 이름으로 찾기 (예: 신림동, 진안읍)" autocomplete="off" aria-label="지역 검색">
       <ul id="searchList" class="search-list" hidden></ul>
@@ -238,6 +240,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260825a"></script>
+<script type="module" src="js/app.js?v=20260825b"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260825a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260825a';
-import { getReports, postReport, flagReport } from './api.js?v=20260825a';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260825a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260825b';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260825b';
+import { getReports, postReport, flagReport } from './api.js?v=20260825b';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260825b';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260825a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260825b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -344,7 +344,8 @@ function renderCompare() {
   const rows = CMP_ROWS.map(r => { const a = r.agg(A), b = r.agg(B), g = r.agg(all); if (a == null || b == null) return ''; const win = r.lowerBetter == null ? 0 : (a === b ? 0 : (a < b) === r.lowerBetter ? 1 : 2); return `<tr><td>${en ? r.en : r.ko}</td><td class="${win === 1 ? 'win' : ''}">${r.fmt(a)}</td><td class="${win === 2 ? 'win' : ''}">${r.fmt(b)}</td><td class="muted">${g != null ? r.fmt(g) : '—'}</td></tr>`; }).join('');
   const verdict = (() => { const parts = []; for (const r of CMP_ROWS) { if (r.lowerBetter == null) continue; const a = r.agg(A), b = r.agg(B); if (a == null || b == null || a === b) continue; const w = (a < b) === r.lowerBetter ? saved[0] : saved[1]; parts.push(t('cmp.v.' + r.id, { w })); } return parts.slice(0, 3).join(' '); })();
   box.hidden = false;
-  box.innerHTML = `<h3>${t('cmp.title')}</h3><div class="cmp-head">${sel(0)}<span class="muted">vs</span>${sel(1)}</div><div class="table-wrap"><table class="cmp-table"><thead><tr><th></th><th>${saved[0]}</th><th>${saved[1]}</th><th class="muted">${t('cmp.avg', { name: nameOf().sggName })}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="cmp-verdict">${verdict}</p><div class="fine">${t('cmp.note')}<br>${t('prob.lead')} ${probText(100)} · ${probText(30)}</div>`;
+  // 순화: 결론 문장이 먼저, 숫자 표는 접힘 (정보 과부하 규칙 — 한 화면 한 결론·숫자보다 문장)
+  box.innerHTML = `<h3>${t('cmp.title')}</h3><div class="cmp-head">${sel(0)}<span class="muted">vs</span>${sel(1)}</div><p class="cmp-verdict">${verdict || `<span class="muted">${t('cmp.same')}</span>`}</p><details class="cmp-nums"><summary>${t('cmp.table')}</summary><div class="table-wrap"><table class="cmp-table"><thead><tr><th></th><th>${saved[0]}</th><th>${saved[1]}</th><th class="muted">${t('cmp.avg', { name: nameOf().sggName })}</th></tr></thead><tbody>${rows}</tbody></table></div><div class="fine">${t('prob.lead')} ${probText(100)} · ${probText(30)}</div></details><div class="fine">${t('cmp.note')}</div>`;
   $$('.cmp-sel', box).forEach(s => s.addEventListener('change', () => { const v = [...$$('.cmp-sel', box)].map(x => x.value); sessionStorage.setItem('safepic.cmp', JSON.stringify(v)); renderCompare(); }));
 }
 function initGridClick() {
@@ -443,6 +444,15 @@ function wxItems(sgg) {
   if (w) { push('t', w.t != null ? w.t.toFixed(1) : null, '℃'); push('feels', w.feels != null ? w.feels.toFixed(1) : null, '℃'); push('rain', w.rn1 != null ? w.rn1 : null, 'mm'); push('reh', w.reh, '%'); push('wind', w.wsd, 'm/s'); }
   if (a) { push('pm10', a.pm10, '㎍/㎥', pmGrade(a.pm10)); push('pm25', a.pm25, '㎍/㎥', pmGrade(a.pm25, true)); }
   return out;
+}
+/* 24시간 타임라인 (단기예보 fcst3h — API 승인 전엔 데이터가 없어 자동 숨김) */
+const SKY_ICON = { 1: '☀️', 3: '⛅', 4: '☁️' }, PTY_ICON = { 1: '🌧️', 2: '🌨️', 3: '❄️', 4: '🌦️', 5: '💧', 6: '🌨️', 7: '❄️' };
+function fcstHTML(w) {
+  const f = w && !w._sido && w.fcst3h; if (!f || !f.length) return '';
+  const today = String(new Date().getDate()).padStart(2, '0');
+  return `<div class="wx-fcst" role="list" aria-label="${t('wx.fcst')}">` + f.map(s =>
+    `<div class="fs" role="listitem"><small>${s.d && s.d !== today ? t('wx.tmr') + ' ' : ''}${t('wx.hh', { h: +s.t.slice(0, 2) })}</small><span class="ic">${PTY_ICON[s.pty] || SKY_ICON[s.sky] || '☀️'}</span><b>${s.ta != null ? Math.round(s.ta) + '°' : '–'}</b><small class="pop">${s.pop >= 20 ? Math.round(s.pop) + '%' : ''}</small></div>`
+  ).join('') + '</div>';
 }
 
 /* ---------- panel: region ---------- */
@@ -598,7 +608,7 @@ function renderER() {
 }
 function renderRegion() {
   const landing = $('#nowLanding'), reg = $('#nowRegion');
-  if (state.level === 'nation') { landing.hidden = false; reg.hidden = true; return; }
+  if (state.level === 'nation') { landing.hidden = false; reg.hidden = true; applyAlertFx([]); return; }
   landing.hidden = true; reg.hidden = false;
   const n = nameOf();
   $('#regionPath').textContent = [n.sidoName, state.level !== 'sido' && n.sggName].filter(Boolean).join(' › ');
@@ -612,7 +622,7 @@ function renderRegion() {
     if (items.length) {
       const wf = weatherFor(state.sgg);
       const srcs = [wf && wf._sido ? t('wx.basis.stn', { name: wf.stn_name }) : state.emd && t('wx.basis', { name: nameOf().sggName }), wf && (wf._sido ? t('wx.src.asos') : t('wx.src')), airFor(state.sgg) && t('air.src')].filter(Boolean).join(' · ');
-      wx.innerHTML = items.map(i => `<div class="wx-item ${i.cls}"><div class="k">${i.label}</div><div class="v">${i.v}<small>${i.unit}</small></div></div>`).join('') + `<div class="wx-src">${srcs} · ${fmtTime((state.live.weather || {}).updated || (state.live.air || {}).updated)}</div>`;
+      wx.innerHTML = items.map(i => `<div class="wx-item ${i.cls}"><div class="k">${i.label}</div><div class="v">${i.v}<small>${i.unit}</small></div></div>`).join('') + fcstHTML(wf) + `<div class="wx-src">${srcs} · ${fmtTime((state.live.weather || {}).updated || (state.live.air || {}).updated)}</div>`;
     } else {
       const st = state.live.weather && state.live.weather.status;
       wx.innerHTML = `<div class="wx-empty">${st === 'no_key' ? t('wx.noKey') : t('wx.noData')}</div>`;
@@ -620,6 +630,7 @@ function renderRegion() {
   } else wx.innerHTML = `<div class="wx-empty">${t('wx.pickSgg')}</div>`;
   // warnings
   const ws = warningsFor(state.sgg, state.sido);
+  applyAlertFx(ws);
   $('#warnCard').innerHTML = ws.map(w => `<div class="warn-item"><span class="warn-level ${/주의보/.test(w.level) ? 'adv' : ''}">${warnName(w.type, w.level)}</span><div><div>${(w.areas || []).slice(0, 4).join(', ')}</div><small class="muted">${fmtTime(w.since)}</small></div></div>`).join('');
   // kv
   const e = state.emd && state.idx.byEmd.get(state.emd), kv = [], P = t('kv.places');
@@ -762,6 +773,30 @@ function applyTyphoon() {
     map.addLayer({ id: 'typhoon-lbl', type: 'symbol', source: 'typhoon', filter: ['!=', ['get', 'kind'], 'track'], layout: { 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#c8432b', 'text-halo-color': '#fff', 'text-halo-width': 1.3 } });
   }
 }
+/* ---------- 특보 → 직관 연출 (설계 docs/02 §2.5 매핑표) ---------- */
+const FX_PRI = ['지진', '태풍', '호우', '대설', '한파', '폭염', '강풍', '건조', '황사'];
+const FX_KEY = { '지진': 'quake', '태풍': 'typhoon', '호우': 'rain', '대설': 'snow', '한파': 'cold', '폭염': 'heat', '강풍': 'wind', '건조': 'dry', '황사': 'dust' };
+let _fxSig = null;
+function applyAlertFx(ws) {
+  const fx = $('#wxFx'), bn = $('#fxBanner'); if (!fx || !bn) return;
+  let best = null;
+  for (const w of ws || []) {
+    const k = FX_KEY[w.type]; if (!k) continue;
+    const lv = /경보|속보/.test(w.level) ? 'warn' : 'adv';
+    const pri = FX_PRI.indexOf(w.type) - (lv === 'warn' ? 0.5 : 0);
+    if (!best || pri < best.pri) best = { k, lv, pri, w };
+  }
+  const sig = best ? `${best.k}:${best.lv}:${getLang()}` : '';
+  if (sig === _fxSig) return; _fxSig = sig;
+  if (!best) { fx.className = 'wx-fx'; bn.hidden = true; return; }
+  fx.className = `wx-fx on fx-${best.k} lv-${best.lv}`;
+  bn.className = `fx-banner lv-${best.lv}`;
+  bn.innerHTML = `<b>${warnName(best.w.type, best.w.level)}</b><span>${t(`todo.alert.${best.k}.${best.lv}`).replace(/^[^—–-]*[—–-]\s*/, '')}</span>`;
+  bn.hidden = false;
+  if (best.k === 'quake' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const m = $('#map'); m.classList.remove('quake-shake'); void m.offsetWidth; m.classList.add('quake-shake');
+  }
+}
 function colorAt(stops, v) { for (let i = 0; i < stops.length - 2; i += 2) { if (v <= stops[i]) return stops[i + 1]; if (v < stops[i + 2]) return stops[i + 1]; } return stops[stops.length - 1]; }
 
 /* ---------- search ---------- */
@@ -836,7 +871,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260825a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260825b').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1005,6 +1040,32 @@ function runResult() {
   renderResult(res, inp); history.replaceState(null, '', encodeShare(inp));
 }
 /* ⑪ "왜 해당되나": matchRule의 why 토큰 → 사람이 읽는 문구 */
+/* ---------- 근거 조문 펼침 (S3 선작업 — data/ref/law/는 LAW_OC 승인 후 fetch_daily.py가 채움) ---------- */
+const _lawCache = {};
+async function lawDoc(mst) {
+  if (_lawCache[mst] !== undefined) return _lawCache[mst];
+  try { const r = await fetch(`data/ref/law/${mst}.json`, { cache: 'no-cache' }); _lawCache[mst] = r.ok ? await r.json() : null; }
+  catch { _lawCache[mst] = null; }
+  return _lawCache[mst];
+}
+function lawFoldHTML(r) {
+  const L = r.law; if (!L || (!L.mst && !L.name)) return '';
+  const tag = [L.art, L.annex].filter(Boolean).join(' · ');
+  return `<details class="lawfold" data-mst="${L.mst || ''}" data-art="${L.art || ''}" data-annex="${L.annex || ''}"><summary>${t('law.fold')}${tag ? ` — ${tag}` : ''}</summary><div class="law-body">${t('law.loading')}</div></details>`;
+}
+document.addEventListener('toggle', async e => {
+  const d = e.target; if (!(d instanceof HTMLElement) || !d.classList.contains('lawfold') || !d.open) return;
+  const body = d.querySelector('.law-body'); if (!body || body.dataset.done) return;
+  body.dataset.done = '1';
+  const doc = d.dataset.mst ? await lawDoc(d.dataset.mst) : null;
+  const parts = [];
+  if (doc) {
+    if (d.dataset.art && doc.arts && doc.arts[d.dataset.art]) parts.push(`<h5>${doc.name || ''} ${d.dataset.art}</h5><p>${doc.arts[d.dataset.art]}</p>`);
+    if (d.dataset.annex && doc.annexes && doc.annexes[d.dataset.annex]) parts.push(`<h5>${d.dataset.annex}</h5><p>${doc.annexes[d.dataset.annex]}</p>`);
+    if (parts.length && (doc.effective || doc.updated)) parts.push(`<small class="fine">${t('law.asof', { d: doc.effective || doc.updated })}</small>`);
+  }
+  body.innerHTML = parts.join('') || `<small class="muted">${t('law.pending')}</small>`;
+}, true); // toggle 이벤트는 버블링하지 않아 캡처로 위임
 function whyHTML(why) {
   if (!why || !why.length) return '';
   const P = { housing: 'h.', damage: 'd.', household: 'f.' }, out = [];
@@ -1048,7 +1109,7 @@ function itemHTML(r) {
   const amt = r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '');
   const conf = r.confidence === 'verified' ? '' : `<span class="badge est">${r.confidence === 'reported' ? t('badge.reported') : t('badge.est')}</span>`;
   const sz = r.conditions && r.conditions.special_zone === true ? `<span class="badge sz">${t('res.sz')}</span>` : '';
-  return `<div class="item"><div class="item-row"><b>${r.label}${sz}${conf}</b><span class="item-amt">${amt}</span></div>${r.summary ? `<div class="item-sum">${r.summary}</div>` : ''}${whyHTML(r._why)}<div class="item-basis">${r.where ? `${r.where} · ` : ''}${r.basis || ''}${r.basis_url ? ` · <a href="${r.basis_url}" target="_blank" rel="noopener">${t('item.src')}</a>` : ''}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div></div>`;
+  return `<div class="item"><div class="item-row"><b>${r.label}${sz}${conf}</b><span class="item-amt">${amt}</span></div>${r.summary ? `<div class="item-sum">${r.summary}</div>` : ''}${whyHTML(r._why)}<div class="item-basis">${r.where ? `${r.where} · ` : ''}${r.basis || ''}${r.basis_url ? ` · <a href="${r.basis_url}" target="_blank" rel="noopener">${t('item.src')}</a>` : ''}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div>${lawFoldHTML(r)}</div>`;
 }
 function renderResult(res, inp) {
   const n = nameOf(), el = $('#result'); el.hidden = false;

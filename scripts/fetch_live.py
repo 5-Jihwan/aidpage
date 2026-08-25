@@ -160,6 +160,11 @@ def fnum(v, default=None):
         return default
 
 
+def iint(v, default=None):
+    f = fnum(v)
+    return default if f is None else int(f)
+
+
 # --------------------------------------------------------------------------- 체감온도
 def feels_like(t, reh, wsd, month):
     """Return (value, type).
@@ -270,21 +275,33 @@ def fetch_weather(sgg, prev):
             try:
                 if key not in cache_vil:
                     data = get_json(f"{KMA_VILAGE}/getVilageFcst",
-                                    {"pageNo": 1, "numOfRows": 300, "dataType": "JSON",
+                                    {"pageNo": 1, "numOfRows": 1000, "dataType": "JSON",
                                      "base_date": vd, "base_time": vt, "nx": nx, "ny": ny}, KEY_KMA)
                     today = now.strftime("%Y%m%d")
                     hh = now.strftime("%H00")
-                    v = {"tmx": None, "tmn": None, "pop": None}
+                    v = {"tmx": None, "tmn": None, "pop": None, "fcst3h": []}
+                    slots: dict[str, dict] = {}  # "YYYYMMDDHHMM" -> {ta,pty,pop,wsd,sky}
+                    nowkey = now.strftime("%Y%m%d%H%M")
                     for it in kma_items(data):
-                        if it.get("fcstDate") != today:
-                            continue
+                        d8, t4 = str(it.get("fcstDate", "")), str(it.get("fcstTime", ""))
                         c, val = it.get("category"), it.get("fcstValue")
-                        if c == "TMX":
-                            v["tmx"] = fnum(val)
-                        elif c == "TMN":
-                            v["tmn"] = fnum(val)
-                        elif c == "POP" and v["pop"] is None and str(it.get("fcstTime", "")) >= hh:
-                            v["pop"] = fnum(val)
+                        if d8 == today:
+                            if c == "TMX":
+                                v["tmx"] = fnum(val)
+                            elif c == "TMN":
+                                v["tmn"] = fnum(val)
+                            elif c == "POP" and v["pop"] is None and t4 >= hh:
+                                v["pop"] = fnum(val)
+                        if c in ("TMP", "PTY", "POP", "WSD", "SKY") and d8 + t4 > nowkey:
+                            s = slots.setdefault(d8 + t4, {})
+                            s["ta" if c == "TMP" else c.lower()] = fnum(val)
+                    # 3시간 간격 8슬롯 = 24시간 타임라인
+                    for k in sorted(slots)[:24][::3][:8]:
+                        s = slots[k]
+                        v["fcst3h"].append({"t": k[8:12], "d": k[6:8],
+                                            "ta": s.get("ta"), "pty": iint(s.get("pty")),
+                                            "pop": s.get("pop"), "wsd": s.get("wsd"),
+                                            "sky": iint(s.get("sky"))})
                     cache_vil[key] = v
                 rec.update(cache_vil[key])
             except HttpError as e:

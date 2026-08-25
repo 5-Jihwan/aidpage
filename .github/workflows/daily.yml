@@ -28,7 +28,8 @@ jobs:
 
       - name: Fetch law reference data
         env:
-          LAW_OC: ${{ secrets.LAW_OC }}
+          # 시크릿 이름은 LAW_INFORM_KEY (사용자 지정), 스크립트 내부 env 이름은 LAW_OC
+          LAW_OC: ${{ secrets.LAW_INFORM_KEY }}
         run: python scripts/fetch_daily.py
 
       - name: Commit if changed

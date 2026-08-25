@@ -128,7 +128,7 @@ h3{font-family:var(--label);font-weight:700;font-size:1.05rem;margin:22px 0 8px;
 .opts{display:flex;flex-wrap:wrap;gap:8px}
 .opts label{position:relative}
 .opts input{position:absolute;opacity:0;inset:0;pointer-events:none}
-.opts span{display:inline-block;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;user-select:none}
+.opts span{display:inline-block;padding:10px 14px 9px;line-height:1.25;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;user-select:none}
 .opts input:checked+span{background:var(--accent);color:#fff;border-color:var(--accent)}
 .opts input:focus-visible+span{outline:3px solid rgba(26,95,196,.35)}
 .q-loc{padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:46px}
@@ -577,3 +577,6 @@ button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-
 .msg-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:3px}
 .msg-type{font-family:var(--label);font-size:.8rem;color:var(--ink)}
 .msg-text{font-size:.88rem;line-height:1.5;word-break:keep-all}
+/* 범례 드래그 */
+.map-legend{touch-action:none;cursor:grab}
+.map-legend:active{cursor:grabbing}

@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826b';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826b';
-import { getReports, postReport, flagReport } from './api.js?v=20260826b';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826b';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826c';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826c';
+import { getReports, postReport, flagReport } from './api.js?v=20260826c';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826c';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260826b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260826c'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -391,6 +391,34 @@ function syncShelterLayers() {
   renderLegend(kinds);
 }
 /* 지도 범례: 켜진 시설 색 + (격자 표시 중이면) 격자 범례 */
+/* 범례 드래그 이동 — 위치는 이 기기에만 저장(safepic.legendPos), 더블클릭/더블탭 = 원위치 */
+function initLegendDrag() {
+  const box = $('#mapLegend'); if (!box) return;
+  const wrap = box.offsetParent || document.body, KEY = 'safepic.legendPos';
+  const apply = pos => { if (!pos) return; box.style.left = pos.x + 'px'; box.style.top = pos.y + 'px'; box.style.right = 'auto'; box.style.bottom = 'auto'; };
+  const clamp = pos => {
+    const w = wrap.clientWidth, h = wrap.clientHeight, bw = box.offsetWidth || 120, bh = box.offsetHeight || 40;
+    return { x: Math.min(Math.max(4, pos.x), Math.max(4, w - bw - 4)), y: Math.min(Math.max(4, pos.y), Math.max(4, h - bh - 4)) };
+  };
+  const saved = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { return null; } };
+  apply(saved());
+  let st = null;
+  box.addEventListener('pointerdown', e => { st = { px: e.clientX, py: e.clientY, bx: box.offsetLeft, by: box.offsetTop, moved: false }; box.setPointerCapture(e.pointerId); });
+  box.addEventListener('pointermove', e => {
+    if (!st) return;
+    const dx = e.clientX - st.px, dy = e.clientY - st.py;
+    if (!st.moved && Math.hypot(dx, dy) < 7) return;
+    st.moved = true; apply({ x: st.bx + dx, y: st.by + dy });
+  });
+  box.addEventListener('pointerup', () => {
+    if (!st) return;
+    if (st.moved) { const pos = clamp({ x: box.offsetLeft, y: box.offsetTop }); apply(pos); localStorage.setItem(KEY, JSON.stringify(pos)); }
+    st = null;
+  });
+  box.addEventListener('pointercancel', () => { st = null; });
+  box.addEventListener('dblclick', () => { localStorage.removeItem(KEY); box.style.left = box.style.top = box.style.right = box.style.bottom = ''; });
+  window.addEventListener('resize', () => { const p = saved(); if (p) apply(clamp(p)); });
+}
 function renderLegend(kinds) {
   const box = $('#mapLegend'); if (!box) return;
   const en = getLang() === 'en';
@@ -399,6 +427,7 @@ function renderLegend(kinds) {
   if (!sh.length && !g && !wxl) { box.hidden = true; return; }
   box.hidden = false;
   const mobile = matchMedia(MQ_MOBILE).matches; box.classList.toggle('is-min', mobile && !state._legendOpen);
+  box.title = t('legend.drag');
   box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + (sh.length ? `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>` : '') +
     (wxl ? `<div class="lg-row lg-grid"><b>${wxl.title}</b>${wxl.html}</div>` : '') + (g ? `<div class="lg-row lg-grid"><b>${g.title}</b>${g.html}</div>` : '') + `<small class="lg-src">${t('legend.src')}</small>`;
   $('#lgToggle').addEventListener('click', () => { state._legendOpen = !state._legendOpen; box.classList.toggle('is-min', mobile && !state._legendOpen); });
@@ -897,7 +926,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826b').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826c').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1201,7 +1230,7 @@ function renderRulesTable() {
   $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });
   $('#btnStart').addEventListener('click', goStart);
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
-  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome(); initProfile();
+  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
   let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); }, 150); });
   await loadCore(); renderCrumb(); renderLive();
   initMap();

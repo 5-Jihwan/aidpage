@@ -10,6 +10,15 @@
 <meta name="description" content="내 위치와 내 상황을 넣으면, 지금 할 일과 받을 수 있는 재난 지원이 한 화면에. 수요자 중심 재난 지원 큐레이션.">
 <meta property="og:title" content="SafePic">
 <meta property="og:description" content="내 동네 오늘의 위험과, 내 상황에 맞는 지원을 한 화면에.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://5-jihwan.github.io/safepic/">
+<meta property="og:image" content="https://5-jihwan.github.io/safepic/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="SafePic">
+<meta name="twitter:description" content="내 동네 오늘의 위험과, 내 상황에 맞는 지원을 한 화면에.">
+<meta name="twitter:image" content="https://5-jihwan.github.io/safepic/og.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231a5fc4'/><circle cx='50' cy='50' r='22' fill='none' stroke='%23fff' stroke-width='8'/><circle cx='50' cy='50' r='7' fill='%239a7328'/></svg>">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260826a">
+<link rel="stylesheet" href="css/style.css?v=20260826b">
 </head>
 <body>
 
@@ -101,7 +110,7 @@
           <div class="todo-card" id="todoCard" hidden></div>
           <section class="sec" data-sec="er"><div class="er-card" id="erCard" hidden></div></section>
           <section class="sec" data-sec="near"><div class="near" id="nearBox" hidden></div></section>
-          <section class="sec" data-sec="wx"><div class="wx-card" id="wxCard"></div><div class="warn-card" id="warnCard"></div></section>
+          <section class="sec" data-sec="wx"><div class="wx-card" id="wxCard"></div><div class="warn-card" id="warnCard"></div><div class="msg-card" id="msgCard" hidden></div></section>
           <section class="sec" data-sec="ins"><div class="ins-card" id="insCard" hidden></div></section>
           <section class="sec" data-sec="rep"><div class="reports" id="reportBox" hidden></div></section>
           <section class="sec" data-sec="kv"><div class="kv" id="regionKv"></div><div class="note" id="regionNote"></div></section>
@@ -240,6 +249,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260826a"></script>
+<script type="module" src="js/app.js?v=20260826b"></script>
 </body>
 </html>

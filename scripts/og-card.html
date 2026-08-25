@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face{font-family:"GyeonggiTitle";src:url("../fonts/GyeonggiTitle-Medium.woff2") format("woff2");font-weight:500}
+@font-face{font-family:"GyeonggiTitle";src:url("../fonts/GyeonggiTitle-Bold.woff2") format("woff2");font-weight:700}
+*{margin:0;box-sizing:border-box}
+html,body{width:1200px;height:630px;overflow:hidden}
+body{
+  font-family:"GyeonggiTitle","Malgun Gothic",sans-serif;color:#14202e;
+  background:#f7f9fc;position:relative;
+}
+/* 오른쪽 장식: 파비콘 모티프(동심원 핀) + 격자 */
+.grid{position:absolute;inset:0;
+  background-image:linear-gradient(#dbe3ee 1px,transparent 1px),linear-gradient(90deg,#dbe3ee 1px,transparent 1px);
+  background-size:60px 60px;opacity:.5;
+  -webkit-mask-image:linear-gradient(105deg,transparent 52%,#000 78%);mask-image:linear-gradient(105deg,transparent 52%,#000 78%);}
+.pin{position:absolute;border-radius:50%}
+.p1{width:420px;height:420px;right:60px;top:105px;border:3px solid #dbe3ee;background:#fff}
+.p2{width:280px;height:280px;right:130px;top:175px;border:16px solid #1a5fc4}
+.p3{width:64px;height:64px;right:238px;top:283px;background:#9a7328}
+.dot{position:absolute;width:14px;height:14px;border-radius:50%;background:#1a5fc4}
+.d1{right:96px;top:150px;opacity:.35}.d2{right:480px;top:420px;opacity:.5}.d3{right:150px;top:500px;opacity:.25;width:22px;height:22px}
+.bar{position:absolute;left:0;top:0;bottom:0;width:14px;background:linear-gradient(180deg,#1a5fc4 60%,#9a7328)}
+.wrap{position:absolute;left:84px;top:118px;width:640px}
+.kicker{font-weight:500;font-size:26px;color:#1a5fc4;letter-spacing:.06em;margin-bottom:18px}
+h1{font-weight:700;font-size:96px;letter-spacing:-.01em;line-height:1}
+h1 small{color:#9a7328}
+.sub{margin-top:26px;font-weight:700;font-size:40px;line-height:1.35}
+.sub2{margin-top:14px;font-weight:500;font-size:27px;color:#566577;line-height:1.4}
+.url{position:absolute;left:84px;bottom:64px;font-weight:500;font-size:25px;color:#1a5fc4}
+.badges{position:absolute;left:84px;bottom:118px;display:flex;gap:12px}
+.badge{font-weight:500;font-size:21px;color:#2b3a4d;background:#fff;border:1.5px solid #dbe3ee;border-radius:999px;padding:8px 18px}
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<div class="pin p1"></div><div class="pin p2"></div><div class="pin p3"></div>
+<div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div>
+<div class="bar"></div>
+<div class="wrap">
+  <div class="kicker">재난 지원, 신청하지 못하는 사람이 없도록</div>
+  <h1>SafePic<small>.</small></h1>
+  <div class="sub">내 상황에 맞는 안전, 한 장으로</div>
+  <div class="sub2">Your situation, your safety — on one page</div>
+</div>
+<div class="badges">
+  <span class="badge">지원 51종</span><span class="badge">대피소 17만</span><span class="badge">한국어·English</span>
+</div>
+<div class="url">5-jihwan.github.io/safepic</div>
+</body>
+</html>

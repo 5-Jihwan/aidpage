@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826a';
-import { getReports, postReport, flagReport } from './api.js?v=20260826a';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826b';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826b';
+import { getReports, postReport, flagReport } from './api.js?v=20260826b';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826b';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260826a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260826b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -329,6 +329,7 @@ const CMP_ROWS = [
   { id: 'depth', ko: '최대 침수심', en: 'Max flood depth', fmt: v => v.toFixed(1) + ' m', lowerBetter: true, agg: cs => Math.max(0, ...cs.map(c => c.flood_depth_max_m || 0)) },
   { id: 'slope', ko: '평균 경사', en: 'Mean slope', fmt: v => v.toFixed(1) + '°', lowerBetter: true, agg: cs => cs.reduce((a, c) => a + (c.slope_mean || 0), 0) / cs.length },
   { id: 'elderly', ko: '고령 1인세대 비율', en: 'Elderly living alone', fmt: v => (v * 100).toFixed(1) + '%', lowerBetter: true, agg: cs => cs[0].elderly_alone_r ?? null },
+  { id: 'shelter', ko: '가까운 대피소 도보(평균)', en: 'Avg walk to shelter', fmt: v => Math.round(v) + t('risk.min'), lowerBetter: true, agg: cs => { const v = cs.map(c => c.shelter_min_walk).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; } },
   { id: 'pop', ko: '인구', en: 'Population', fmt: v => v.toLocaleString('ko-KR'), lowerBetter: null, agg: cs => cs[0].pop ?? null },
 ];
 /* 재현기간 → 자연어 확률 ("100년에 한 번"의 오해 방지) */
@@ -590,6 +591,23 @@ function paintReportMarkers(items) {
   }
 }
 const escapeHTML = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* 긴급재난문자 타임라인 — SAFETYDATA 승인 전엔 items가 비어 자동 숨김 */
+function msgsFor() {
+  const M = state.live.alerts && state.live.alerts.messages;
+  if (!M || !M.items || !M.items.length) return [];
+  const e = state.emd && state.idx.byEmd.get(state.emd), s = state.sgg && state.idx.bySgg.get(state.sgg);
+  const sgg = (e && e.sgg_name) || (s && s.name) || '';
+  const sido = (e && e.sido_name) || (s && s.sido_name) || '';
+  return M.items.filter(m => { const r = m.region || ''; return (sgg && r.includes(sgg)) || (sido && r.includes(sido)) || /전국/.test(r); }).slice(0, 5);
+}
+function renderMsgs() {
+  const box = $('#msgCard'); if (!box) return;
+  const ms = state.sgg ? msgsFor() : [];
+  box.hidden = !ms.length; if (!ms.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<h3>${t('msg.title')}</h3>` + ms.map(m =>
+    `<div class="msg-item${/위급|긴급/.test(m.step || '') ? ' is-urgent' : ''}"><div class="msg-head"><span class="msg-type">${escapeHTML(m.type || '') || t('msg.alert')}</span><small class="muted">${m.time ? relTime(Date.parse(m.time)) : ''} · ${escapeHTML((m.region || '').split(',')[0])}</small></div><div class="msg-text">${escapeHTML(m.text || '')}</div></div>`
+  ).join('') + `<small class="fine">${t('msg.src')}</small>`;
+}
 function relTime(ts) { const m = Math.round((Date.now() - ts) / 60000); if (m < 60) return t('rel.min', { n: m }); const h = Math.round(m / 60); if (h < 24) return t('rel.hour', { n: h }); return t('rel.day', { n: Math.round(h / 24) }); }
 /* 오늘의 한 줄 — 하루 1개 회전(날짜 기반), 출처 고정. 게임식 팁이 아니라 규칙·행동요령 한 줄 */
 function renderTip(step = 0) {
@@ -598,7 +616,7 @@ function renderTip(step = 0) {
   state._tipIdx = ((state._tipIdx == null ? day : state._tipIdx) + step + tips.length) % tips.length;
   const tp = tips[state._tipIdx], en = getLang() === 'en';
   box.hidden = false;
-  box.innerHTML = `<div class="tip-head"><span class="tip-label">${t('tip.title')}</span><span class="tip-nav"><button type="button" class="tip-btn" data-d="-1" aria-label="prev">‹</button><span class="mono">${state._tipIdx + 1}/${tips.length}</span><button type="button" class="tip-btn" data-d="1" aria-label="next">›</button></span></div><p class="tip-text">${en ? tp.en : tp.ko}</p><small class="tip-src">${t('tip.src')} ${tp.src}</small>`;
+  box.innerHTML = `<div class="tip-head"><span class="tip-label">${t('tip.title')}</span><span class="tip-nav"><button type="button" class="tip-btn" data-d="-1" aria-label="prev">‹</button><span class="mono">${state._tipIdx + 1}/${tips.length}</span><button type="button" class="tip-btn" data-d="1" aria-label="next">›</button></span></div><p class="tip-text">${en ? tp.en : tp.ko}</p><small class="tip-src">${t('tip.src')} ${en ? (tp.src_en || tp.src) : tp.src}</small>`;
   $$('.tip-btn', box).forEach(b => b.addEventListener('click', () => renderTip(+b.dataset.d)));
 }
 /* 지금 받아주는 응급실 (E-Gen 실시간 가용병상, 하루 3회 갱신) */
@@ -621,7 +639,7 @@ function renderRegion() {
   $('#regionPath').textContent = [n.sidoName, state.level !== 'sido' && n.sggName].filter(Boolean).join(' › ');
   $('#regionName').textContent = state.level === 'emd' ? n.emdName : state.level === 'sgg' ? n.sggName : n.sidoName;
   $('#levelGuide').innerHTML = ['sido', 'sgg', 'emd'].map(l => `<span class="${state.level === l ? 'on' : ''}">${t('lv.' + l)}</span>`).join('');
-  renderTodo(); renderInsurance(); renderReports(); renderRiskLine(); renderER(); renderSitBar(); setTimeout(applyFolds, 0);
+  renderTodo(); renderInsurance(); renderReports(); renderRiskLine(); renderER(); renderMsgs(); renderSitBar(); setTimeout(applyFolds, 0);
   // weather + air
   const wx = $('#wxCard');
   if (state.sgg) {
@@ -879,7 +897,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826b').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -938,6 +956,7 @@ function initLang() {
   paint();
   const lt = $('#langTop'); if (lt) lt.addEventListener('click', () => { const other = getLang() === 'en' ? 'ko' : 'en'; const b = $$('.lang-btn').find(x => x.dataset.lang === other); if (b) b.click(); });
   $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, () => {
+    document.title = getLang() === 'en' ? 'SafePic · Your situation, your safety — on one page' : 'SafePic · 내 상황에 맞는 안전, 한 장으로';
     paint(); setRulesLang(getLang()); applyRulesLang(); renderAll(); renderTip(); if (state.meta) { $('#aboutAdmin').textContent = `${state.meta.source || ''} ${state.meta.version || ''}`.trim(); $('#buildDate').textContent = state.meta.built || ''; } syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
     if (map && map.getLayer('eastsea-label')) map.setLayoutProperty('eastsea-label', 'text-field', getLang() === 'en' ? 'East Sea' : '동해\nEast Sea');
     if (map) { localizeLabels(); ['sgg-label', 'emd-label'].forEach(id => map.getLayer(id) && map.setLayoutProperty(id, 'text-field', adminNameField())); if (map.getLayer('landmark-label')) map.setLayoutProperty('landmark-label', 'text-field', landmarkNameField()); }
@@ -1176,6 +1195,7 @@ function renderRulesTable() {
 /* ---------- boot ---------- */
 (async function boot() {
   applyStatic();
+  if (getLang() === 'en') document.title = 'SafePic · Your situation, your safety — on one page';
   $$('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
   const goStart = () => { setTab('now'); resetNation(); const w = $('#wizard'); if (w) { w.reset(); syncWizardLoc(); } const r = $('#result'); if (r) r.hidden = true; $('#mapHint').classList.remove('is-hidden'); };
   $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });

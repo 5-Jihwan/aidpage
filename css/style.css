@@ -568,3 +568,12 @@ button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-
 .lawfold .law-body p{margin:0 0 6px;white-space:pre-line;color:var(--text)}
 .cmp-nums summary{cursor:pointer;color:var(--accent);font-size:.88rem;margin:4px 0}
 .cmp-nums[open] summary{margin-bottom:8px}
+
+/* ---------- 긴급재난문자 타임라인 ---------- */
+.msg-card{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.msg-card h3{margin:0 0 10px;font-family:var(--label);font-size:.95rem}
+.msg-item{background:#fff;border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:10px;padding:9px 12px;margin-bottom:8px}
+.msg-item.is-urgent{border-left-color:var(--danger)}
+.msg-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:3px}
+.msg-type{font-family:var(--label);font-size:.8rem;color:var(--ink)}
+.msg-text{font-size:.88rem;line-height:1.5;word-break:keep-all}

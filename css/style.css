@@ -580,3 +580,7 @@ button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-
 /* 범례 드래그 */
 .map-legend{touch-action:none;cursor:grab}
 .map-legend:active{cursor:grabbing}
+/* 외국인 주민 안내 */
+.result-block.foreign{border-left:4px solid var(--accent);background:#f2f6fd}
+.result-block.foreign p{margin:6px 0;font-size:.92rem}
+.result-block.foreign .fr-call{margin-top:8px;font-size:.9rem;font-weight:600;color:var(--accent2)}

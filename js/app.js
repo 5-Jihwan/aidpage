@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260825b';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260825b';
-import { getReports, postReport, flagReport } from './api.js?v=20260825b';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260825b';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826a';
+import { getReports, postReport, flagReport } from './api.js?v=20260826a';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260825b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260826a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -119,6 +119,9 @@ function localizeLabels() {
     try { map.setLayoutProperty(l.id, 'text-field', field); } catch (e) { /* ignore */ }
   }
 }
+/* 시군구·읍면동 자체 라벨: EN이면 로마자(name_en), 없으면 한글 폴백 */
+const adminNameField = () => getLang() === 'en' ? ['coalesce', ['get', 'name_en'], ['get', 'name']] : ['get', 'name'];
+const landmarkNameField = () => getLang() === 'en' ? ['get', 'en'] : ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'en'], { 'font-scale': 0.8, 'text-color': '#6b7a90' }];
 /* visible map area (px) after floating UI: left panel / bottom sheet / top-right stack */
 function visiblePadding() {
   const mobile = matchMedia(MQ_MOBILE).matches, p = $('#panel');
@@ -204,12 +207,12 @@ function addAdminLayers() {
   fill('sido-fill', 'sido', '#1a5fc4'); line('sido-line', 'sido', '#7f95b8', 1);
   fill('sgg-fill', 'sgg', '#9a7328'); line('sgg-line', 'sgg', '#b39868', 0.9);
   fill('emd-fill', 'emd', '#0f9d7a'); line('emd-line', 'emd', '#7fb9a8', 0.8);
-  const lbl = (id, src, minzoom, maxzoom) => map.addLayer({ id, type: 'symbol', source: src, layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.4 }, minzoom, ...(maxzoom ? { maxzoom } : {}) });
+  const lbl = (id, src, minzoom, maxzoom) => map.addLayer({ id, type: 'symbol', source: src, layout: { 'text-field': adminNameField(), 'text-size': 12, 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.4 }, minzoom, ...(maxzoom ? { maxzoom } : {}) });
   lbl('sgg-label', 'sgg', 8, 11.5); lbl('emd-label', 'emd', 11.5);
   // 독도·울릉도: 저배율에서도 항상 보이도록 전용 마커+라벨
   map.addSource('landmarks', { type: 'geojson', data: 'data/admin/landmarks.geojson' });
   map.addLayer({ id: 'landmark-dot', type: 'circle', source: 'landmarks', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3, 9, 6], 'circle-color': '#1a5fc4', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 }, minzoom: 3.5, maxzoom: 11 });
-  map.addLayer({ id: 'landmark-label', type: 'symbol', source: 'landmarks', layout: { 'text-field': getLang() === 'en' ? ['get', 'en'] : ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'en'], { 'font-scale': 0.8, 'text-color': '#6b7a90' }], 'text-size': 12, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top' }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.4 }, minzoom: 3.5 });
+  map.addLayer({ id: 'landmark-label', type: 'symbol', source: 'landmarks', layout: { 'text-field': landmarkNameField(), 'text-size': 12, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top' }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.4 }, minzoom: 3.5 });
   setLevelFilters();
   setTimeout(() => { applyWxLayer(); applyTyphoon(); }, 0);
 
@@ -224,7 +227,7 @@ function addAdminLayers() {
     map.on('mousemove', `${lv}-fill`, e => {
       const f = e.features[0]; if (!f) return; setHover(lv, f.id);
       const top = map.queryRenderedFeatures(e.point, { layers: ['emd-fill', 'sgg-fill', 'sido-fill'] })[0];
-      if (top && top.layer.id === `${lv}-fill`) { tip.hidden = false; tip.innerHTML = `${f.properties.name}<small>${t('lv.' + lv)} · ${t('tip.click')} ${lv === 'emd' ? t('tip.summary') : t('tip.enter')}</small>`; tip.style.left = e.point.x + 'px'; tip.style.top = e.point.y + 'px'; }
+      if (top && top.layer.id === `${lv}-fill`) { tip.hidden = false; tip.innerHTML = `${rn(f.properties)}<small>${t('lv.' + lv)} · ${t('tip.click')} ${lv === 'emd' ? t('tip.summary') : t('tip.enter')}</small>`; tip.style.left = e.point.x + 'px'; tip.style.top = e.point.y + 'px'; }
     });
     map.on('mouseleave', `${lv}-fill`, () => { setHover(lv, null); tip.hidden = true; });
   }
@@ -282,7 +285,7 @@ function renderRecent() {
   const row = $('#recentRow'); if (!row) return;
   const home = getHome(), list = JSON.parse(localStorage.getItem('safepic.recent') || '[]').filter(c => c !== home).map(c => state.idx.byEmd.get(c)).filter(Boolean).slice(0, 3);
   row.hidden = !list.length; if (!list.length) return;
-  row.innerHTML = `<span class="muted">${t('recent.title')}</span>` + list.map(e => `<button type="button" class="chip" data-c="${e.code}">${e.sgg_name} ${e.name}</button>`).join('');
+  row.innerHTML = `<span class="muted">${t('recent.title')}</span>` + list.map(e => `<button type="button" class="chip" data-c="${e.code}">${rn(e, 'sgg_name')} ${rn(e)}</button>`).join('');
   $$('button[data-c]', row).forEach(b => b.addEventListener('click', () => selectEmd(b.dataset.c)));
 }
 function resetNation() {
@@ -295,7 +298,7 @@ const getHome = () => localStorage.getItem('safepic.home');
 function renderHome() {
   renderRecent();
   const h = getHome(), e = h && state.idx.byEmd.get(h), row = $('#homeRow');
-  if (row) { row.hidden = !e; if (e) $('#btnGoHome').textContent = t('home.go', { name: `${e.sgg_name} ${e.name}` }); }
+  if (row) { row.hidden = !e; if (e) $('#btnGoHome').textContent = t('home.go', { name: `${rn(e, 'sgg_name')} ${rn(e)}` }); }
   const sb = $('#btnSaveHome'); if (sb) { const on = state.emd && state.emd === h; sb.textContent = on ? t('home.saved') : t('home.save'); sb.classList.toggle('is-on', !!on); sb.hidden = state.level !== 'emd'; }
 }
 function initHome() {
@@ -339,13 +342,13 @@ function renderCompare() {
   const saved = JSON.parse(sessionStorage.getItem('safepic.cmp') || 'null') || [curName, names.find(n => n !== curName)];
   if (!names.includes(saved[0])) saved[0] = curName; if (!names.includes(saved[1])) saved[1] = names.find(n => n !== saved[0]);
   const en = getLang() === 'en', all = [...byEmd.values()].flat();
-  const sel = (i) => `<select class="cmp-sel" data-i="${i}">${names.map(n => `<option ${n === saved[i] ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
+  const sel = (i) => `<select class="cmp-sel" data-i="${i}">${names.map(n => `<option value="${n}" ${n === saved[i] ? 'selected' : ''}>${emdDisp(n)}</option>`).join('')}</select>`;
   const A = byEmd.get(saved[0]), B = byEmd.get(saved[1]);
   const rows = CMP_ROWS.map(r => { const a = r.agg(A), b = r.agg(B), g = r.agg(all); if (a == null || b == null) return ''; const win = r.lowerBetter == null ? 0 : (a === b ? 0 : (a < b) === r.lowerBetter ? 1 : 2); return `<tr><td>${en ? r.en : r.ko}</td><td class="${win === 1 ? 'win' : ''}">${r.fmt(a)}</td><td class="${win === 2 ? 'win' : ''}">${r.fmt(b)}</td><td class="muted">${g != null ? r.fmt(g) : '—'}</td></tr>`; }).join('');
-  const verdict = (() => { const parts = []; for (const r of CMP_ROWS) { if (r.lowerBetter == null) continue; const a = r.agg(A), b = r.agg(B); if (a == null || b == null || a === b) continue; const w = (a < b) === r.lowerBetter ? saved[0] : saved[1]; parts.push(t('cmp.v.' + r.id, { w })); } return parts.slice(0, 3).join(' '); })();
+  const verdict = (() => { const parts = []; for (const r of CMP_ROWS) { if (r.lowerBetter == null) continue; const a = r.agg(A), b = r.agg(B); if (a == null || b == null || a === b) continue; const w = (a < b) === r.lowerBetter ? saved[0] : saved[1]; parts.push(t('cmp.v.' + r.id, { w: emdDisp(w) })); } return parts.slice(0, 3).join(' '); })();
   box.hidden = false;
   // 순화: 결론 문장이 먼저, 숫자 표는 접힘 (정보 과부하 규칙 — 한 화면 한 결론·숫자보다 문장)
-  box.innerHTML = `<h3>${t('cmp.title')}</h3><div class="cmp-head">${sel(0)}<span class="muted">vs</span>${sel(1)}</div><p class="cmp-verdict">${verdict || `<span class="muted">${t('cmp.same')}</span>`}</p><details class="cmp-nums"><summary>${t('cmp.table')}</summary><div class="table-wrap"><table class="cmp-table"><thead><tr><th></th><th>${saved[0]}</th><th>${saved[1]}</th><th class="muted">${t('cmp.avg', { name: nameOf().sggName })}</th></tr></thead><tbody>${rows}</tbody></table></div><div class="fine">${t('prob.lead')} ${probText(100)} · ${probText(30)}</div></details><div class="fine">${t('cmp.note')}</div>`;
+  box.innerHTML = `<h3>${t('cmp.title')}</h3><div class="cmp-head">${sel(0)}<span class="muted">vs</span>${sel(1)}</div><p class="cmp-verdict">${verdict || `<span class="muted">${t('cmp.same')}</span>`}</p><details class="cmp-nums"><summary>${t('cmp.table')}</summary><div class="table-wrap"><table class="cmp-table"><thead><tr><th></th><th>${emdDisp(saved[0])}</th><th>${emdDisp(saved[1])}</th><th class="muted">${t('cmp.avg', { name: nameOf().sggName })}</th></tr></thead><tbody>${rows}</tbody></table></div><div class="fine">${t('prob.lead')} ${probText(100)} · ${probText(30)}</div></details><div class="fine">${t('cmp.note')}</div>`;
   $$('.cmp-sel', box).forEach(s => s.addEventListener('change', () => { const v = [...$$('.cmp-sel', box)].map(x => x.value); sessionStorage.setItem('safepic.cmp', JSON.stringify(v)); renderCompare(); }));
 }
 function initGridClick() {
@@ -417,9 +420,13 @@ async function renderNearest() {
 /* ---------- names / live lookups ---------- */
 function nameOf() {
   const e = state.emd && state.idx.byEmd.get(state.emd), s = state.sgg && state.idx.bySgg.get(state.sgg);
-  const sidoName = (e && e.sido_name) || (s && s.sido_name) || (state.sido && (featuresWhere(state.geo.sido, 'code', state.sido)[0] || { properties: {} }).properties.name) || '';
-  return { sidoName, sggName: (e && e.sgg_name) || (s && s.name) || '', emdName: e ? e.name : '' };
+  const sidoProps = state.sido && (featuresWhere(state.geo.sido, 'code', state.sido)[0] || { properties: {} }).properties;
+  const sidoName = rn(e, 'sido_name') || rn(s, 'sido_name') || rn(sidoProps) || '';
+  return { sidoName, sggName: rn(e, 'sgg_name') || rn(s) || '', emdName: e ? rn(e) : '' };
 }
+/* 지역명 표시: EN 모드면 빌드 시 생성한 로마자(name_en 등), 없으면 한글 폴백 */
+const rn = (o, k = 'name') => o ? ((getLang() === 'en' && o[k + '_en']) || o[k] || '') : '';
+const emdDisp = ko => { if (getLang() !== 'en' || !ko) return ko; const e = state.idx.emd.find(x => String(x.sgg) === String(state.sgg) && x.name === ko); return (e && e.name_en) || ko; };
 const weatherFor = sgg => {
   const W = state.live.weather; if (!W) return null;
   const w = W.by_sgg && W.by_sgg[String(sgg)]; if (w) return w;
@@ -644,8 +651,8 @@ function renderRegion() {
     : `<small class="muted">${state.level === 'sido' ? t('note.pickSgg') : t('note.pickEmd')}</small>`;
   const ch = $('#regionChildren'); ch.innerHTML = '';
   let kids = [];
-  if (state.level === 'sido') kids = state.idx.sgg.filter(s => String(s.sido) === state.sido).map(s => ({ name: s.name, go: () => selectSgg(s.code) }));
-  if (state.level === 'sgg') kids = state.idx.emd.filter(x => String(x.sgg) === state.sgg).map(x => ({ name: x.name, go: () => selectEmd(x.code) }));
+  if (state.level === 'sido') kids = state.idx.sgg.filter(s => String(s.sido) === state.sido).map(s => ({ name: rn(s), go: () => selectSgg(s.code) }));
+  if (state.level === 'sgg') kids = state.idx.emd.filter(x => String(x.sgg) === state.sgg).map(x => ({ name: rn(x), go: () => selectEmd(x.code) }));
   kids.sort((a, b) => a.name.localeCompare(b.name, 'ko')).forEach(k => { const b = document.createElement('button'); b.textContent = k.name; b.onclick = k.go; ch.appendChild(b); });
   $('#btnFindHere').hidden = !state.sgg;
   renderNearest();
@@ -806,8 +813,9 @@ function initSearch() {
   const render = () => { list.innerHTML = items.map((it, i) => `<li class="${i === hot ? 'is-hot' : ''}" data-i="${i}"><span>${it.name}</span><small>${it.path}</small></li>`).join(''); list.hidden = !items.length; };
   inp.addEventListener('input', () => {
     const q = inp.value.trim(); hot = -1; if (!q) { items = []; render(); return; }
-    const sg = state.idx.sgg.filter(s => s.name.includes(q)).slice(0, 6).map(s => ({ name: s.name, path: s.sido_name, go: () => selectSgg(s.code) }));
-    const em = state.idx.emd.filter(e => e.name.includes(q)).slice(0, 12).map(e => ({ name: e.name, path: `${e.sido_name} ${e.sgg_name}`, go: () => selectEmd(e.code) }));
+    const ql = q.toLowerCase();
+    const sg = state.idx.sgg.filter(s => s.name.includes(q) || (s.name_en || '').toLowerCase().includes(ql)).slice(0, 6).map(s => ({ name: rn(s), path: rn(s, 'sido_name'), go: () => selectSgg(s.code) }));
+    const em = state.idx.emd.filter(e => e.name.includes(q) || (e.name_en || '').toLowerCase().includes(ql)).slice(0, 12).map(e => ({ name: rn(e), path: `${rn(e, 'sido_name')} ${rn(e, 'sgg_name')}`, go: () => selectEmd(e.code) }));
     items = [...sg, ...em]; render();
   });
   inp.addEventListener('keydown', e => {
@@ -871,7 +879,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260825b').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826a').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -932,6 +940,7 @@ function initLang() {
   $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, () => {
     paint(); setRulesLang(getLang()); applyRulesLang(); renderAll(); renderTip(); if (state.meta) { $('#aboutAdmin').textContent = `${state.meta.source || ''} ${state.meta.version || ''}`.trim(); $('#buildDate').textContent = state.meta.built || ''; } syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
     if (map && map.getLayer('eastsea-label')) map.setLayoutProperty('eastsea-label', 'text-field', getLang() === 'en' ? 'East Sea' : '동해\nEast Sea');
+    if (map) { localizeLabels(); ['sgg-label', 'emd-label'].forEach(id => map.getLayer(id) && map.setLayoutProperty(id, 'text-field', adminNameField())); if (map.getLayer('landmark-label')) map.setLayoutProperty('landmark-label', 'text-field', landmarkNameField()); }
     if (state.lastResult && evaluate) { state.lastResult.res = evaluate(state.rules, state.lastResult.inp, getLang()); renderResult(state.lastResult.res, state.lastResult.inp); }
     if (state.tab === 'about') renderRulesTable();
   })));

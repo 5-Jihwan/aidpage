@@ -1,4 +1,4 @@
-/* SafePic service worker — offline shell + data the user has already seen.
+/* AidPage service worker — offline shell + data the user has already seen.
    Strategy
    - app shell (html/css/js/manifest): network-first (fresh deploys), cached copy when offline
    - reference data (admin boundaries, rules, ref): cache-first, refreshed in background
@@ -6,7 +6,7 @@
    - facility/grid files (data/shelters, data/grid): cache-first once fetched (only what the user opened)
    - fonts/: own cache 'safepic-fonts' that survives version bumps
    - map tiles / CDN: never cached here (browser HTTP cache handles them) */
-const VERSION = 'safepic-20260826m';
+const VERSION = 'safepic-20260826n';
 const SHELL = [
   './', './index.html', './css/style.css', './js/app.js', './js/i18n.js', './js/rules.js', './js/shelters.js', './js/grid.js', './js/api.js',
   './manifest.webmanifest',

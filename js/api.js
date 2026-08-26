@@ -1,4 +1,4 @@
-// SafePic — Cloudflare Worker client. Every call degrades to { status } on failure; never throws.
+// AidPage — Cloudflare Worker client. Every call degrades to { status } on failure; never throws.
 export const API = 'https://safepic-api.safepic.workers.dev';
 async function call(path, opts = {}) {
   try {

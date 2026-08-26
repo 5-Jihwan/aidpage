@@ -174,14 +174,14 @@
    "src_en": "Energy Act §16-2"
   },
   {
-   "ko": "국민안전24·안전디딤돌 앱은 대피소 위치와 재난문자를 정부가 직접 보내줍니다. SafePic과 같이 두세요.",
-   "en": "SafeKorea and the Safety Didimdol app send official shelter info and alerts — keep them alongside SafePic.",
+   "ko": "국민안전24·안전디딤돌 앱은 대피소 위치와 재난문자를 정부가 직접 보내줍니다. AidPage과 같이 두세요.",
+   "en": "SafeKorea and the Safety Didimdol app send official shelter info and alerts — keep them alongside AidPage.",
    "src": "행정안전부",
    "src_en": "MOIS"
   },
   {
-   "ko": "SafePic은 심사하지 않습니다. 모든 금액은 '해당 가능성'이고 최종 판단은 관할 시·군·구입니다.",
-   "en": "SafePic does not adjudicate. Every amount is 'possible eligibility'; the municipality decides.",
+   "ko": "AidPage은 심사하지 않습니다. 모든 금액은 '해당 가능성'이고 최종 판단은 관할 시·군·구입니다.",
+   "en": "AidPage does not adjudicate. Every amount is 'possible eligibility'; the municipality decides.",
    "src": "방법·한계",
    "src_en": "Method & limits"
   }

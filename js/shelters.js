@@ -1,4 +1,4 @@
-// SafePic — shelters layer (대피소·쉼터). Loads lazily; silent when data is absent.
+// AidPage — shelters layer (대피소·쉼터). Loads lazily; silent when data is absent.
 const KINDS = [
   { id: 'civil_defense', ko: '민방위 대피시설', en: 'Civil-defense shelter', color: '#1a5fc4', icon: '🛡️' },
   { id: 'heat', ko: '무더위쉼터', en: 'Cooling center', color: '#c2447e', icon: '☀️' },

@@ -1,4 +1,4 @@
-"""SafePic daily reference fetcher — 국가법령정보 본문 수집 + 개정 감지 (설계 docs/02 §4).
+"""AidPage daily reference fetcher — 국가법령정보 본문 수집 + 개정 감지 (설계 docs/02 §4).
 
 - LAW_OC(open.law.go.kr 인증키)가 없으면 어떤 파일도 건드리지 않고 종료한다.
 - rules/*.json 의 `law` 필드({mst, name, art, annex})를 모아 법령별로 1회 호출,
@@ -35,7 +35,7 @@ def log(msg: str) -> None:
 
 def get_json(params: dict) -> dict:
     url = f"{API}?{urllib.parse.urlencode(params, encoding='utf-8')}"
-    req = urllib.request.Request(url, headers={"User-Agent": "safepic-daily (github.com/5-Jihwan/safepic)"})
+    req = urllib.request.Request(url, headers={"User-Agent": "safepic-daily (github.com/5-Jihwan/aidpage)"})
     with urllib.request.urlopen(req, timeout=40) as r:
         body = r.read().decode("utf-8", "replace")
     try:

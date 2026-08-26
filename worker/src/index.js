@@ -1,4 +1,4 @@
-/* SafePic API Worker — on-demand proxy for keys that must not live in the browser.
+/* AidPage API Worker — on-demand proxy for keys that must not live in the browser.
    Routes
      GET /health                      → { status:"ok", has:{bigkinds,law,kma} }
      GET /news?sgg=11620&lang=ko      → BigKinds: 7-day disaster news for a district   (KV 60 min)

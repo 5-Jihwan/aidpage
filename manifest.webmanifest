@@ -1,6 +1,6 @@
 {
- "name": "SafePic — 내 상황에 맞는 안전, 한 장으로",
- "short_name": "SafePic",
+ "name": "AidPage — 내 상황에 맞는 안전, 한 장으로",
+ "short_name": "AidPage",
  "description": "내 동네 오늘의 위험과, 내 상황에 맞는 재난 지원을 한 화면에.",
  "start_url": "./",
  "scope": "./",

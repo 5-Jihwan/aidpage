@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826k';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826k';
-import { getReports, postReport, flagReport } from './api.js?v=20260826k';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826k';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826l';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826l';
+import { getReports, postReport, flagReport } from './api.js?v=20260826l';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826l';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260826k'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260826l'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -105,18 +105,33 @@ function initMap() {
     map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); });
   });
 }
-/* 지명 표기: 기본 타일의 모든 라벨을 한국어(+영어) 또는 영어만으로 통일. 동해는 영어 줄도 East Sea로. */
+/* 지명 표기: 기본 타일의 모든 라벨을 한국어(+영어) 또는 영어만으로 통일. 동해는 영어 줄도 East Sea로.
+   군사시설(비행단·부대·기지 등) 명칭은 베이스맵 라벨에서도 표시하지 않는다 (about.n3 원칙). */
+const MIL_KW = ['비행단', '공군', '해군', '육군', '군부대', '부대', '군사', '기지', '사격장', '탄약', '훈련장',
+                'military', 'Military', 'Air Base', 'air base', 'Airbase', 'Army', 'Navy', 'Barracks', 'ROKAF', 'USAG', 'USFK'];
+const MIL_EXC = ['찌개', '차량기지', '베이스캠프'];  // 부대찌개·지하철 차량기지 등 오탐 방지
+function milMaskExpr() {
+  const hay = ['concat', ...['name', 'name:ko', 'name:en', 'name:latin'].map(k => ['coalesce', ['to-string', ['get', k]], ''])];
+  const kwHit = ['any', ...MIL_KW.map(k => ['in', k, hay])];
+  const excHit = ['any', ...MIL_EXC.map(k => ['in', k, hay])];
+  return ['any', ['==', ['coalesce', ['get', 'class'], ''], 'military'],  // aerodrome_label class
+          ['all', kwHit, ['!', excHit]]];
+}
 function localizeLabels() {
+  const style = map.getStyle();
+  const vecSrc = Object.keys(style.sources || {}).find(s => (style.sources[s] || {}).type === 'vector');
   const ko = ['coalesce', ['get', 'name:ko'], ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
   const enRaw = ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
   const en = ['case', ['in', 'Japan', ['to-string', enRaw]], 'East Sea', ['in', 'Liancourt', ['to-string', enRaw]], 'Dokdo', enRaw];
   const koFixed = ['case', ['in', 'Japan', ['to-string', ko]], '동해', ['in', '日本海', ['to-string', ko]], '동해', ['in', 'Liancourt', ['to-string', ko]], '독도', ['in', '竹島', ['to-string', ko]], '독도', ko];
   const both = ['format', koFixed, {}, '\n', {}, en, { 'font-scale': 0.8, 'text-color': '#6b7a90' }];
-  const field = getLang() === 'en' ? en : ['case', ['==', ['to-string', koFixed], ['to-string', en]], koFixed, both];
-  for (const l of map.getStyle().layers || []) {
+  const base = getLang() === 'en' ? en : ['case', ['==', ['to-string', koFixed], ['to-string', en]], koFixed, both];
+  const field = ['case', milMaskExpr(), '', base];  // 군사시설명은 빈 문자열로 마스킹
+  for (const l of style.layers || []) {
     if (l.type !== 'symbol' || !l.layout || !l.layout['text-field']) continue;
+    if (vecSrc && l.source !== vecSrc) continue;  // 베이스맵 레이어만 (자체 라벨은 각자 관리)
     if (['sgg-label', 'emd-label'].includes(l.id)) continue;
-    try { map.setLayoutProperty(l.id, 'text-field', field); } catch (e) { /* ignore */ }
+    try { map.setLayoutProperty(l.id, 'text-field', field); } catch (e) { console.warn('localizeLabels', l.id, e); }
   }
 }
 /* 시군구·읍면동 자체 라벨: EN이면 로마자(name_en), 없으면 한글 폴백 */
@@ -937,7 +952,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826k').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826l').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

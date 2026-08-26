@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826e';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826e';
-import { getReports, postReport, flagReport } from './api.js?v=20260826e';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826e';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826f';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826f';
+import { getReports, postReport, flagReport } from './api.js?v=20260826f';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826f';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260826e'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260826f'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -926,7 +926,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826e').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826f').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -981,9 +981,21 @@ function applyRulesLang() {
   }
 }
 function initLang() {
-  const paint = () => { $$('.lang-btn').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang())); const ls = $('#langSel'); if (ls) ls.value = getLang(); };
+  const paint = () => {
+    $$('.lang-btn').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
+    const lt = $('#langSelT'); if (lt) lt.textContent = `🌐 ${getLang() === 'en' ? 'English' : '한국어'}`;
+    $$('#langTop .lang-menu button').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
+  };
   paint();
-  const ls = $('#langSel'); if (ls) ls.addEventListener('change', () => { const b = $$('.lang-btn').find(x => x.dataset.lang === ls.value); if (b) b.click(); });
+  const box = $('#langTop'), lt = $('#langSelT');
+  if (box && lt) {
+    lt.addEventListener('click', () => { const on = box.classList.toggle('is-open'); lt.setAttribute('aria-expanded', on); });
+    document.addEventListener('click', e => { if (!e.target.closest('#langTop')) { box.classList.remove('is-open'); lt.setAttribute('aria-expanded', 'false'); } });
+    $$('#langTop .lang-menu button').forEach(mb => mb.addEventListener('click', () => {
+      box.classList.remove('is-open'); lt.setAttribute('aria-expanded', 'false');
+      const b = $$('.lang-btn').find(x => x.dataset.lang === mb.dataset.lang); if (b) b.click();
+    }));
+  }
   $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, () => {
     document.title = getLang() === 'en' ? 'SafePic · Your situation, your safety — on one page' : 'SafePic · 내 상황에 맞는 안전, 한 장으로';
     paint(); setRulesLang(getLang()); applyRulesLang(); renderAll(); renderTip(); if (state.meta) { $('#aboutAdmin').textContent = `${state.meta.source || ''} ${state.meta.version || ''}`.trim(); $('#buildDate').textContent = state.meta.built || ''; } syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();

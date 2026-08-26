@@ -217,7 +217,9 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
   .tip{display:none}
   input,select,textarea{font-size:16px}
 }
-@media (max-width:900px), (max-width:1200px) and (orientation:portrait) and (orientation:landscape), (max-height:500px){
+/* 시트 모드(모바일·세로 태블릿)와 '터치 기기의 낮은 가로 화면'에만 적용.
+   (max-height:500px) 단독이면 줌한 데스크톱까지 걸려 컨트롤이 pill 뒤로 숨는다 — pointer:coarse 필수 */
+@media (max-width:900px), (max-height:500px) and (pointer:coarse){
   .panel{height:60dvh} .maplibregl-ctrl-bottom-right{bottom:calc(60dvh + 10px)} .map-hint{bottom:calc(62dvh + 10px)} .map-legend{bottom:calc(60dvh + 14px)}
 }
 @media print{
@@ -475,7 +477,7 @@ html.big .risk-line{font-size:1.1rem}
   .map-legend:not(.is-min) .lg-toggle{position:sticky;top:0;background:rgba(255,255,255,.96);width:100%;justify-content:space-between}
   html.big .map-legend:not(.is-min){bottom:calc(56dvh + 60px)}
 }
-@media (max-width:900px) and (orientation:landscape), (max-height:500px){ .map-legend:not(.is-min){bottom:calc(60dvh + 60px);max-height:70px} }
+@media (max-width:900px) and (orientation:landscape), (max-height:500px) and (pointer:coarse){ .map-legend:not(.is-min){bottom:calc(60dvh + 60px);max-height:70px} }
 
 /* one line for today */
 .tip-card{margin-top:14px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:10px 14px}
@@ -588,3 +590,16 @@ button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-
 .lang-top{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
 .lang-top select{border:0;background:transparent;font:inherit;font-weight:700;color:var(--ink);cursor:pointer;appearance:auto;padding:0}
 .lang-top select:focus-visible{outline:3px solid rgba(26,95,196,.35);border-radius:6px}
+/* 상단 언어 드롭다운 — 사이트 pill 테마와 통일 (네이티브 select 대체) */
+.lang-top{position:relative;flex:none;margin-left:6px;height:auto!important;padding:0!important;border:0!important;background:none!important;box-shadow:none}
+.lang-top-t{height:36px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:.85rem;color:var(--ink);white-space:nowrap;cursor:pointer}
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .lang-top-t{height:32px;padding:0 9px;font-size:.78rem} }
+.lang-top-t:hover{background:var(--bg)}
+.lang-top-t::after{content:' ▾';color:var(--mute);font-weight:400}
+.lang-menu{position:absolute;top:calc(100% + 6px);right:0;display:none;flex-direction:column;gap:2px;min-width:132px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(20,32,46,.16);padding:6px;z-index:60}
+.lang-top.is-open .lang-menu{display:flex}
+.lang-menu button{border:0;background:none;text-align:left;padding:9px 12px;border-radius:8px;font-size:.88rem;color:var(--text);cursor:pointer}
+.lang-menu button:hover{background:var(--bg)}
+.lang-menu button.is-on{background:var(--bg);color:var(--ink);font-weight:700}
+.lang-menu button.is-on::after{content:' ✓';color:var(--accent)}
+html.big .lang-top-t{font-size:1rem;height:42px}

@@ -35,6 +35,18 @@ jobs:
           KMA_APIHUB_KEY: ${{ secrets.KMA_APIHUB_KEY }}
           JUSO_KEY: ${{ secrets.JUSO_KEY }}
           TAAS_API: ${{ secrets.TAAS_API }}
+          SD_KEY_WARN: ${{ secrets.SD_KEY_WARN }}
+          SD_KEY_PREWARN: ${{ secrets.SD_KEY_PREWARN }}
+          SD_KEY_WARNZONE: ${{ secrets.SD_KEY_WARNZONE }}
+          SD_KEY_LS_PRED: ${{ secrets.SD_KEY_LS_PRED }}
+          SD_KEY_LS_FCST: ${{ secrets.SD_KEY_LS_FCST }}
+          SD_KEY_LS_HIST: ${{ secrets.SD_KEY_LS_HIST }}
+          SD_KEY_FLOOD: ${{ secrets.SD_KEY_FLOOD }}
+          SD_KEY_FLOOD_DEPTH: ${{ secrets.SD_KEY_FLOOD_DEPTH }}
+          SD_KEY_FLOOD_LINE: ${{ secrets.SD_KEY_FLOOD_LINE }}
+          SD_KEY_FLOOD_SITU: ${{ secrets.SD_KEY_FLOOD_SITU }}
+          SD_KEY_RISKZONE: ${{ secrets.SD_KEY_RISKZONE }}
+          SD_KEY_RISKZONE2: ${{ secrets.SD_KEY_RISKZONE2 }}
         run: python scripts/fetch_live.py
 
       - name: Report cadence hint

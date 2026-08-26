@@ -46,6 +46,24 @@ KEY_HUB = os.environ.get("KMA_APIHUB_KEY", "").strip()  # 기상청 API허브 �
 KEY_SAFETY = os.environ.get("SAFETYDATA_KEY", "").strip()
 KEY_HRFCO = os.environ.get("HRFCO_KEY", "").strip()
 
+# 재난안전데이터공유플랫폼 — 데이터셋별 서비스키(활용신청 건별 발급) + IF 코드
+SD_API = "https://www.safetydata.go.kr/V2/api/"
+SD_SETS = {  # kind: (IF코드, 환경변수)
+    "warn": ("DSSP-IF-00045", "SD_KEY_WARN"),            # 기상청_특보통보문
+    "prewarn": ("DSSP-IF-00048", "SD_KEY_PREWARN"),      # 기상청_예비특보
+    "warnzone": ("DSSP-IF-10144", "SD_KEY_WARNZONE"),    # 기상특보지역
+    "ls_pred": ("DSSP-IF-00735", "SD_KEY_LS_PRED"),      # 산림청_산사태_예측정보
+    "ls_fcst": ("DSSP-IF-00734", "SD_KEY_LS_FCST"),      # 산림청_산사태_예보정보
+    "ls_hist": ("DSSP-IF-00134", "SD_KEY_LS_HIST"),      # 산사태_발생이력 (배치)
+    "flood": ("DSSP-IF-00117", "SD_KEY_FLOOD"),          # 침수흔적도 (배치)
+    "flood_depth": ("DSSP-IF-20678", "SD_KEY_FLOOD_DEPTH"),
+    "flood_line": ("DSSP-IF-20679", "SD_KEY_FLOOD_LINE"),
+    "flood_situ": ("DSSP-IF-10928", "SD_KEY_FLOOD_SITU"),
+    "riskzone": ("DSSP-IF-00058", "SD_KEY_RISKZONE"),    # 지역_재해위험지구 (배치)
+    "riskzone2": ("DSSP-IF-10075", "SD_KEY_RISKZONE2"),
+}
+SD_KEY = {k: os.environ.get(env, "").strip() for k, (_, env) in SD_SETS.items()}
+
 KMA_VILAGE = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0"
 KMA_WARN = "https://apis.data.go.kr/1360000/WthrWrnInfoService"
 SAFETY_MSG = "https://www.safetydata.go.kr/V2/api/DSSP-IF-00247"
@@ -383,6 +401,133 @@ def fetch_warnings(sgg, prev):
         sec["items"] = parse_warn_text(text, sgg, since)
     except HttpError as e:
         sec = dict(prev or {}, status=f"error:{e.code}")
+    return sec
+
+
+# --------------------------------------------------------------------------- safetydata 공통
+def sd_rows(kind: str, want: int = 100, newest: bool = True) -> list[dict]:
+    """플랫폼 목록 API에서 행을 가져온다. newest=True면 totalCount로 마지막 페이지를 계산해
+    최신 행을 확보한다(기본 정렬이 오래된 순인 데이터셋 대비)."""
+    ifcode, _ = SD_SETS[kind]
+    key = SD_KEY.get(kind)
+    if not key:
+        raise HttpError("no_key")
+    url = SD_API + ifcode
+    base = {"serviceKey": key, "returnType": "json", "numOfRows": want}
+    data = get_json(url, dict(base, pageNo=1))
+    hdr = data.get("header", {})
+    if str(hdr.get("resultCode", "00")) not in ("00", "0"):
+        raise HttpError("sd" + str(hdr.get("resultCode")))
+    rows = data.get("body") or []
+    total = 0
+    for k in ("totalCount", "totalCnt", "TotalCount"):
+        try:
+            total = int(data.get(k) or 0)
+            if total:
+                break
+        except (TypeError, ValueError):
+            pass
+    if newest and total > want:
+        last = (total + want - 1) // want
+        data = get_json(url, dict(base, pageNo=last))
+        rows = data.get("body") or []
+        if len(rows) < want and last > 1:  # 마지막 페이지가 얇으면 앞 페이지 보충
+            prev = get_json(url, dict(base, pageNo=last - 1))
+            rows = (prev.get("body") or []) + rows
+    return rows
+
+
+def sd_active_warn_text(rows: list[dict]) -> tuple[str, str]:
+    """특보통보문 행들 → (최신 발표시각, 현재 발효현황 텍스트)."""
+    rows = sorted(rows, key=lambda r: str(r.get("PRSNTN_TM") or "").strip(), reverse=True)
+    if not rows:
+        return "", ""
+    r0 = rows[0]
+    return str(r0.get("PRSNTN_TM") or "").strip(), str(r0.get("SPNE_FRMNT_PRCON_CN") or "").strip()
+
+
+def fetch_warnings_sd(sgg, prev):
+    """기상특보 — 재난안전데이터공유플랫폼 특보통보문(DSSP-IF-00045).
+    최신 통보문의 '특보발효현황내용'(o 특보명 : 지역 형식)을 기존 파서로 해석한다."""
+    sec = {"updated": now_kst().isoformat(timespec="seconds"), "status": "ok", "items": [],
+           "raw": None, "issued": None, "source": "기상청 특보통보문 · 재난안전데이터공유플랫폼"}
+    try:
+        tm, text = sd_active_warn_text(sd_rows("warn", 100))
+        since = fmt_tm(tm[:12]) if tm else None
+        sec["issued"] = since
+        sec["raw"] = text[:4000]
+        if text and text.replace("o", "").replace("없음", "").strip():
+            sec["items"] = parse_warn_text(text, sgg, since)
+    except HttpError as e:
+        sec = dict(prev or {}, status=f"error:{e.code}")
+    return sec
+
+
+def fetch_prewarn_sd(prev):
+    """예비특보 — 최신 관측분의 예비특보 발효현황 텍스트(컬럼명 SPNE_FRMNT_PRCON_TM가 실제 내용)."""
+    sec = {"updated": now_kst().isoformat(timespec="seconds"), "status": "ok",
+           "at": None, "text": "", "none": True,
+           "source": "기상청 예비특보 · 재난안전데이터공유플랫폼"}
+    try:
+        rows = sorted(sd_rows("prewarn", 50),
+                      key=lambda r: str(r.get("OBSRVN_DT") or ""), reverse=True)
+        if rows:
+            r0 = rows[0]
+            sec["at"] = fmt_tm(str(r0.get("OBSRVN_DT") or "")[:12])
+            text = str(r0.get("SPNE_FRMNT_PRCON_TM") or "").strip()
+            sec["text"] = text[:2000]
+            sec["none"] = text.replace("o", "").replace("없음", "").strip() == ""
+    except HttpError as e:
+        sec = dict(prev or {}, status=f"error:{e.code}")
+    return sec
+
+
+def _sd_dt(s):
+    try:
+        return datetime.strptime(str(s)[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=KST)
+    except ValueError:
+        return None
+
+
+def fetch_landslide_sd(prev):
+    """산사태 — 예보(공식 발령, DSSP-IF-00734) + 예측(1시간 분석, DSSP-IF-00735)."""
+    sec = {"updated": now_kst().isoformat(timespec="seconds"), "status": "ok", "items": [],
+           "source": "산림청 산사태 예보·예측 · 재난안전데이터공유플랫폼"}
+    now = now_kst()
+    errs = []
+    try:  # 공식 예보: 지역별 마지막 상태가 '발령'이고 48시간 이내인 것
+        rows = sd_rows("ls_fcst", 100)
+        last_by_region: dict[str, dict] = {}
+        for r in sorted(rows, key=lambda r: str(r.get("FRCST_APNT_DT") or "")):
+            rg = str(r.get("OCRN_FRCST_APNT_INST_NM") or "").strip()
+            if rg:
+                last_by_region[rg] = r
+        for rg, r in last_by_region.items():
+            dt = _sd_dt(r.get("FRCST_APNT_DT"))
+            if str(r.get("FRCST_APNT_STTS") or "").strip() != "발령":
+                continue
+            if not dt or (now - dt) > timedelta(hours=48):
+                continue
+            sec["items"].append({"kind": "fcst", "level": str(r.get("FRCST_APNT_KND_CD_NM") or ""),
+                                 "region": rg, "at": dt.isoformat(timespec="seconds")})
+    except HttpError as e:
+        errs.append(e.code)
+    try:  # 예측: 최신 분석 시각 배치(6시간 이내)만
+        rows = sd_rows("ls_pred", 100)
+        latest = max((str(r.get("PREDC_ANLS_DT") or "") for r in rows), default="")
+        dt = _sd_dt(latest)
+        if dt and (now - dt) <= timedelta(hours=6):
+            for r in rows:
+                if str(r.get("PREDC_ANLS_DT") or "") == latest:
+                    sec["items"].append({"kind": "pred", "level": str(r.get("LNLD_FRCST_NM") or ""),
+                                         "region": str(r.get("SGG_NM") or "").strip(),
+                                         "at": dt.isoformat(timespec="seconds")})
+    except HttpError as e:
+        errs.append(e.code)
+    if errs and not sec["items"]:
+        sec = dict(prev or {}, status="error:" + errs[0])
+    elif errs:
+        sec["status"] = "partial:" + errs[0]
     return sec
 
 
@@ -911,7 +1056,8 @@ def fetch_air(sgg, prev):
 
 # --------------------------------------------------------------------------- main
 def main():
-    log(f"keys present: datago={bool(KEY_KMA)} hub={bool(KEY_HUB)} safety={bool(KEY_SAFETY)} hrfco={bool(KEY_HRFCO)} taas={bool(os.environ.get('TAAS_API'))}")
+    log(f"keys present: datago={bool(KEY_KMA)} hub={bool(KEY_HUB)} safety={bool(KEY_SAFETY)} hrfco={bool(KEY_HRFCO)} taas={bool(os.environ.get('TAAS_API'))} "
+        f"sd={{{','.join(k for k, v in SD_KEY.items() if v) or '-'}}}")
     sgg = load_json(SGG_INDEX, None)
     if not isinstance(sgg, list):
         log("sgg_index missing, using fixture")
@@ -935,10 +1081,15 @@ def main():
         weather["status"] = "partial:sido"
     alerts = {
         "updated": now_kst().isoformat(timespec="seconds"),
-        "warnings": safe(fetch_warnings, sgg, prev_a.get("warnings")),
+        # safetydata 서비스키가 있으면 플랫폼 경로 우선 (data.go.kr/허브 403 우회)
+        "warnings": safe(fetch_warnings_sd, sgg, prev_a.get("warnings")) if SD_KEY["warn"]
+                    else safe(fetch_warnings, sgg, prev_a.get("warnings")),
+        "prewarn": safe(fetch_prewarn_sd, prev_a.get("prewarn")) if SD_KEY["prewarn"]
+                   else dict((prev_a.get("prewarn") or {}), status="no_key"),
         "messages": safe(fetch_messages, prev_a.get("messages")),
         "river": safe(fetch_river, prev_a.get("river")),
-        "landslide": safe(fetch_landslide, sgg, prev_a.get("landslide")),
+        "landslide": safe(fetch_landslide_sd, prev_a.get("landslide")) if (SD_KEY["ls_fcst"] or SD_KEY["ls_pred"])
+                     else safe(fetch_landslide, sgg, prev_a.get("landslide")),
         "quake": safe(fetch_quake, prev_a.get("quake")),
         "typhoon": safe(fetch_typhoon, prev_a.get("typhoon")),
     }
@@ -946,7 +1097,7 @@ def main():
     er = safe(fetch_er, sgg, prev_er)
     weather["calls"] = _calls
     air["calls"] = _calls
-    statuses = [weather.get("status"), air.get("status"), er.get("status"), (weather.get("hub") or {}).get("status")] + [alerts[k].get("status") for k in ("warnings", "messages", "river", "landslide", "quake", "typhoon")]
+    statuses = [weather.get("status"), air.get("status"), er.get("status"), (weather.get("hub") or {}).get("status")] + [alerts[k].get("status") for k in ("warnings", "prewarn", "messages", "river", "landslide", "quake", "typhoon")]
     if all(st in ("no_key", "todo", None) for st in statuses) and os.path.exists(WEATHER_PATH):
         log("all sections no_key: leaving placeholder files untouched (no commit churn)")
     else:
@@ -965,6 +1116,7 @@ def main():
     elif os.path.exists(HOT_FLAG):
         os.remove(HOT_FLAG)
     log(f"done calls={_calls} weather={weather['status']} warn={alerts['warnings'].get('status')} "
+        f"prewarn={alerts['prewarn'].get('status')} ls={alerts['landslide'].get('status')} "
         f"msg={alerts['messages'].get('status')} river={alerts['river'].get('status')} "
         f"air={air.get('status')} hot={hot}")
 

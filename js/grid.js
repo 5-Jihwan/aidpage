@@ -1,5 +1,5 @@
 // SafePic — H3 grid layer for pilot districts. Shows only attributes that actually have data.
-import { getLang } from './i18n.js?v=20260826d';
+import { getLang } from './i18n.js?v=20260826e';
 export const ATTRS = [
   { id: 'shelter_min_walk', ko: '가까운 대피소 도보(분)', en: 'Walk to shelter (min)', unit: '분', unit_en: 'min', ramp: ['#eef2f8', '#9a7328'] },
   { id: 'slope_mean', ko: '평균 경사', en: 'Mean slope', unit: '°', ramp: ['#eef2f8', '#9a7328'] },

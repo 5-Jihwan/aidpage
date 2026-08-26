@@ -584,3 +584,7 @@ button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-
 .result-block.foreign{border-left:4px solid var(--accent);background:#f2f6fd}
 .result-block.foreign p{margin:6px 0;font-size:.92rem}
 .result-block.foreign .fr-call{margin-top:8px;font-size:.9rem;font-weight:600;color:var(--accent2)}
+/* 상단 언어 선택 (🌐 + 네이티브 select) */
+.lang-top{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.lang-top select{border:0;background:transparent;font:inherit;font-weight:700;color:var(--ink);cursor:pointer;appearance:auto;padding:0}
+.lang-top select:focus-visible{outline:3px solid rgba(26,95,196,.35);border-radius:6px}

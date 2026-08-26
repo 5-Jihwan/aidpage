@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260826d">
+<link rel="stylesheet" href="css/style.css?v=20260826e">
 </head>
 <body>
 
@@ -48,7 +48,7 @@
     <button class="tab" data-tab="where"><i>03</i><span data-i18n="tab.where">어디에 먼저</span></button>
     <button class="tab tab-about" data-tab="about"><span data-i18n="tab.about">방법·한계</span></button>
   </nav>
-  <button type="button" class="lang-top" id="langTop" aria-label="언어 전환 / Switch language" title="언어 / Language">EN</button>
+  <label class="lang-top" title="언어 / Language"><span aria-hidden="true">🌐</span><select id="langSel" aria-label="언어 / Language"><option value="ko">한국어</option><option value="en">English</option></select></label>
 </header>
 
 
@@ -250,6 +250,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260826d"></script>
+<script type="module" src="js/app.js?v=20260826e"></script>
 </body>
 </html>

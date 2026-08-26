@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826g';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826g';
-import { getReports, postReport, flagReport } from './api.js?v=20260826g';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826g';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826h';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826h';
+import { getReports, postReport, flagReport } from './api.js?v=20260826h';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826h';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260826g'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260826h'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -321,36 +321,47 @@ async function syncGrid() {
     `<div class="fine">${t('grid.note')}</div>`;
   for (const el of [box, where]) { if (!el) continue; el.hidden = false; el.innerHTML = `<h3>${t('grid.title')}</h3>` + html; $$('.chip', el).forEach(b => b.addEventListener('click', () => { gridAttr = b.dataset.a; localStorage.setItem('safepic.gridAttr', gridAttr); syncGrid(); })); }
   $('#wherePending').hidden = true;
-  renderCompare(); applyFolds();
+  renderPrepare(); applyFolds();
 }
 /* ---------- 탭③ 동 2개 비교 (격자 집계) ---------- */
-const CMP_ROWS = [
-  { id: 'flood_pct', ko: '침수 이력 있는 격자', en: 'Cells with flood history', fmt: v => (v * 100).toFixed(0) + '%', lowerBetter: true, agg: cs => cs.filter(c => c.flood_hist_n > 0).length / cs.length },
-  { id: 'depth', ko: '최대 침수심', en: 'Max flood depth', fmt: v => v.toFixed(1) + ' m', lowerBetter: true, agg: cs => Math.max(0, ...cs.map(c => c.flood_depth_max_m || 0)) },
-  { id: 'slope', ko: '평균 경사', en: 'Mean slope', fmt: v => v.toFixed(1) + '°', lowerBetter: true, agg: cs => cs.reduce((a, c) => a + (c.slope_mean || 0), 0) / cs.length },
-  { id: 'elderly', ko: '고령 1인세대 비율', en: 'Elderly living alone', fmt: v => (v * 100).toFixed(1) + '%', lowerBetter: true, agg: cs => cs[0].elderly_alone_r ?? null },
-  { id: 'shelter', ko: '가까운 대피소 도보(평균)', en: 'Avg walk to shelter', fmt: v => Math.round(v) + t('risk.min'), lowerBetter: true, agg: cs => { const v = cs.map(c => c.shelter_min_walk).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; } },
-  { id: 'pop', ko: '인구', en: 'Population', fmt: v => v.toLocaleString('ko-KR'), lowerBetter: null, agg: cs => cs[0].pop ?? null },
-];
 /* 재현기간 → 자연어 확률 ("100년에 한 번"의 오해 방지) */
 function probText(T, years = 30) { const p = 1 / T, cum = 1 - Math.pow(1 - p, years); return t('prob.text', { T, p: (p * 100).toFixed(p * 100 < 1 ? 1 : 0), y: years, c: Math.round(cum * 100) }); }
-function renderCompare() {
+/* 탭③ "우리 동네 대비" — 동네 간 비교·서열 없이, 내 동네 사실을 대비 행동과 짝지어 보여준다 */
+const PREP_ROWS = [
+  { id: 'flood', label: 'prep.r.flood',
+    val: cs => ({ n: cs.filter(c => c.flood_hist_n > 0).length, total: cs.length }),
+    fmt: v => v.n ? `${t('prep.v.flood', v)} (${Math.round(v.n / v.total * 100)}%)` : t('prep.none.flood'),
+    act: v => v.n > 0 ? 'prep.a.flood' : null },
+  { id: 'depth', label: 'prep.r.depth',
+    val: cs => Math.max(0, ...cs.map(c => c.flood_depth_max_m || 0)) || null,
+    fmt: v => v.toFixed(1) + ' m', act: v => v >= 0.5 ? 'prep.a.depth' : null },
+  { id: 'slope', label: 'prep.r.slope',
+    val: cs => cs.reduce((a, c) => a + (c.slope_mean || 0), 0) / cs.length,
+    fmt: v => v.toFixed(1) + '°', act: v => v >= 15 ? 'prep.a.slope' : null },
+  { id: 'walk', label: 'prep.r.walk',
+    val: cs => { const v = cs.map(c => c.shelter_min_walk).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; },
+    fmt: v => Math.round(v) + t('risk.min'), act: () => 'prep.a.walk' },
+  { id: 'elderly', label: 'prep.r.elderly',
+    val: cs => cs[0].elderly_alone_r ?? null,
+    fmt: v => (v * 100).toFixed(1) + '%', act: () => null },
+];
+function renderPrepare() {
   const box = $('#compareBox'); if (!box) return;
   const cs = gridCells(state.sgg); if (!cs.length) { box.hidden = true; return; }
   const byEmd = new Map(); for (const f of cs) { const p = f.properties; if (!byEmd.has(p.emd_name)) byEmd.set(p.emd_name, []); byEmd.get(p.emd_name).push(p); }
   const names = [...byEmd.keys()].sort((a, b) => a.localeCompare(b, 'ko'));
   const cur = state.emd && state.idx.byEmd.get(state.emd), curName = cur && names.includes(cur.name) ? cur.name : names[0];
-  const saved = JSON.parse(sessionStorage.getItem('safepic.cmp') || 'null') || [curName, names.find(n => n !== curName)];
-  if (!names.includes(saved[0])) saved[0] = curName; if (!names.includes(saved[1])) saved[1] = names.find(n => n !== saved[0]);
-  const en = getLang() === 'en', all = [...byEmd.values()].flat();
-  const sel = (i) => `<select class="cmp-sel" data-i="${i}">${names.map(n => `<option value="${n}" ${n === saved[i] ? 'selected' : ''}>${emdDisp(n)}</option>`).join('')}</select>`;
-  const A = byEmd.get(saved[0]), B = byEmd.get(saved[1]);
-  const rows = CMP_ROWS.map(r => { const a = r.agg(A), b = r.agg(B), g = r.agg(all); if (a == null || b == null) return ''; const win = r.lowerBetter == null ? 0 : (a === b ? 0 : (a < b) === r.lowerBetter ? 1 : 2); return `<tr><td>${en ? r.en : r.ko}</td><td class="${win === 1 ? 'win' : ''}">${r.fmt(a)}</td><td class="${win === 2 ? 'win' : ''}">${r.fmt(b)}</td><td class="muted">${g != null ? r.fmt(g) : '—'}</td></tr>`; }).join('');
-  const verdict = (() => { const parts = []; for (const r of CMP_ROWS) { if (r.lowerBetter == null) continue; const a = r.agg(A), b = r.agg(B); if (a == null || b == null || a === b) continue; const w = (a < b) === r.lowerBetter ? saved[0] : saved[1]; parts.push(t('cmp.v.' + r.id, { w: emdDisp(w) })); } return parts.slice(0, 3).join(' '); })();
+  let sel = sessionStorage.getItem('safepic.prep') || curName;
+  if (!names.includes(sel)) sel = curName;
+  const A = byEmd.get(sel);
+  const rows = PREP_ROWS.map(r => {
+    const v = r.val(A); if (v == null) return '';
+    const act = r.act(v);
+    return `<div class="prep-row"><div class="prep-head"><span>${t(r.label)}</span><b>${r.fmt(v)}</b></div>${act ? `<div class="prep-act">→ ${t(act)}</div>` : ''}</div>`;
+  }).join('');
   box.hidden = false;
-  // 순화: 결론 문장이 먼저, 숫자 표는 접힘 (정보 과부하 규칙 — 한 화면 한 결론·숫자보다 문장)
-  box.innerHTML = `<h3>${t('cmp.title')}</h3><div class="cmp-head">${sel(0)}<span class="muted">vs</span>${sel(1)}</div><p class="cmp-verdict">${verdict || `<span class="muted">${t('cmp.same')}</span>`}</p><details class="cmp-nums"><summary>${t('cmp.table')}</summary><div class="table-wrap"><table class="cmp-table"><thead><tr><th></th><th>${emdDisp(saved[0])}</th><th>${emdDisp(saved[1])}</th><th class="muted">${t('cmp.avg', { name: nameOf().sggName })}</th></tr></thead><tbody>${rows}</tbody></table></div><div class="fine">${t('prob.lead')} ${probText(100)} · ${probText(30)}</div></details><div class="fine">${t('cmp.note')}</div>`;
-  $$('.cmp-sel', box).forEach(s => s.addEventListener('change', () => { const v = [...$$('.cmp-sel', box)].map(x => x.value); sessionStorage.setItem('safepic.cmp', JSON.stringify(v)); renderCompare(); }));
+  box.innerHTML = `<h3>${t('prep.title')}</h3><div class="cmp-head"><select class="cmp-sel">${names.map(n => `<option value="${n}" ${n === sel ? 'selected' : ''}>${emdDisp(n)}</option>`).join('')}</select></div>${rows}<div class="fine">${t('prep.src')}<br>${t('prob.lead')} ${probText(100)} · ${probText(30)}</div>`;
+  const s = $('.cmp-sel', box); if (s) s.addEventListener('change', () => { sessionStorage.setItem('safepic.prep', s.value); renderPrepare(); });
 }
 function initGridClick() {
   map.on('click', 'grid-fill', e => {
@@ -926,7 +937,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826g').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826h').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

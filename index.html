@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260826g">
+<link rel="stylesheet" href="css/style.css?v=20260826h">
 </head>
 <body>
 
@@ -45,7 +45,7 @@
     <button type="button" class="tab tab-start" id="btnStart" data-i18n-title="start.title" title="처음 화면으로 (지역·입력 초기화)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg><span data-i18n="tab.start">처음으로</span></button>
     <button class="tab is-active" data-tab="now"><i>01</i><span data-i18n="tab.now">내 동네</span></button>
     <button class="tab" data-tab="find"><i>02</i><span data-i18n="tab.find">지원 찾기</span></button>
-    <button class="tab" data-tab="where"><i>03</i><span data-i18n="tab.where">어디에 먼저</span></button>
+    <button class="tab" data-tab="where"><i>03</i><span data-i18n="tab.where">우리 동네 대비</span></button>
     <button class="tab tab-about" data-tab="about"><span data-i18n="tab.about">방법·한계</span></button>
   </nav>
   <div class="lang-top" id="langTop">
@@ -178,11 +178,11 @@
       </section>
 
       <section class="view" data-view="where">
-        <h1 class="h1" data-i18n="where.h1">우리 동네는 어디가 더 위험한가</h1>
-        <p class="lead" data-i18n="where.lead">동 두 곳을 고르면 어디가 더 안전한지 문장으로 알려드립니다. 모든 숫자는 공공 데이터이고, 없는 값은 비워 둡니다.</p>
+        <h1 class="h1" data-i18n="where.h1">우리 동네, 미리 알고 대비하기</h1>
+        <p class="lead" data-i18n="where.lead">동네를 고르면 과거 침수 이력·지형·대피소 거리 같은 사실을 보여주고, 지금 할 수 있는 대비와 이어드립니다. 모든 숫자는 공공 데이터입니다.</p>
         <div class="compare" id="compareBox" hidden></div>
         <div class="near" id="whereGrid" hidden></div>
-        <div class="pending" id="wherePending"><b data-i18n="where.pend">격자 데이터가 있는 지역: 서울 관악구 (시범)</b><p data-i18n="where.pend.p"></p><p class="fine" data-i18n="where.pend.f"></p></div>
+        <div class="pending" id="wherePending"><p data-i18n="where.empty">아직 이 지역의 상세 자료가 없습니다. 자료가 준비되는 대로 이 화면에서 열립니다.</p></div>
         <details class="formula"><summary data-i18n="where.formula">위험도는 이렇게 계산합니다</summary>
           <div class="math-block">
             <p class="math-cap" data-i18n="where.f1">① 연평균 기대피해 (EAD) — 재현기간별 피해를 초과확률로 적분</p>
@@ -256,6 +256,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260826g"></script>
+<script type="module" src="js/app.js?v=20260826h"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
 // SafePic — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826l';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826l';
-import { getReports, postReport, flagReport } from './api.js?v=20260826l';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826l';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826m';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826m';
+import { getReports, postReport, flagReport } from './api.js?v=20260826m';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826m';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260826l'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260826m'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -790,11 +790,21 @@ function applyWxLayer() {
 /* 바람 화살표: 화살표는 바람이 '가는' 방향(풍향 vec는 불어오는 방향이므로 +180°), 길이·굵기는 풍속 */
 function ensureArrowImage() {
   if (!map || map.hasImage('wind-arrow')) return;
+  // 혜성형 화살표: 연한 꼬리(바람이 오는 쪽) → 진한 화살촉(가는 쪽)이 흐름 방향을 읽게 한다
   const c = document.createElement('canvas'); c.width = c.height = 48; const x = c.getContext('2d');
-  x.translate(24, 24); x.lineWidth = 4; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0f4a9e'; x.fillStyle = '#0f4a9e';
-  x.beginPath(); x.moveTo(0, 16); x.lineTo(0, -12); x.stroke();
-  x.beginPath(); x.moveTo(0, -20); x.lineTo(-9, -6); x.lineTo(9, -6); x.closePath(); x.fill();
+  x.translate(24, 24); x.lineCap = 'round'; x.lineJoin = 'round';
+  x.strokeStyle = 'rgba(15,74,158,.35)'; x.lineWidth = 3;
+  x.beginPath(); x.moveTo(0, 19); x.lineTo(0, 6); x.stroke();          // 꼬리 (연함)
+  x.strokeStyle = 'rgba(15,74,158,.75)'; x.lineWidth = 4.5;
+  x.beginPath(); x.moveTo(0, 7); x.lineTo(0, -8); x.stroke();          // 몸통
+  x.fillStyle = '#0f4a9e';
+  x.beginPath(); x.moveTo(0, -21); x.lineTo(-10, -4); x.lineTo(0, -8); x.lineTo(10, -4); x.closePath(); x.fill();  // 화살촉
   map.addImage('wind-arrow', x.getImageData(0, 0, 48, 48), { pixelRatio: 2 });
+}
+const DIR8_KO = ['북', '북동', '동', '남동', '남', '남서', '서', '북서'], DIR8_EN = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+function windLabel(vec, wsd) {
+  const i = Math.round((((vec || 0) % 360) + 360) % 360 / 45) % 8;  // vec = 바람이 불어오는 방향(도)
+  return getLang() === 'en' ? `${DIR8_EN[i]} ${wsd.toFixed(1)}` : `${DIR8_KO[i]}풍 ${wsd.toFixed(1)}`;
 }
 function applyWindArrows(on) {
   if (!map) return;
@@ -809,7 +819,7 @@ function applyWindArrows(on) {
     if (seen.has(key)) continue; seen.add(key);
     let lon = s.lon, lat = s.lat;
     if (!state.sido && w._sido) { const sib = state.idx.sgg.filter(z => String(z.sido) === String(s.sido)); lon = sib.reduce((a, z) => a + z.lon, 0) / sib.length; lat = sib.reduce((a, z) => a + z.lat, 0) / sib.length; }
-    pts.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: { rot: ((w.vec || 0) + 180) % 360, wsd: w.wsd, label: `${w.wsd.toFixed(1)}` } });
+    pts.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: { rot: ((w.vec || 0) + 180) % 360, wsd: w.wsd, label: windLabel(w.vec, w.wsd) } });
   }
   const fc = { type: 'FeatureCollection', features: pts };
   if (map.getSource('wind')) map.getSource('wind').setData(fc);
@@ -952,7 +962,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826l').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826m').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1025,7 +1035,7 @@ function initLang() {
     document.title = getLang() === 'en' ? 'SafePic · Your situation, your safety — on one page' : 'SafePic · 내 상황에 맞는 안전, 한 장으로';
     paint(); setRulesLang(getLang()); applyRulesLang(); renderAll(); renderTip(); if (state.meta) { $('#aboutAdmin').textContent = `${state.meta.source || ''} ${state.meta.version || ''}`.trim(); $('#buildDate').textContent = state.meta.built || ''; } syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
     if (map && map.getLayer('eastsea-label')) map.setLayoutProperty('eastsea-label', 'text-field', getLang() === 'en' ? 'East Sea' : '동해\nEast Sea');
-    if (map) { localizeLabels(); ['sgg-label', 'emd-label'].forEach(id => map.getLayer(id) && map.setLayoutProperty(id, 'text-field', adminNameField())); if (map.getLayer('landmark-label')) map.setLayoutProperty('landmark-label', 'text-field', landmarkNameField()); }
+    if (map) { localizeLabels(); ['sgg-label', 'emd-label'].forEach(id => map.getLayer(id) && map.setLayoutProperty(id, 'text-field', adminNameField())); if (map.getLayer('landmark-label')) map.setLayoutProperty('landmark-label', 'text-field', landmarkNameField()); applyWxLayer(); }
     if (state.lastResult && evaluate) { state.lastResult.res = evaluate(state.rules, state.lastResult.inp, getLang()); renderResult(state.lastResult.res, state.lastResult.inp); }
     if (state.tab === 'about') renderRulesTable();
   })));

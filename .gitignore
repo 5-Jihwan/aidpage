@@ -13,3 +13,4 @@ data/live/er_sample.json
 .work_shelters/
 .keys.env
 .keys.env.parsed
+data/ref/sd/

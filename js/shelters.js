@@ -98,36 +98,48 @@ function ensureAll() {
     layout: { 'text-field': ['case', ['>', ['get', 'point_count'], 9], '9+', ['to-string', ['get', 'point_count']]], 'text-size': 10, 'text-font': ['Noto Sans Regular'], 'text-offset': [1.1, -1.1], 'text-allow-overlap': true }, paint: { 'text-color': '#fff' } });
   map.addLayer({ id: 'sh-label', type: 'symbol', source: 'sh-all', minzoom: 13.5, filter: ['!', ['has', 'point_count']],
     layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.2 } });
-  for (const id of ['sh-pt', 'sh-cluster']) {
-    map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
-  }
+  map.on('mouseenter', 'sh-pt', () => map.getCanvas().style.cursor = 'pointer');
+  map.on('mouseleave', 'sh-pt', () => map.getCanvas().style.cursor = '');
   map.on('click', 'sh-pt', e => { unspiderfy(); openPopup(e.lngLat, detailHTML(e.features[0].properties, e.lngLat)); });
-  map.on('click', 'sh-cluster', async e => {
-    const f = e.features[0], src = map.getSource('sh-all');
-    const n = f.properties.point_count;
-    try {
-      if (n > 10) { // 너무 많으면 그 지점으로 줌인 (같은 좌표 무더기는 대개 10 이하)
-        const z = await src.getClusterExpansionZoom(f.properties.cluster_id);
-        map.easeTo({ center: e.lngLat, zoom: Math.min(z, 17.5) });
-        return;
-      }
-      const leaves = await src.getClusterLeaves(f.properties.cluster_id, 10, 0);
-      spiderfy(e.lngLat, leaves);
-    } catch { /* cluster gone (zoom change) */ }
-  });
+  // 클러스터: 마우스를 올리면 우측으로 가로 펼침 (터치는 탭). 아이콘 쪽으로 옮겨가도 유지.
+  map.on('mouseenter', 'sh-cluster', e => { map.getCanvas().style.cursor = 'pointer'; spiderFromEvent(e); });
+  map.on('mouseleave', 'sh-cluster', () => { map.getCanvas().style.cursor = ''; scheduleCollapse(); });
+  map.on('click', 'sh-cluster', e => spiderFromEvent(e, true));
+  map.on('zoomstart', unspiderfy);
+  map.on('dragstart', unspiderfy);
+  map.on('click', e => { const ls = ['sh-cluster'].filter(l => map.getLayer(l)); if (!ls.length || !map.queryRenderedFeatures(e.point, { layers: ls }).length) unspiderfy(); });
 }
-/* ── 스파이더파이: 겹친 아이콘을 부챗살로 펼쳐 무엇이 있는지 보여준다 ── */
-let _spider = null;
-function unspiderfy() { if (!_spider) return; _spider.forEach(m => m.remove()); _spider = null; }
-function spiderfy(lngLat, leaves) {
+/* ── 스파이더파이: 겹친 시설을 옆으로 펼쳐 무엇이 있는지 보여준다 ── */
+let _spider = null, _spiderId = null, _spiderTimer = null;
+function unspiderfy() { clearTimeout(_spiderTimer); if (!_spider) return; _spider.forEach(m => m.remove()); _spider = null; _spiderId = null; }
+function scheduleCollapse() { clearTimeout(_spiderTimer); _spiderTimer = setTimeout(unspiderfy, 450); }
+function cancelCollapse() { clearTimeout(_spiderTimer); }
+async function spiderFromEvent(e, isClick = false) {
+  const f = e.features && e.features[0]; if (!f) return;
+  const src = map.getSource('sh-all');
+  const n = f.properties.point_count;
+  try {
+    if (isClick && n > 10) { // 대량 뭉침은 클릭 시 그 지점으로 줌인
+      const z = await src.getClusterExpansionZoom(f.properties.cluster_id);
+      map.easeTo({ center: e.lngLat, zoom: Math.min(z, 17.5) });
+      return;
+    }
+    if (_spiderId === f.properties.cluster_id) { cancelCollapse(); return; } // 이미 펼쳐짐
+    const leaves = await src.getClusterLeaves(f.properties.cluster_id, 10, 0);
+    spiderfy(e.lngLat, leaves, f.properties.cluster_id);
+  } catch { /* cluster gone */ }
+}
+function spiderfy(lngLat, leaves, clusterId) {
   unspiderfy();
-  const n = leaves.length, R = n <= 4 ? 40 : n <= 7 ? 52 : 64;
+  _spiderId = clusterId;
+  const n = leaves.length;
+  // 화면 오른쪽 공간이 모자라면 왼쪽으로 펼침
+  const px = map.project(lngLat).x;
+  const need = 30 + n * 38 + 20;
+  const dir = (px + need > map.getContainer().clientWidth) ? -1 : 1;
   _spider = leaves.map((lf, i) => {
-    const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
     const k = KINDS.find(x => x.id === lf.properties.kind) || KINDS[0];
-    // ⚠ 마커 루트에 transform 애니메이션을 걸면 MapLibre의 위치용 inline transform이
-    //   덮여 아이콘이 지도 모서리에 쌓인다 → 루트(위치)와 아이콘(모션)을 분리
+    // ⚠ 마커 루트에 transform 애니메이션 금지 (MapLibre 위치 transform을 덮음) → 루트/아이콘 분리
     const root = document.createElement('div');
     const el = document.createElement('div');
     el.className = 'spider-ic';
@@ -135,22 +147,18 @@ function spiderfy(lngLat, leaves) {
     if (k.hazard) el.style.background = '#fdf1e4';
     el.textContent = k.icon;
     el.title = lf.properties.name || (document.documentElement.lang === 'en' ? k.en : k.ko);
-    el.style.animationDelay = `${i * 35}ms`;
+    el.style.animationDelay = `${i * 30}ms`;
     root.appendChild(el);
+    root.addEventListener('mouseenter', cancelCollapse);
+    root.addEventListener('mouseleave', scheduleCollapse);
     root.addEventListener('click', ev => {
       ev.stopPropagation();
       const c = lf.geometry && lf.geometry.coordinates;
       openPopup(c ? { lng: c[0], lat: c[1] } : lngLat, detailHTML(lf.properties, lngLat));
     });
-    return new maplibregl.Marker({ element: root, offset: [Math.cos(ang) * R, Math.sin(ang) * R] })
+    return new maplibregl.Marker({ element: root, offset: [dir * (32 + i * 38), 0] })
       .setLngLat(lngLat).addTo(map);
   });
-  // 다른 곳을 누르거나 지도를 움직이면 접힘 (이번 클릭이 끝난 뒤에 등록)
-  setTimeout(() => {
-    map.once('click', unspiderfy);
-    map.once('zoomstart', unspiderfy);
-    map.once('dragstart', unspiderfy);
-  }, 0);
 }
 export async function setActive(kinds, sido) {
   activeKinds = new Set(kinds); currentSido = sido;

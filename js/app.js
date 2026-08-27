@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827f';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827f';
-import { getReports, postReport, flagReport } from './api.js?v=20260827f';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827f';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827g';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827g';
+import { getReports, postReport, flagReport } from './api.js?v=20260827g';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827g';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260827f'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827g'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -246,9 +246,11 @@ function addAdminLayers() {
     });
     map.on('mouseleave', `${lv}-fill`, () => { setHover(lv, null); tip.hidden = true; });
   }
-  map.on('click', 'emd-fill', e => { const f = e.features[0]; if (f) selectEmd(f.properties.code); });
-  map.on('click', 'sgg-fill', e => { if (map.queryRenderedFeatures(e.point, { layers: ['emd-fill'] }).length) return; const f = e.features[0]; if (f) selectSgg(f.properties.code); });
-  map.on('click', 'sido-fill', e => { if (map.queryRenderedFeatures(e.point, { layers: ['sgg-fill', 'emd-fill'] }).length) return; const f = e.features[0]; if (f) selectSido(f.properties.code); });
+  // 시설 아이콘·클러스터 위를 눌렀을 땐 지역 드릴다운 금지 (펼침이 flyTo에 즉시 접히던 버그)
+  const overShelter = e => { const ls = ['sh-pt', 'sh-cluster'].filter(l => map.getLayer(l)); return ls.length && map.queryRenderedFeatures(e.point, { layers: ls }).length; };
+  map.on('click', 'emd-fill', e => { if (overShelter(e)) return; const f = e.features[0]; if (f) selectEmd(f.properties.code); });
+  map.on('click', 'sgg-fill', e => { if (overShelter(e)) return; if (map.queryRenderedFeatures(e.point, { layers: ['emd-fill'] }).length) return; const f = e.features[0]; if (f) selectSgg(f.properties.code); });
+  map.on('click', 'sido-fill', e => { if (overShelter(e)) return; if (map.queryRenderedFeatures(e.point, { layers: ['sgg-fill', 'emd-fill'] }).length) return; const f = e.features[0]; if (f) selectSido(f.properties.code); });
   map.on('click', () => $('#mapHint').classList.add('is-hidden'));
 }
 function setLevelFilters() {
@@ -975,7 +977,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827f').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827g').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

@@ -126,6 +126,9 @@ function spiderfy(lngLat, leaves) {
   _spider = leaves.map((lf, i) => {
     const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
     const k = KINDS.find(x => x.id === lf.properties.kind) || KINDS[0];
+    // ⚠ 마커 루트에 transform 애니메이션을 걸면 MapLibre의 위치용 inline transform이
+    //   덮여 아이콘이 지도 모서리에 쌓인다 → 루트(위치)와 아이콘(모션)을 분리
+    const root = document.createElement('div');
     const el = document.createElement('div');
     el.className = 'spider-ic';
     el.style.borderColor = k.color;
@@ -133,12 +136,13 @@ function spiderfy(lngLat, leaves) {
     el.textContent = k.icon;
     el.title = lf.properties.name || (document.documentElement.lang === 'en' ? k.en : k.ko);
     el.style.animationDelay = `${i * 35}ms`;
-    el.addEventListener('click', ev => {
+    root.appendChild(el);
+    root.addEventListener('click', ev => {
       ev.stopPropagation();
       const c = lf.geometry && lf.geometry.coordinates;
       openPopup(c ? { lng: c[0], lat: c[1] } : lngLat, detailHTML(lf.properties, lngLat));
     });
-    return new maplibregl.Marker({ element: el, offset: [Math.cos(ang) * R, Math.sin(ang) * R] })
+    return new maplibregl.Marker({ element: root, offset: [Math.cos(ang) * R, Math.sin(ang) * R] })
       .setLngLat(lngLat).addTo(map);
   });
   // 다른 곳을 누르거나 지도를 움직이면 접힘 (이번 클릭이 끝난 뒤에 등록)

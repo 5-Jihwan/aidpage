@@ -614,3 +614,6 @@ html.big .lang-top-t{font-size:1rem;height:42px}
 .shpop-row{padding:6px 8px;margin-top:4px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:.85rem}
 .shpop-row:hover{background:var(--bg)}
 .shpop-row small{color:var(--mute);margin-left:4px}
+/* 워드마크: 두문자 A·P 강조 (사용자 타이포 제안의 AidPage 적용판) */
+.brand-name b{font-weight:800;font-size:1.18em;color:var(--accent)}
+.brand-name b:last-of-type{color:var(--gold)}

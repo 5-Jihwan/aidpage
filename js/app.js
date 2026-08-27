@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827a';
-import { getReports, postReport, flagReport } from './api.js?v=20260827a';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827b';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827b';
+import { getReports, postReport, flagReport } from './api.js?v=20260827b';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827b';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260827a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -329,10 +329,12 @@ async function syncGrid() {
   if (!state.sgg || !(await hasGrid(state.sgg))) { hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; return; }
   const attrs = gridAttrs(state.sgg); if (!attrs.some(a => a.id === gridAttr)) gridAttr = attrs[0] && attrs[0].id;
   const leg = showGrid(state.sgg, gridAttr);
-  state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('') } : null;
+  // 범례 스팬은 지도 범례와 패널 카드 두 곳에서 쓰므로 한 번만 생성
+  const legSpans = leg ? leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('') : '';
+  state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: legSpans } : null;
   renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []);
   const html = `<div class="grid-attrs">${attrs.map(a => `<button type="button" class="chip ${a.id === gridAttr ? 'is-on' : ''}" data-a="${a.id}">${getLang() === 'en' ? a.en : a.ko}</button>`).join('')}</div>` +
-    (leg ? `<div class="legend">${leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('')}<span><i style="background:#d9dee7"></i>${t('grid.nodata')}</span></div>` : '') +
+    (leg ? `<div class="legend">${legSpans}<span><i style="background:#d9dee7"></i>${t('grid.nodata')}</span></div>` : '') +
     `<div class="fine">${t('grid.note')}</div>`;
   for (const el of [box, where]) { if (!el) continue; el.hidden = false; el.innerHTML = `<h3>${t('grid.title')}</h3>` + html; $$('.chip', el).forEach(b => b.addEventListener('click', () => { gridAttr = b.dataset.a; localStorage.setItem('safepic.gridAttr', gridAttr); syncGrid(); })); }
   $('#wherePending').hidden = true;
@@ -504,7 +506,8 @@ function recentQuake() {
 }
 function warningsFor(sgg, sido) {
   const a = state.live.alerts; if (!a || !a.warnings || !a.warnings.items) return quakeAsWarning();
-  return [...a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(sgg) || c === String(sido)) || (w.areas || []).some(x => (nameOf().sggName && x.includes(nameOf().sggName)) || (nameOf().sidoName && x === nameOf().sidoName))), ...quakeAsWarning()];
+  const n = nameOf(); // 항목·필드마다 재계산하지 않도록 1회만
+  return [...a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(sgg) || c === String(sido)) || (w.areas || []).some(x => (n.sggName && x.includes(n.sggName)) || (n.sidoName && x === n.sidoName))), ...quakeAsWarning()];
 }
 function quakeAsWarning() { const q = recentQuake(); const T = state.live.alerts && state.live.alerts.typhoon; const out = q ? [{ type: '지진', level: '속보', areas: [`${q.loc} · M${q.mag}`], since: q.announced }] : []; for (const t of (T && T.items) || []) { const a = t.analysis || (t.forecast || [])[0]; if (a) out.push({ type: '태풍', level: '정보', areas: [`${t.year} ${t.no}호 · ${a.wind || '?'}m/s · ${a.pressure || '?'}hPa`], since: a.tm }); } return out; }
 const pmGrade = (v, pm25) => v == null ? '' : pm25 ? (v <= 15 ? 'g-good' : v <= 35 ? 'g-mod' : v <= 75 ? 'g-bad' : 'g-vbad') : (v <= 30 ? 'g-good' : v <= 80 ? 'g-mod' : v <= 150 ? 'g-bad' : 'g-vbad');
@@ -969,7 +972,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827b').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

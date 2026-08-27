@@ -76,10 +76,13 @@ function detailHTML(p, lngLat) {
   const en = document.documentElement.lang === 'en';
   return `<b>${p.name || ''}</b><br><small>${k.icon} ${en ? k.en : k.ko}${p.cap ? ` · ${p.cap}${en ? '' : '명'}` : ''}${p.type && !/^\d|^FTL|^\d{3}$/.test(p.type) ? ` · ${p.type}` : ''}<br>${p.addr || ''}${p.hours ? `<br>🕒 ${p.hours}` : ''}${p.tel ? `<br>📞 <a href="tel:${p.tel}">${p.tel}</a>` : ''}</small>${map.routeLinks ? map.routeLinks(lngLat.lng, lngLat.lat, p.name) : ''}${map.srcBadge ? map.srcBadge(p.src, p.asof) : ''}`;
 }
+let _popFallback = null;
 function openPopup(lngLat, html) {
   if (map.openPopup) return map.openPopup(lngLat, html);
+  if (_popFallback) { try { _popFallback.remove(); } catch (e) { /* gone */ } }
   const pop = new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(lngLat).addTo(map);
   if (typeof html === 'string') pop.setHTML(html); else pop.setDOMContent(html);
+  _popFallback = pop;
   return pop;
 }
 function ensureAll() {

@@ -26,10 +26,19 @@ if sys.stderr is None or sys.stdout is None:
 
 
 def flog(msg):
-    """콘솔 유무와 무관하게 항상 파일에 남기는 로그."""
+    """실행 로그 — 콘솔(cmd 리다이렉트가 받음) 우선, 파일은 열리면 보조로.
+    cmd `>>`가 파일을 점유 중이면 파일 쓰기는 조용히 건너뛴다."""
     from datetime import datetime
-    with io.open(os.path.join(ROOT, ".sd_collector.log"), "a", encoding="utf-8") as f:
-        f.write(f"{datetime.now().isoformat(timespec='seconds')} {msg}\n")
+    line = f"{datetime.now().isoformat(timespec='seconds')} {msg}"
+    try:
+        print(line, flush=True)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        with io.open(os.path.join(ROOT, ".sd_collector2.log"), "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except OSError:
+        pass
 
 # 키 주입 (fetch_live import 전에)
 _kp = os.path.join(ROOT, ".keys.env.parsed")

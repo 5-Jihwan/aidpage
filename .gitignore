@@ -15,3 +15,4 @@ data/live/er_sample.json
 .keys.env.parsed
 data/ref/sd/
 .sd_collector.log
+.sd_collector2.log

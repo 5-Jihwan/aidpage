@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827k';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827k';
-import { getReports, postReport, flagReport } from './api.js?v=20260827k';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827k';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827m';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827m';
+import { getReports, postReport, flagReport } from './api.js?v=20260827m';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827m';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260827k'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827m'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -906,7 +906,7 @@ function applyTyphoon() {
 /* ---------- 특보 → 직관 연출 (설계 docs/02 §2.5 매핑표) ---------- */
 const FX_PRI = ['지진', '태풍', '호우', '대설', '한파', '폭염', '강풍', '건조', '황사'];
 const FX_KEY = { '지진': 'quake', '태풍': 'typhoon', '호우': 'rain', '대설': 'snow', '한파': 'cold', '폭염': 'heat', '강풍': 'wind', '건조': 'dry', '황사': 'dust' };
-let _fxSig = null;
+let _fxSig = null, _fxDismissed = null;
 function applyAlertFx(ws) {
   const fx = $('#wxFx'), bn = $('#fxBanner'); if (!fx || !bn) return;
   let best = null;
@@ -920,9 +920,15 @@ function applyAlertFx(ws) {
   if (sig === _fxSig) return; _fxSig = sig;
   if (!best) { fx.className = 'wx-fx'; bn.hidden = true; return; }
   fx.className = `wx-fx on fx-${best.k} lv-${best.lv}`;
-  bn.className = `fx-banner lv-${best.lv}`;
-  bn.innerHTML = `<b>${warnName(best.w.type, best.w.level)}</b><span>${t(`todo.alert.${best.k}.${best.lv}`).replace(/^[^—–-]*[—–-]\s*/, '')}</span>`;
-  bn.hidden = false;
+  // 닫은 특보는 다시 띄우지 않는다. 종류·등급이 바뀌면 sig가 달라져 자동으로 다시 뜬다.
+  if (sig === _fxDismissed) bn.hidden = true;
+  else {
+    bn.className = `fx-banner lv-${best.lv}`;
+    bn.innerHTML = `<b>${warnName(best.w.type, best.w.level)}</b><span>${t(`todo.alert.${best.k}.${best.lv}`).replace(/^[^—–-]*[—–-]\s*/, '')}</span>`
+      + `<button type="button" class="fx-x" aria-label="${t('fx.close')}" title="${t('fx.close')}">×</button>`;
+    bn.onclick = e => { if (e.target.closest('.fx-x')) { _fxDismissed = sig; bn.hidden = true; } };
+    bn.hidden = false;
+  }
   if (best.k === 'quake' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const m = $('#map'); m.classList.remove('quake-shake'); void m.offsetWidth; m.classList.add('quake-shake');
   }
@@ -1002,7 +1008,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827k').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827m').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1031,6 +1037,15 @@ function initSize() {
   const applyC = on => { root.classList.toggle('contrast', on); cb.checked = on; };
   applyC(localStorage.getItem(CK) === '1');
   cb.addEventListener('change', () => { localStorage.setItem(CK, cb.checked ? '1' : '0'); applyC(cb.checked); });
+  /* 지도 위 특보 배너 표시/숨김. 꺼도 특보 자체는 '내 동네' 패널 warnCard에 남는다 — 정보를 없애지 않는다. */
+  const fb = $('#btnFxBanner'), FK = 'safepic.fxBanner';
+  const applyFB = on => { root.classList.toggle('no-fxbanner', !on); fb.checked = on; };
+  applyFB(localStorage.getItem(FK) !== '0');
+  fb.addEventListener('change', () => {
+    localStorage.setItem(FK, fb.checked ? '1' : '0'); applyFB(fb.checked);
+    // 다시 켜면 ×로 닫아둔 것도 함께 되살린다 (발효 중인 특보가 있을 때만)
+    if (fb.checked) { _fxDismissed = null; const bn = $('#fxBanner'); if (_fxSig && bn.innerHTML) bn.hidden = false; }
+  });
   if (!saved && !localStorage.getItem('safepic.sizeCoach')) {
     const c = $('#sizeCoach'); c.hidden = false;
     const done = () => { c.hidden = true; localStorage.setItem('safepic.sizeCoach', '1'); };

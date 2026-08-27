@@ -418,7 +418,7 @@ html.big math[display="block"]{font-size:1.35rem}
 /* ---- responsive extras ---- */
 /* coarse pointer (touch): every tappable thing at least 44px */
 @media (pointer:coarse){
-  .btn,.chip,.tab,.children button,.near-item,.opts span,.pill button,.wxsel span,.shgrp-t,.lg-toggle,.icon-btn,.locate,.route-row a,.drawer-link{min-height:44px}
+  .btn,.chip,.tab,.children button,.near-item,.opts span,.pill button,.wxsel span,.shgrp-t,.lg-toggle,.icon-btn,.locate,.route-row a,.drawer-link,.fx-x{min-height:44px}
   .wxsel span,.chip{display:inline-flex;align-items:center}
   .maplibregl-ctrl-group button{width:44px;height:44px}
 }
@@ -549,6 +549,9 @@ button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-
 .quake-shake{animation:fxQuake .6s ease-in-out 1}
 .fx-banner{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:7;max-width:min(520px,calc(100% - 32px));display:flex;gap:10px;align-items:baseline;background:#fff;border:1px solid var(--line);border-left:5px solid var(--warn);border-radius:12px;padding:9px 14px;box-shadow:0 4px 18px rgba(20,32,46,.12);font-size:.92rem}
 .fx-banner.lv-warn{border-left-color:var(--danger)}
+.fx-x{margin-left:auto;align-self:center;border:0;background:none;color:var(--mute);font-size:1.15rem;line-height:1;padding:0 2px;cursor:pointer}
+.fx-x:hover{color:var(--ink)}
+html.no-fxbanner .fx-banner{display:none}
 .fx-banner b{font-family:var(--label);color:var(--ink);white-space:nowrap}
 .fx-banner span{color:var(--text)}
 @keyframes fxShimmer{0%,100%{transform:translateY(0);opacity:.6}50%{transform:translateY(-8px);opacity:1}}

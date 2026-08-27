@@ -88,7 +88,7 @@ function openPopup(lngLat, html) {
 function ensureAll() {
   if (map.getSource('sh-all')) return;
   KINDS.forEach(ensureIcon);
-  map.addSource('sh-all', { type: 'geojson', data: EMPTY_FC, cluster: true, clusterRadius: 22, clusterMaxZoom: 24,
+  map.addSource('sh-all', { type: 'geojson', data: EMPTY_FC, cluster: true, clusterRadius: 22, clusterMaxZoom: 17,
     clusterProperties: { ki: ['min', ['get', 'ki']] } });
   const iconSize = ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05];
   map.addLayer({ id: 'sh-pt', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['!', ['has', 'point_count']],

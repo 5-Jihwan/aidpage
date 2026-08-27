@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827q';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827q';
-import { getReports, postReport, flagReport } from './api.js?v=20260827q';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827q';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827r';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827r';
+import { getReports, postReport, flagReport } from './api.js?v=20260827r';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827r';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260827q'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827r'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -159,14 +159,27 @@ function hideRoadShields() {
 const adminNameField = () => getLang() === 'en' ? ['coalesce', ['get', 'name_en'], ['get', 'name']] : ['get', 'name'];
 const landmarkNameField = () => getLang() === 'en' ? ['get', 'en'] : ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'en'], { 'font-scale': 0.8, 'text-color': '#6b7a90' }];
 /* visible map area (px) after floating UI: left panel / bottom sheet / top-right stack */
+/* 패딩 합이 캔버스보다 크면 MapLibre가 'Map cannot fit within canvas'를 내고
+   cameraForBounds가 undefined를 반환한다. globe 투영에서는 그 undefined의 .center를
+   읽다가 TypeError로 터지고, 호출한 쪽(selectEmd → GPS 등)의 남은 로직이 통째로 죽는다. */
+function clampPad(pad) {
+  if (!map) return pad;
+  const el = map.getContainer(), fit = (a, b, avail) => {
+    const s = (a || 0) + (b || 0), room = Math.max(0, avail - 24);
+    return s > room && s > 0 ? [Math.floor((a || 0) * room / s), Math.floor((b || 0) * room / s)] : [Math.round(a || 0), Math.round(b || 0)];
+  };
+  const [left, right] = fit(pad.left, pad.right, el.clientWidth);
+  const [top, bottom] = fit(pad.top, pad.bottom, el.clientHeight);
+  return { left, right, top, bottom };
+}
 function visiblePadding() {
   const mobile = matchMedia(MQ_MOBILE).matches, p = $('#panel');
   if (mobile) {
     const sheet = p.classList.contains('is-collapsed') ? 72 : p.classList.contains('is-tall') ? innerHeight * 0.9 : innerHeight * 0.5;
-    return { top: 120, bottom: Math.round(sheet) + 12, left: 12, right: 12 };
+    return clampPad({ top: 120, bottom: Math.round(sheet) + 12, left: 12, right: 12 });
   }
   const pw = p.classList.contains('is-collapsed') ? 0 : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 32;
-  return { top: 70, bottom: 40, left: pw, right: 170 };
+  return clampPad({ top: 70, bottom: 40, left: pw, right: 170 });
 }
 /* 🔊 읽어주기 (Web Speech, 키 불필요) */
 let speaking = false;
@@ -230,7 +243,7 @@ function openPopup(lngLat, html, opts = {}) {
     const pad = visiblePadding(), pt = map.project(lngLat), W = map.getContainer().clientWidth, H = map.getContainer().clientHeight;
     const popH = (pop.getElement() && pop.getElement().offsetHeight) || 160;
     const inside = pt.x > pad.left + 20 && pt.x < W - pad.right - 20 && pt.y > pad.top + popH + 10 && pt.y < H - pad.bottom - 10;
-    if (!inside) map.easeTo({ center: lngLat, padding: { ...pad, top: pad.top + popH }, duration: 450 });
+    if (!inside) map.easeTo({ center: lngLat, padding: clampPad({ ...pad, top: pad.top + popH }), duration: 450 });
   }, 280);
   return pop;
 }
@@ -298,7 +311,11 @@ function setLevelFilters() {
 function fitTo(features) {
   if (!features.length) return;
   const b = bboxOf(features), mobile = matchMedia(MQ_MOBILE).matches;
-  map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: mobile ? { top: 150, bottom: innerHeight * 0.52, left: 24, right: 24 } : { top: 90, bottom: 60, left: ($('#panel').classList.contains('is-collapsed') ? 0 : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 60, right: 80 }, duration: 900 });
+  const pad = mobile ? { top: 150, bottom: innerHeight * 0.52, left: 24, right: 24 }
+    : { top: 90, bottom: 60, left: ($('#panel').classList.contains('is-collapsed') ? 0 : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 60, right: 80 };
+  // 카메라 계산이 실패해도 호출한 쪽(GPS·검색·드릴다운)이 중단되면 안 된다.
+  try { map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: clampPad(pad), duration: 900 }); }
+  catch (err) { console.warn('fitTo', err); try { map.flyTo({ center: [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], duration: 600 }); } catch (e2) { /* 지도 없음 */ } }
 }
 
 /* ---------- selection ---------- */
@@ -360,7 +377,9 @@ async function syncGrid() {
   let leg = null;
   if (mapOn) leg = showGrid(state.sgg, gridAttr); else hideGrid();
   // 범례 스팬은 지도 범례와 패널 카드 두 곳에서 쓰므로 한 번만 생성
-  const legSpans = leg ? leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('') : '';
+  const legSpans = !leg ? '' : !leg.breaks.length
+    ? `<span><i style="background:${leg.colors[0]}"></i>${gridFmt(leg.attr, leg.only)}</span>`  // 값이 전부 같은 속성
+    : leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('');
   state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: legSpans } : null;
   renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []);
   const html = `<div class="grid-attrs">${attrs.map(a => `<button type="button" class="chip ${a.id === gridAttr ? 'is-on' : ''}" data-a="${a.id}">${getLang() === 'en' ? a.en : a.ko}</button>`).join('')}</div>` +
@@ -1015,7 +1034,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827q').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827r').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

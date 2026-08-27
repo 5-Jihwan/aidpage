@@ -1,5 +1,5 @@
 // AidPage — H3 grid layer for pilot districts. Shows only attributes that actually have data.
-import { getLang } from './i18n.js?v=20260827q';
+import { getLang } from './i18n.js?v=20260827r';
 export const ATTRS = [
   { id: 'shelter_min_walk', ko: '가까운 대피소 도보(분)', en: 'Walk to shelter (min)', unit: '분', unit_en: 'min', ramp: ['#eef2f8', '#9a7328'] },
   { id: 'slope_mean', ko: '평균 경사', en: 'Mean slope', unit: '°', ramp: ['#eef2f8', '#9a7328'] },
@@ -33,17 +33,33 @@ function ensure() {
   map.on('mouseenter', 'grid-fill', () => map.getCanvas().style.cursor = 'pointer');
   map.on('mouseleave', 'grid-fill', () => map.getCanvas().style.cursor = '');
 }
-function quantiles(vals, n = 5) { const v = vals.filter(x => x != null).sort((a, b) => a - b); if (!v.length) return []; return Array.from({ length: n - 1 }, (_, i) => v[Math.floor((i + 1) * v.length / n)]); }
+/* 색 경계값. step 표현식은 입력이 '엄격히 오름차순'이어야 한다 — 분위수가 겹치면
+   (침수·산사태 이력처럼 값이 0에 몰린 속성) MapLibre가 표현식을 통째로 거부해
+   fill-color가 설정되지 않고 격자가 아예 안 칠해진다. 겹치면 서로 다른 값으로 대체한다. */
+function breaksFor(vals, n = 5) {
+  const v = vals.filter(x => x != null).sort((a, b) => a - b);
+  if (!v.length) return [];
+  const cand = [...new Set(Array.from({ length: n - 1 }, (_, i) => v[Math.floor((i + 1) * v.length / n)]))].sort((a, b) => a - b);
+  if (cand.length >= n - 1) return cand;
+  const d = [...new Set(v)].sort((a, b) => a - b);
+  if (d.length <= 1) return [];
+  const want = Math.min(n - 1, d.length - 1), out = [];
+  for (let i = 1; i <= want; i++) { const x = d[Math.round(i * (d.length - 1) / want)]; if (!out.length || x > out[out.length - 1]) out.push(x); }
+  return out;
+}
 function mix(a, b, t) { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); const A = p(a), B = p(b); return '#' + A.map((x, i) => Math.round(x + (B[i] - x) * t).toString(16).padStart(2, '0')).join(''); }
 export function show(sgg, attrId) {
   const fc = cache.get(sgg); if (!fc || !map) return null; ensure(); current = sgg; attr = attrId;
   map.getSource('grid').setData(fc);
   const a = ATTRS.find(x => x.id === attrId); if (!a) { map.setPaintProperty('grid-fill', 'fill-color', '#c9d2e0'); return null; }
-  const qs = quantiles(fc.features.map(f => f.properties[attrId]));
-  const colors = [0, .25, .5, .75, 1].map(t => mix(a.ramp[0], a.ramp[1], t));
-  const expr = ['case', ['==', ['get', attrId], null], '#d9dee7', ['step', ['to-number', ['get', attrId]], colors[0], ...qs.flatMap((q, i) => [q, colors[i + 1]])]];
-  map.setPaintProperty('grid-fill', 'fill-color', expr);
-  return { attr: a, breaks: qs, colors };
+  const breaks = breaksFor(fc.features.map(f => f.properties[attrId]));
+  const n = breaks.length + 1;
+  const colors = Array.from({ length: n }, (_, i) => mix(a.ramp[0], a.ramp[1], n === 1 ? 1 : i / (n - 1)));
+  // 경계가 없으면(값이 전부 같음) step을 쓸 수 없다 — 단색으로 칠한다.
+  const paint = breaks.length ? ['step', ['to-number', ['get', attrId]], colors[0], ...breaks.flatMap((q, i) => [q, colors[i + 1]])] : colors[0];
+  map.setPaintProperty('grid-fill', 'fill-color', ['case', ['==', ['get', attrId], null], '#d9dee7', paint]);
+  const only = breaks.length ? null : (fc.features.map(f => f.properties[attrId]).find(x => x != null) ?? null);
+  return { attr: a, breaks, colors, only };
 }
 export function hide() { if (map && map.getSource('grid')) map.getSource('grid').setData({ type: 'FeatureCollection', features: [] }); current = null; }
 export function fmt(a, v) { if (v == null) return '—'; const x = a.pct ? v * 100 : v; const u = getLang() === 'en' ? (a.unit_en || a.unit) : a.unit; return (Math.round(x * 10) / 10).toLocaleString() + (u ? ' ' + u : ''); }

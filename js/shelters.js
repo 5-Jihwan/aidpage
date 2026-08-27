@@ -102,34 +102,55 @@ function ensureAll() {
     map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
     map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
   }
-  map.on('click', 'sh-pt', e => openPopup(e.lngLat, detailHTML(e.features[0].properties, e.lngLat)));
+  map.on('click', 'sh-pt', e => { unspiderfy(); openPopup(e.lngLat, detailHTML(e.features[0].properties, e.lngLat)); });
   map.on('click', 'sh-cluster', async e => {
     const f = e.features[0], src = map.getSource('sh-all');
     const n = f.properties.point_count;
     try {
-      if (n > 12) { // 너무 많으면 그 지점으로 줌인 (진짜 같은 좌표 무더기는 12 이하가 대부분)
+      if (n > 10) { // 너무 많으면 그 지점으로 줌인 (같은 좌표 무더기는 대개 10 이하)
         const z = await src.getClusterExpansionZoom(f.properties.cluster_id);
         map.easeTo({ center: e.lngLat, zoom: Math.min(z, 17.5) });
         return;
       }
-      const leaves = await src.getClusterLeaves(f.properties.cluster_id, 12, 0);
-      const en = document.documentElement.lang === 'en';
-      const box = document.createElement('div');
-      box.innerHTML = `<b>${en ? `${n} facilities here` : `이 자리의 시설 ${n}곳`}</b>`;
-      leaves.forEach(lf => {
-        const p = lf.properties, k = KINDS.find(x => x.id === p.kind) || KINDS[0];
-        const row = document.createElement('div');
-        row.className = 'shpop-row';
-        row.innerHTML = `${k.icon} <b>${p.name || (en ? k.en : k.ko)}</b> <small>${en ? k.en : k.ko}</small>`;
-        row.addEventListener('click', () => { box.innerHTML = detailHTML(p, e.lngLat); });
-        box.appendChild(row);
-      });
-      openPopup(e.lngLat, box);
+      const leaves = await src.getClusterLeaves(f.properties.cluster_id, 10, 0);
+      spiderfy(e.lngLat, leaves);
     } catch { /* cluster gone (zoom change) */ }
   });
 }
+/* ── 스파이더파이: 겹친 아이콘을 부챗살로 펼쳐 무엇이 있는지 보여준다 ── */
+let _spider = null;
+function unspiderfy() { if (!_spider) return; _spider.forEach(m => m.remove()); _spider = null; }
+function spiderfy(lngLat, leaves) {
+  unspiderfy();
+  const n = leaves.length, R = n <= 4 ? 40 : n <= 7 ? 52 : 64;
+  _spider = leaves.map((lf, i) => {
+    const ang = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const k = KINDS.find(x => x.id === lf.properties.kind) || KINDS[0];
+    const el = document.createElement('div');
+    el.className = 'spider-ic';
+    el.style.borderColor = k.color;
+    if (k.hazard) el.style.background = '#fdf1e4';
+    el.textContent = k.icon;
+    el.title = lf.properties.name || (document.documentElement.lang === 'en' ? k.en : k.ko);
+    el.style.animationDelay = `${i * 35}ms`;
+    el.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const c = lf.geometry && lf.geometry.coordinates;
+      openPopup(c ? { lng: c[0], lat: c[1] } : lngLat, detailHTML(lf.properties, lngLat));
+    });
+    return new maplibregl.Marker({ element: el, offset: [Math.cos(ang) * R, Math.sin(ang) * R] })
+      .setLngLat(lngLat).addTo(map);
+  });
+  // 다른 곳을 누르거나 지도를 움직이면 접힘 (이번 클릭이 끝난 뒤에 등록)
+  setTimeout(() => {
+    map.once('click', unspiderfy);
+    map.once('zoomstart', unspiderfy);
+    map.once('dragstart', unspiderfy);
+  }, 0);
+}
 export async function setActive(kinds, sido) {
   activeKinds = new Set(kinds); currentSido = sido;
+  unspiderfy();
   ensureAll();
   const feats = [];
   for (const k of KINDS) {

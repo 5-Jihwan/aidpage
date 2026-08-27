@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260826n';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260826n';
-import { getReports, postReport, flagReport } from './api.js?v=20260826n';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260826n';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827a';
+import { getReports, postReport, flagReport } from './api.js?v=20260827a';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260826n'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -374,8 +374,15 @@ function renderPrepare() {
     const act = r.act(v);
     return `<div class="prep-row"><div class="prep-head"><span>${t(r.label)}</span><b>${r.fmt(v)}</b></div>${act ? `<div class="prep-act">→ ${t(act)}</div>` : ''}</div>`;
   }).join('');
+  // 자연재해위험개선지구 (구 단위 공식 지정 현황 — 전국 3,330곳 요약)
+  if (state._rz === undefined) {
+    state._rz = null;
+    fetch('data/ref/riskzone_by_sgg.json').then(r => r.ok ? r.json() : null).then(j => { state._rz = j; renderPrepare(); }).catch(() => {});
+  }
+  const rz = state._rz && state._rz.by_sgg && state._rz.by_sgg[String(state.sgg)];
+  const rzHTML = rz ? `<div class="prep-row"><div class="prep-head"><span>${t('prep.r.rz')}</span><b>${t('prep.v.rz', { n: rz.n })}</b></div><div class="prep-act">→ ${rz.flood ? t('prep.a.rz.flood', { m: rz.flood }) : t('prep.a.rz')}</div></div>` : '';
   box.hidden = false;
-  box.innerHTML = `<h3>${t('prep.title')}</h3><div class="cmp-head"><select class="cmp-sel">${names.map(n => `<option value="${n}" ${n === sel ? 'selected' : ''}>${emdDisp(n)}</option>`).join('')}</select></div>${rows}<div class="fine">${t('prep.src')}<br>${t('prob.lead')} ${probText(100)} · ${probText(30)}</div>`;
+  box.innerHTML = `<h3>${t('prep.title')}</h3><div class="cmp-head"><select class="cmp-sel">${names.map(n => `<option value="${n}" ${n === sel ? 'selected' : ''}>${emdDisp(n)}</option>`).join('')}</select></div>${rows}${rzHTML}<div class="fine">${t('prep.src')}<br>${t('prob.lead')} ${probText(100)} · ${probText(30)}</div>`;
   const s = $('.cmp-sel', box); if (s) s.addEventListener('change', () => { sessionStorage.setItem('safepic.prep', s.value); renderPrepare(); });
 }
 function initGridClick() {
@@ -962,7 +969,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260826n').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827a').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

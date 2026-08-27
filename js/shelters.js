@@ -53,11 +53,25 @@ async function load(kind, sido) {
   else fc = await getJSON(`data/shelters/${kind}.geojson`, true);
   cache.set(key, fc); return fc;
 }
+/* 시설 아이콘: 흰 원 + 시설색 링 + 이모지 (색점만으로는 종류 구분이 어렵다는 피드백 반영) */
+function ensureIcon(k) {
+  const name = 'sh-ic-' + k.id;
+  if (map.hasImage(name)) return name;
+  const c = document.createElement('canvas'); c.width = c.height = 60; const x = c.getContext('2d');
+  x.beginPath(); x.arc(30, 30, 26, 0, Math.PI * 2);
+  x.fillStyle = k.hazard ? '#fdf1e4' : '#fff'; x.fill();
+  x.lineWidth = 4; x.strokeStyle = k.color; x.stroke();
+  x.font = '28px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(k.icon, 30, 33);
+  map.addImage(name, x.getImageData(0, 0, 60, 60), { pixelRatio: 2 });
+  return name;
+}
 function ensureLayer(kind) {
   const k = KINDS.find(x => x.id === kind); const src = 'sh-' + kind;
   if (map.getSource(src)) return;
   map.addSource(src, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-  map.addLayer({ id: src + '-dot', type: 'circle', source: src, minzoom: 9, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3, 13, 6, 16, 9], 'circle-color': k.color, 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.2, 'circle-opacity': 0.9 } });
+  map.addLayer({ id: src + '-dot', type: 'symbol', source: src, minzoom: 9, layout: { 'icon-image': ensureIcon(k), 'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05], 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
   map.addLayer({ id: src + '-label', type: 'symbol', source: src, minzoom: 13.5, layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.2 } });
   map.on('mouseenter', src + '-dot', () => map.getCanvas().style.cursor = 'pointer');
   map.on('mouseleave', src + '-dot', () => map.getCanvas().style.cursor = '');

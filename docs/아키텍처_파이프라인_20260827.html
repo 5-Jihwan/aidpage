@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AidPage · 파이프라인 아키텍처 3D — 타임라인 (2026-08-27)</title>
+<style>
+  :root{
+    --bg:#eef2f7; --ink:#1c2733; --dim:#64748b; --line:#d7dee8; --panel:#ffffff;
+    --blue:#1a5fc4;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:"Pretendard","Malgun Gothic","Segoe UI",system-ui,sans-serif;overflow:hidden}
+  #app{position:fixed;inset:0} canvas{display:block}
+  #title{position:fixed;top:20px;left:50%;transform:translateX(-50%);text-align:center;z-index:6;pointer-events:none}
+  #title h1{margin:0;font-size:17px;font-weight:700;color:#15324d}
+  #title .sub{font-size:11.5px;color:var(--dim);letter-spacing:.05em;margin-top:5px}
+  #views{position:fixed;top:18px;left:22px;z-index:7;display:flex;gap:8px;flex-wrap:wrap;max-width:62vw}
+  .vbtn{background:var(--panel);border:1px solid var(--line);color:var(--dim);
+    padding:8px 14px;font-size:12px;border-radius:9px;cursor:pointer;transition:.16s;
+    box-shadow:0 2px 8px rgba(20,40,70,.06)}
+  .vbtn:hover{color:var(--ink);border-color:var(--blue)}
+  .vbtn.on{color:#fff;background:#15324d;border-color:#15324d;font-weight:700}
+  #panel{position:fixed;top:72px;right:18px;width:340px;max-height:calc(100% - 205px);overflow:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px 18px 20px;
+    z-index:7;box-shadow:0 10px 40px rgba(20,40,70,.12);transition:.22s;opacity:0;transform:translateX(12px)}
+  #panel.show{opacity:1;transform:none}
+  #panel .ptag{display:inline-block;font-size:10px;letter-spacing:.1em;padding:3px 9px;border-radius:20px;
+    margin-bottom:10px;font-weight:700;color:#fff}
+  #panel h2{margin:2px 0;font-size:18px}
+  #panel .psub{color:var(--dim);font-size:12px;margin-bottom:13px}
+  #panel .anim{width:100%;height:122px;background:#f7fafc;border:1px solid var(--line);
+    border-radius:10px;margin-bottom:10px;overflow:hidden}
+  #panel .anim svg{width:100%;height:100%;display:block}
+  #panel .easy{font-size:12.5px;line-height:1.62;color:#1c2733;background:#eef3f8;
+    border-radius:9px;padding:10px 12px;margin-bottom:4px}
+  #panel hr{border:0;border-top:1px solid var(--line);margin:12px 0 10px}
+  #panel ul{margin:0;padding-left:16px}
+  #panel li{font-size:12.5px;line-height:1.75;color:#3a4654;margin-bottom:3px}
+  #panel .tech{margin-top:13px;display:flex;flex-wrap:wrap;gap:6px}
+  #panel .chip{font-size:10.5px;color:#15324d;background:#eef3f8;border:1px solid var(--line);
+    border-radius:6px;padding:3px 8px}
+  #panel .metric{margin-top:13px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #panel .m{background:#f6faf7;border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+  #panel .m b{display:block;font-size:15px;color:#15324d}
+  #panel .m span{font-size:10.5px;color:var(--dim)}
+  #timeline{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:7;
+    background:var(--panel);border:1px solid var(--line);border-radius:13px;
+    padding:10px 12px 9px;box-shadow:0 6px 22px rgba(20,40,70,.1);max-width:92vw}
+  #tchips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+  .tchip{border:1px solid var(--line);background:#f7fafc;border-radius:9px;color:#44515f;
+    padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;text-align:center}
+  .tchip.on{background:#15324d;border-color:#15324d;color:#fff}
+  .tchip .d{display:block;font-size:8.5px;font-weight:500;opacity:.75;letter-spacing:.02em}
+  #tcap{font-size:11.5px;color:#334;margin-top:7px;min-height:15px;text-align:center}
+  #tcap b{color:#1a5fc4}
+  #legend{position:fixed;bottom:16px;left:22px;z-index:6;font-size:10.5px;color:#44515f;
+    background:var(--panel);padding:10px 12px;border:1px solid var(--line);
+    border-radius:10px;box-shadow:0 4px 14px rgba(20,40,70,.07);display:flex;gap:16px}
+  #legend .col{display:flex;flex-direction:column;gap:4px}
+  #legend .h{font-weight:800;color:#15324d;font-size:10px;letter-spacing:.06em}
+  #legend .row{display:flex;align-items:center;gap:6px}
+  #legend i{width:9px;height:9px;border-radius:3px;display:inline-block}
+  #legend em{font-style:normal;width:9px;text-align:center;font-weight:800}
+  .nlabel{font-size:12px;color:#1c2733;pointer-events:none;white-space:nowrap;text-align:center;
+    font-weight:600;text-shadow:0 1px 2px rgba(255,255,255,.95)}
+  .nlabel .ns{display:block;font-size:9px;color:var(--dim);font-weight:500;letter-spacing:.07em}
+  .nlabel.dim{opacity:.3}
+  #slidecard{position:fixed;left:18px;bottom:18px;z-index:9;
+    width:min(560px,64vw);background:#fff;border:1px solid #d7dee8;border-left:6px solid #1a5fc4;
+    border-radius:10px;box-shadow:0 10px 30px rgba(15,30,50,.28);padding:14px 20px 12px;display:none}
+  body.preso #slidecard{display:block}
+  body.preso #timeline,body.preso #views,body.preso #hint{display:none}
+  #slidecard .sk{font-size:11px;font-weight:800;color:#9a7328;letter-spacing:.14em}
+  #slidecard .st{font-size:19px;font-weight:800;color:#15324d;margin:3px 0 7px}
+  #slidecard ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.6;color:#33414f}
+  #slidecard ul b{color:#1a5fc4}
+  #slidecard .snav{position:absolute;right:12px;top:10px;display:flex;gap:6px;align-items:center;
+    font-size:11.5px;color:#8ea0b5}
+  #slidecard .snav button{border:1px solid #cbd5e1;background:#f6f8fb;border-radius:6px;
+    padding:2px 11px;font-size:13px;cursor:pointer;color:#33414f}
+  #slidecard .snav button:hover{background:#e9eef5}
+  #slidecard .hintk{margin-top:7px;font-size:10.5px;color:#9aa9ba}
+  #swdiv{position:fixed;top:0;bottom:0;left:50vw;width:0;z-index:8;display:none}
+  body.swmode #swdiv{display:block}
+  #swdiv .bar{position:absolute;top:0;bottom:0;left:-1.5px;width:3px;background:#15324d;
+    box-shadow:0 0 14px rgba(20,50,80,.55)}
+  #swdiv .grip{position:absolute;top:50%;left:-23px;width:46px;height:46px;border-radius:50%;
+    background:#15324d;color:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:800;cursor:ew-resize;transform:translateY(-50%);font-size:15px;user-select:none;
+    box-shadow:0 4px 14px rgba(20,50,80,.4);touch-action:none}
+  #swtagL,#swtagR{position:fixed;top:66px;z-index:8;display:none;font-weight:800;font-size:13px;
+    padding:5px 15px;border-radius:18px;background:#ffffffe6;border:1.5px solid}
+  body.swmode #swtagL{display:block;left:16px;color:#1a5fc4;border-color:#1a5fc466}
+  body.swmode #swtagR{display:block;right:16px;color:#5b7391;border-color:#5b739166}
+  #hint{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:6;font-size:10.5px;
+    color:var(--dim);pointer-events:none}
+  @media (max-width:640px){
+    #panel{top:auto;bottom:96px;left:0;right:0;width:auto;max-height:56%;
+      border-radius:16px 16px 0 0;padding:12px 15px 16px;transform:translateY(18px)}
+    #panel.show{transform:none}
+    #panel .anim{height:96px} #panel h2{font-size:16px}
+    #title,#legend,#hint{display:none}
+    #views{top:10px;left:50%;transform:translateX(-50%);gap:6px;max-width:96vw;justify-content:center}
+    .vbtn{padding:7px 10px;font-size:11px}
+    #timeline{bottom:8px;padding:8px 8px 7px}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="title"><h1>AidPage 파이프라인 아키텍처 3D — 데이터가 흐르는 길</h1>
+<div class="sub">아래 날짜를 터치하면 그날의 아키텍처로 이동 · 노드 클릭 = 상세 설명 · 오프라인 구동</div></div>
+<div id="views">
+  <button class="vbtn on" data-view="all">전체 지도</button>
+  <button class="vbtn" data-view="pipe">① 데이터 파이프라인</button>
+  <button class="vbtn" data-view="front">② 사용자 화면</button>
+  <button class="vbtn" data-view="plan">③ 다음 로드맵</button>
+  <button class="vbtn" data-view="sw">👁 화면 / 엔진</button>
+  <button class="vbtn" id="presoBtn" style="border-color:#1a5fc4;color:#1a5fc4;font-weight:800">▶ 발표 모드</button>
+</div>
+<div id="swdiv"><div class="bar"></div><div class="grip">◀▶</div></div>
+<div id="swtagL">화면 — 사용자가 직접 만나는 것</div>
+<div id="swtagR">엔진 — 데이터를 만드는 뒷단</div>
+<div id="slidecard">
+  <div class="snav"><span id="spos"></span><button id="sprev">‹</button><button id="snext">›</button><button id="sexit">✕</button></div>
+  <div class="sk" id="ssk"></div><div class="st" id="sst"></div><ul id="sul"></ul>
+  <div class="hintk">←/→ 또는 ‹ › 로 넘김 · Esc = 자유 탐색으로 · 노드를 눌러 상세 설명도 볼 수 있어요</div>
+</div>
+<div id="hint">색 = 계층 · 링/표식 = 상태 · 전부 공개 데이터·공개 코드</div>
+<div id="panel"></div>
+<div id="legend">
+  <div class="col"><span class="h">색 = 계층</span>
+    <div class="row"><i style="background:#0891b2"></i> 외부 데이터원</div>
+    <div class="row"><i style="background:#3f8f2e"></i> 수집기</div>
+    <div class="row"><i style="background:#2563eb"></i> 데이터 자산</div>
+  </div>
+  <div class="col"><span class="h">&nbsp;</span>
+    <div class="row"><i style="background:#7c3aed"></i> 빌드 파이프라인</div>
+    <div class="row"><i style="background:#b45309"></i> 사용자 화면</div>
+    <div class="row"><i style="background:#0d9488"></i> 배포·인프라</div>
+  </div>
+  <div class="col"><span class="h">표식 = 상태</span>
+    <div class="row"><em style="color:#94a3b8">◌</em> 당시 버전(교체됨)</div>
+    <div class="row"><em style="color:#b45309">●</em> 변경 <em style="color:#db2777">●</em> 신규</div>
+    <div class="row"><em style="color:#7c3aed">◐</em> 승인 대기 <em style="color:#0d9488">◇</em> 다음 착수</div>
+    <div class="row"><em style="color:#5b7391">○</em> 구상</div>
+  </div>
+  <div class="col"><span class="h">화살표 = 경로</span>
+    <div class="row"><i style="background:#35506b"></i> 주 데이터 흐름 (실선)</div>
+    <div class="row"><i style="background:#7c3aed"></i> 빌드·배치 (점선)</div>
+    <div class="row"><i style="background:#5b7391"></i> 예정 연결 (희미)</div>
+  </div>
+</div>
+<div id="timeline">
+  <div id="tchips"></div>
+  <div id="tcap"></div>
+</div>
+
+<script src="lib/three.min.js"></script>
+<script src="lib/OrbitControls.js"></script>
+<script src="lib/CSS2DRenderer.js"></script>
+<script>
+// ═══ 계층(색) · 상태(표식) ══════════════════════════════════════
+const STAGE={
+  src:'#0891b2', collect:'#3f8f2e', data:'#2563eb', build:'#7c3aed',
+  front:'#b45309', infra:'#0d9488',
+};
+const STATUS={
+  base:  {tag:'기존',                 dot:'',  ring:'#94a3b8'},
+  v1:    {tag:'당시 버전 — 이후 교체됨', dot:'◌', ring:'#94a3b8'},
+  amber: {tag:'변경',                 dot:'●', ring:'#b45309'},
+  pink:  {tag:'신규',                 dot:'●', ring:'#db2777'},
+  violet:{tag:'구현 완료 · 승인 대기',  dot:'◐', ring:'#7c3aed'},
+  teal:  {tag:'재료 확보 · 다음 착수',  dot:'◇', ring:'#0d9488'},
+  ghost: {tag:'구상',                 dot:'○', ring:'#5b7391'},
+};
+// ═══ 타임라인 ═══════════════════════════════════════════════════
+const DATES=['8/21','8/23','8/24','8/25','8/26','8/27','다음'];
+const DCAP={
+ '8/21':'<b>기점</b> — 이름 확정 · 지구본 지도 · 지원 규칙 51 · 관악 격자 파일럿',
+ '8/23':'<b>대확장</b> — 시설 18종(17만 지점) · UX 17종 · PWA · Cloudflare 제보',
+ '8/24':'<b>첫 실시간</b> — 기상청 허브 관측·지진·태풍 수집 개통 · 경기천년체',
+ '8/25':'<b>연출·법령 준비</b> — 24h 타임라인 · 특보 애니메이션 · 조문 펼침 · 재난문자 카드',
+ '8/26':'<b>서울 완성 + 개명</b> — 25개 구 격자 9,736셀 · SafePic→AidPage · 대비 프레임 전환',
+ '8/27':'<b>오늘</b> — SD 실시간 개통(특보·재난문자) · 홈PC 수집기 · 전국 정적 55MB · 아이콘 마커',
+ '다음':'<b>다음</b> — 전국 격자 · 법령 조문 가동 · 뉴스 연표 · 전문가 검증',
+};
+const di=s=>DATES.indexOf(s);
+
+// ═══ 노드 ═══════════════════════════════════════════════════════
+const NODES=[
+ // ── 외부 데이터원 (z=7) ──
+ {id:'opendata',grp:'pipe',stage:'src',st:'base',since:'8/21',t:'공공데이터 파일',s:'KEYLESS SOURCES',pos:[-27,0,7],anim:'files',
+  easy:'키 없이 받는 공개 자료들 — <b>행정경계, 대피소 17만, DEM 지형, 주민등록 인구, 서울 침수흔적도</b>. AidPage 뼈대의 대부분이 여기서 나와요.',
+  li:['행정동 경계(admdongkor) · 대피소·시설(국민안전24 등)','Copernicus DEM(공개 S3) · 주민등록(행안부 키리스 POST)','서울 침수흔적도 2010~2025(서울열린데이터 키리스)'],
+  tech:['admdongkor','GLO-30','OA-15636'],m:[['시설 지점','17만+'],['키 필요','0']]},
+ {id:'kma',grp:'pipe',stage:'src',st:'base',since:'8/24',t:'기상청 API허브',s:'KMA HUB',pos:[-18,0,7],
+  easy:'지상관측(ASOS)·지진·태풍이 열려 있는 실시간 창구. 단기예보·특보는 이쪽 경로가 막혀 있다가 <b>SD 플랫폼으로 우회 해결</b>됐어요.',
+  li:['ASOS 시간관측 → 시도 대표 날씨 폴백','지진통보(규모 3+ 자동 강조) · 태풍 경로/반경'],
+  tech:['apihub.kma.go.kr'],m:[['열린 API','3종'],['주기','30분']]},
+ {id:'sd',grp:'pipe',stage:'src',st:'pink',since:'8/27',t:'재난안전데이터 플랫폼',s:'SAFETYDATA × 13',pos:[-9,0,7],anim:'lock',
+  easy:'특보·재난문자·침수흔적도(전국)를 주는 핵심 플랫폼. 단, <b>등록한 IP에서만 호출 허용</b>이라 GitHub 서버는 영원히 불가 — 홈 PC 수집기가 태어난 이유예요.',
+  li:['13개 데이터셋 승인 (데이터셋별 서비스키)','특보통보문 22,043건 · 재난문자 61,697건 · 침수 38,003건','resultCode 32 = 미등록 IP — 집·학교 IP 등록으로 대응'],
+  tech:['DSSP-IF-*','serviceKey×13'],m:[['승인','13종'],['IP 제한','있음']]},
+ {id:'egen',grp:'pipe',stage:'src',st:'base',since:'8/23',t:'E-Gen 응급의료',s:'NEMC',pos:[1,0,7],
+  easy:'지금 <b>가용 병상이 있는 응급실</b>을 하루 3회 받아와요.',
+  li:['구별 실시간 가용병상·중환자 병상','10시간 넘은 데이터엔 ⚠ 표시'],tech:['LIVE_ER_HOURS']},
+ {id:'law',grp:'pipe',stage:'src',st:'violet',since:'8/25',t:'국가법령정보',s:'LAW API',pos:[10,0,7],
+  easy:'규칙 51개가 인용하는 <b>조문·별표 원문</b>을 가져올 창구. 신청 완료, <b>승인 대기</b> — 열리면 개정 감지까지 자동으로 돌아요.',
+  li:['조문 펼침 UI·수집 스크립트·개정 감지 로직 이미 구현','승인되면 규칙 51개에 조문 번호 채우기(S3)가 본작업'],
+  tech:['LAW_INFORM_KEY','fetch_daily.py']},
+ // ── 수집기 (z=2) ──
+ {id:'actions',grp:'pipe',stage:'collect',st:'base',since:'8/24',t:'GitHub Actions',s:'live.yml · 30분',pos:[-22,0,2],anim:'pump',
+  easy:'IP 제한이 없는 데이터(날씨·지진·태풍·응급실·미세먼지)를 <b>30분마다 클라우드에서</b> 수집해 저장소에 커밋해요.',
+  li:['30분 cron + 경보 시 10분 전환 힌트(.hot)','호출 예산(LIVE_MAX_CALLS)으로 폭주 방지','키는 GitHub Secrets — 코드에 없음'],
+  tech:['live.yml','fetch_live.py'],m:[['주기','30분'],['키 보관','Secrets']]},
+ {id:'homepc',grp:'pipe',stage:'collect',st:'pink',since:'8/27',t:'홈 PC 수집기',s:'작업 스케줄러 · 30분',pos:[-12,0,2],anim:'split2',
+  easy:'IP 제한이 있는 SD 데이터(특보·예비특보·재난문자·산사태)만 <b>집 컴퓨터가 30분마다</b> 수집해 푸시. 창 없이 조용히 돌고, 등록 안 된 망에선 조용히 건너뛰어요.',
+  li:['SD 4개 섹션만 병합 — 나머지는 Actions 담당(이중 구조)','실패 시 신선한 기존 데이터를 덮지 않음(보호 로직)','함정 3개를 넘었음: 배터리 차단·기간 형식·로그 파일 점유'],
+  tech:['fetch_sd_live.py','schtasks','pythonw'],m:[['분담','SD 4섹션'],['창 표시','없음']]},
+ {id:'batch',grp:'pipe',stage:'collect',st:'pink',since:'8/27',t:'정적 배치 다운로더',s:'fetch_sd_batch',pos:[-2,0,2],
+  easy:'침수흔적도(전국)처럼 <b>한 번만 받으면 되는 큰 데이터</b>를 페이지 단위로 전량 수신. 끊겨도 이어받기가 돼요.',
+  li:['8종 55MB 확보: 침수 3종·재해위험지구 2종·산사태 이력 등','totalCount 기반 페이징 + meta 파일로 재개'],
+  tech:['jsonl','resume'],m:[['확보','55MB'],['침수 행','38,003']]},
+ {id:'daily',grp:'pipe',stage:'collect',st:'violet',since:'8/25',t:'일 배치',s:'daily.yml',pos:[8,0,2],
+  easy:'법령 본문·개정 감지를 <b>새벽 4시에 하루 한 번</b> 돌 예정. 키 승인만 기다리는 중.',
+  li:['LAW_OC 없으면 아무 것도 건드리지 않는 무해 설계'],tech:['daily.yml']},
+ // ── 데이터 자산 (z=-3) ──
+ {id:'live',grp:'pipe',stage:'data',st:'amber',since:'8/24',t:'실시간 데이터',s:'data/live/*.json',pos:[-24,0,-3],
+  easy:'특보·재난문자·날씨·지진·태풍·응급실이 담기는 <b>살아있는 파일들</b>. 오늘부터 진짜 특보(폭염·풍랑)와 재난문자 127건이 흐르고 있어요.',
+  li:['특보는 "o 특보명 : 지역" 원문을 파서로 해석','해상 특보(먼바다)는 육지에 매칭하지 않음 — 8/27 오탐 수정'],
+  tech:['alerts.json','weather.json'],m:[['재난문자','127건/24h'],['발효 특보','실데이터']]},
+ {id:'grid',grp:'pipe',stage:'data',st:'pink',since:'8/26',t:'서울 격자',s:'H3 res9 · 25개 구',pos:[-14,0,-3],anim:'hex',
+  easy:'서울 전역을 <b>벌집(육각형) 9,736칸</b>으로 나눠 침수 이력·경사·인구·대피소 도보를 칸마다 담았어요. 육각형인 이유: 이웃 6칸이 전부 등거리라 거리 계산이 왜곡되지 않아서.',
+  li:['침수 이력 셀 4,156(2022 대침수 반영) · 도보시간 전량','속성만 추가하면 벌집 히트맵·범례·대비 카드가 자동 생성','전국 확장 재료(침수 38k) 확보 — 빌드만 남음'],
+  tech:['H3 res9','build_grid_seoul.py'],m:[['셀','9,736'],['침수 셀','4,156']]},
+ {id:'shelters',grp:'pipe',stage:'data',st:'base',since:'8/23',t:'시설 18종',s:'17만 지점',pos:[-4,0,-3],
+  easy:'대피소·쉼터·응급실·약국 등 <b>전국 17만 지점</b>. 군 시설은 데이터에서도 지도에서도 제외해요.',
+  li:['시도별 분할 파일 — 필요한 지역만 다운로드','위험지점(급경사·산불이력·지하차도)은 별도 표식'],
+  tech:['data/shelters/'],m:[['지점','17만+'],['종류','18']]},
+ {id:'rules',grp:'pipe',stage:'data',st:'base',since:'8/21',t:'지원 규칙',s:'51 RULES',pos:[6,0,-3],anim:'rulescan',
+  easy:'재난지원금·감면·보험을 <b>조건 → 금액 → 근거 조문 → 기한</b>으로 구조화한 51개 규칙. AidPage의 심장이에요.',
+  li:['확인 수준 표기: 원문 32 · 보도 17 · 추정 8','영어 오버레이(en.json) — 규칙 추가 시 병행 필수','테스트 16개가 스키마·계산을 지킴'],
+  tech:['rules/*.json','test_rules.mjs'],m:[['규칙','51'],['원문 확인','32']]},
+ {id:'adminen',grp:'pipe',stage:'data',st:'amber',since:'8/26',t:'행정경계 + 로마자',s:'3,830 NAMES',pos:[16,0,-3],
+  easy:'시도·시군구·읍면동 경계에 <b>로마자 이름</b>까지. 비음화·유음화(신림→Sillim)를 지키는 변환기를 직접 구현했어요.',
+  li:['기성 라이브러리는 음운규칙 미지원이라 자체 구현+검증 내장','영어 모드 검색·라벨·비교가 전부 이걸 씀'],
+  tech:['build_admin_en.py','RR 표기법'],m:[['이름','3,830'],['검증','selftest']]},
+ // ── 빌드 파이프라인 (z=-8) ──
+ {id:'buildgrid',grp:'pipe',stage:'build',st:'pink',since:'8/26',t:'격자 빌더',s:'경계+DEM+침수+인구',pos:[-19,0,-8],anim:'merge',
+  easy:'출처가 다른 4가지(경계·지형·침수·인구)를 <b>벌집 한 칸 단위로 포개는</b> 조립 라인. 서울 25구를 에러 0으로 통과했어요.',
+  li:['DEM 동서 타일 병합 → 셀별 경사·고도 샘플링','침수 폴리곤은 공간 인덱스로 셀 교차 판정','구별 인구는 키리스 POST 3종 표'],
+  tech:['geopandas','rasterio','STRtree']},
+ {id:'walk',grp:'pipe',stage:'build',st:'amber',since:'8/26',t:'대피소 도보 계산',s:'67m/분',pos:[-8,0,-8],
+  easy:'칸마다 <b>가장 가까운 민방위 대피소까지 도보 몇 분</b>인지 계산해 넣어요. 사이트의 도보 표기와 같은 규약.',
+  li:['서울 중앙값 5분 · 최대 49분(관악산 능선)'],tech:['compute_shelter_walk.py']},
+ {id:'ogcard',grp:'pipe',stage:'build',st:'amber',since:'8/26',t:'브랜드 카드 렌더',s:'OG/홍보 이미지',pos:[2,0,-8],
+  easy:'공유 썸네일(OG)과 홍보 카드를 <b>사이트 서체·팔레트 그대로</b> HTML→스크린샷으로 뽑는 소공정.',
+  li:['og-card.html · og-card-problem.html'],tech:['headless Edge']},
+ // ── 사용자 화면 (z=-17.5) ──
+ {id:'map3',grp:'front',stage:'front',st:'base',since:'8/21',t:'지구본 지도',s:'MAPLIBRE GLOBE',pos:[-24,0,-17.5],
+  easy:'지구본에서 대한민국 → 시도 → 시군구 → 동으로 <b>파고드는</b> 입구. 동해·독도 표기는 항상 고정.',
+  li:['날씨 색면 라디오 · 시설 아이콘 마커(8/27 이모지화)','군사시설 명칭은 바탕지도 라벨에서도 마스킹'],
+  tech:['MapLibre 5','OpenFreeMap'],m:[['라벨','한/영 전환'],['군시설명','비표시']]},
+ {id:'fx',grp:'front',stage:'front',st:'amber',since:'8/25',t:'특보 연출 + 오늘 할 일',s:'ALERT FX',pos:[-14,0,-17.5],anim:'warn',
+  easy:'발효 특보를 <b>직관 연출</b>(호우 빗줄기·폭염 열기·지진 흔들림)과 행동 문구로. 8/27 실특보 개통으로 실전 가동 — 폭염 줄무늬가 결함처럼 보여 부드러운 열기로 즉일 교체.',
+  li:['특보 종류별 대피소 레이어 자동 ON','reduced-motion 존중 · 우리집 프로필로 문구 맞춤'],
+  tech:['#wxFx','ALERT_MAP'],m:[['연출','10종'],['가동','8/27~']]},
+ {id:'finder',grp:'front',stage:'front',st:'base',since:'8/21',t:'지원 찾기',s:'5문항 → 결과 한 장',pos:[-4,0,-17.5],
+  easy:'상황 5개만 고르면 <b>받을 수 있는 지원·기한·서류·절차</b>가 한 장에. 근거 조문과 "조건 하나 다르면" 안내까지.',
+  li:['기한 계산(D-day·연장 규정) · 인쇄/.ics/이미지 공유','외국인 주민 안내 블록(8/26) — 판정 없이 정직하게'],
+  tech:['evaluate()','encodeShare'],m:[['규칙','51'],['공유','URL 한 줄']]},
+ {id:'prep',grp:'front',stage:'front',st:'pink',since:'8/26',t:'우리 동네 대비',s:'탭③ · 비교 없음',pos:[6,0,-17.5],
+  easy:'동네 간 우열 비교 대신 <b>내 동네 사실 + 지금 할 대비</b>만. 서열화 논란을 프레임 전환으로 도려낸 화면이에요.',
+  li:['침수 이력→보험·물막이 / 경사→산사태 주의 식 짝지음','자연재해위험개선지구(구별 공식 지정) 현황 포함','벌집 히트맵은 자기 동네 안을 보는 용도로 유지'],
+  tech:['renderPrepare','PREP_ROWS'],m:[['서울','25개 구'],['비교·서열','제거']]},
+ {id:'i18n',grp:'front',stage:'front',st:'amber',since:'8/21',t:'한/영 이중언어',s:'385 KEYS + 로마자',pos:[16,0,-17.5],
+  easy:'UI 385키 완전 대칭 + 지역명 로마자 + 영어 검색. 언어 버튼은 🌐 Language/언어.',
+  li:['ko/en 패리티 자동 검사 · 규칙도 영어 오버레이'],tech:['i18n.js','applyRulesLang']},
+ {id:'pwa',grp:'front',stage:'front',st:'base',since:'8/23',t:'PWA 오프라인',s:'홈 설치',pos:[25,0,-17.5],
+  easy:'홈 화면에 설치하면 <b>통신이 끊겨도</b> 마지막 동네 정보를 봐요. 재난 도구의 기본기.',
+  li:['셸 network-first / 데이터 cache-first'],tech:['sw.js']},
+ // ── 인프라 (z=-12, 오른쪽) ──
+ {id:'pages',grp:'front',stage:'infra',st:'amber',since:'8/21',t:'GitHub Pages',s:'aidpage + 옛주소 리다이렉트',pos:[24,0,-8],
+  easy:'푸시 = 배포. 8/26 개명 때 <b>옛 safepic 주소는 자동 이동 페이지</b>로 살려 링크가 죽지 않게 했어요.',
+  li:['정적 파일 ?v= 캐시 태그 — JS 바꾸면 버전 올림'],tech:['gh-pages','meta refresh']},
+ {id:'worker',grp:'front',stage:'infra',st:'base',since:'8/23',t:'Cloudflare Worker',s:'주민 제보 KV',pos:[24,0,-13],
+  easy:'"대피소 문 잠겼어요" 같은 <b>주민 제보</b>만 서버(KV)에 7일 보관. 이름·전화 없이 텍스트만.',
+  li:['하루 3건 제한 · 신고 3회면 숨김'],tech:['workers.dev','KV']},
+ // ── 다음 로드맵 (z=-28, plan) ──
+ {id:'natgrid',grp:'plan',stage:'build',st:'teal',since:'다음',t:'전국 격자',s:'재료 100% 확보',pos:[-20,0,-28],
+  easy:'침수흔적도 전국 38,003건이 손에 들어와 <b>남은 건 빌드 하루</b>. 산사태 이력·재해위험지구도 이때 벌집 속성으로 합류.',
+  li:['시군구 250개 · DEM 타일 ~35장 추가','농촌부는 H3 해상도 낮추는 절충 검토'],
+  tech:['H3 계층구조']},
+ {id:'lawgo',grp:'plan',stage:'data',st:'teal',since:'다음',t:'법령 조문 가동',s:'승인 → 자동 개통',pos:[-8,0,-28],
+  easy:'승인만 나면 결과 카드의 "근거 조문 보기"가 <b>원문으로</b> 채워지고 개정 감지가 돌기 시작.',
+  li:['규칙 51개 mst 번호 채우기가 본작업']},
+ {id:'news',grp:'plan',stage:'src',st:'ghost',since:'다음',t:'동네 재난 연표',s:'뉴스 RSS',pos:[3,0,-28],
+  easy:'빅카인즈 유료화 → <b>Google News RSS(키리스) + 네이버 검색 API</b>로 시군구별 과거 재난 헤드라인 연표를 구상.',
+  li:['제목+링크만 사용 = 저작권 깔끔']},
+ {id:'verify',grp:'plan',stage:'front',st:'ghost',since:'다음',t:'전문가 검증 · 사용성',s:'정규 프로젝트화',pos:[14,0,-28],
+  easy:'규칙 51개 전문가 교차검증 + 소규모 사용성 테스트 — <b>정확성 등급을 올리고 학술적 위치를 만드는</b> 다음 단계.',
+  li:['논문 게재 후 공개 발표(링크드인)와 연동']},
+];
+const EDGES=[
+ // 소스 → 수집기
+ ['opendata','batch'],['opendata','buildgrid',true],
+ ['kma','actions'],['egen','actions'],['sd','homepc'],['sd','batch'],['law','daily',true],
+ // 수집기 → 데이터
+ ['actions','live'],['homepc','live'],['batch','grid',true],['batch','natgrid',true],
+ // 빌드 체인
+ ['opendata','adminen',true],['adminen','buildgrid',true],['buildgrid','grid',true],['walk','grid',true],
+ ['buildgrid','walk',true],
+ // 데이터 → 화면
+ ['live','fx'],['live','map3'],['grid','prep'],['shelters','map3'],['shelters','finder'],
+ ['rules','finder'],['adminen','i18n',true],['adminen','map3',true],
+ // 화면 → 인프라
+ ['finder','pages',true],['map3','pages',true],['worker','map3',true],['ogcard','pages',true],
+ ['pwa','pages',true],
+ // 다음
+ ['daily','lawgo',true],['lawgo','finder',true],['natgrid','prep',true],['news','prep',true],
+ ['verify','rules',true],
+];
+
+// ═══ 노드별 미니 애니메이션 (패널 상단) ═══════════════════════════
+function animSVG(key,c){
+  const W=`<svg viewBox="0 0 300 116" xmlns="http://www.w3.org/2000/svg"><defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L6,3 L0,6 Z" fill="${c}"/></marker></defs>`;
+  const E='</svg>';
+  const F={
+    pump:`<circle cx="45" cy="58" r="20" fill="${c}22" stroke="${c}" stroke-width="2"/>
+      <text x="45" y="63" font-size="10" fill="${c}" text-anchor="middle">API</text>
+      <rect x="220" y="38" width="60" height="40" rx="6" fill="#fff" stroke="${c}" stroke-width="2"/>
+      <text x="250" y="62" font-size="10" fill="${c}" text-anchor="middle">repo</text>
+      ${[0,1,2].map(i=>`<circle r="5" fill="${c}"><animateMotion path="M70,58 C130,30 180,86 215,58" dur="2.2s" begin="${i*0.7}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;1;0" dur="2.2s" begin="${i*0.7}s" repeatCount="indefinite"/></circle>`).join('')}
+      <text x="150" y="106" font-size="9.5" fill="#64748b" text-anchor="middle">30분마다 받아서 저장소에 커밋 → 사이트가 곧바로 읽음</text>`,
+    lock:`<rect x="30" y="34" width="80" height="50" rx="8" fill="#fff" stroke="${c}" stroke-width="2"/>
+      <text x="70" y="58" font-size="10" fill="${c}" text-anchor="middle">SAFETYDATA</text>
+      <text x="70" y="72" font-size="8.5" fill="#64748b" text-anchor="middle">등록 IP만 허용</text>
+      <g><rect x="196" y="40" width="72" height="36" rx="6" fill="#e8f5e9" stroke="#3f8f2e" stroke-width="2"/>
+      <text x="232" y="62" font-size="10" fill="#3f8f2e" text-anchor="middle">집 PC ✓</text></g>
+      <g opacity=".55"><rect x="196" y="84" width="72" height="24" rx="6" fill="#fee" stroke="#c8432b"/>
+      <text x="232" y="100" font-size="9" fill="#c8432b" text-anchor="middle">GitHub ✗ (유동 IP)</text></g>
+      <path d="M114 56 H190" stroke="#3f8f2e" stroke-width="2" marker-end="url(#ar)"><animate attributeName="opacity" values=".3;1;.3" dur="1.8s" repeatCount="indefinite"/></path>
+      <path d="M114 70 L190 92" stroke="#c8432b" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <line x1="146" y1="72" x2="160" y2="88" stroke="#c8432b" stroke-width="2"/><line x1="160" y1="72" x2="146" y2="88" stroke="#c8432b" stroke-width="2"/>`,
+    split2:`<rect x="18" y="24" width="86" height="30" rx="6" fill="${c}18" stroke="${c}" stroke-width="2"/>
+      <text x="61" y="43" font-size="9.5" fill="${c}" text-anchor="middle">홈 PC (SD 4종)</text>
+      <rect x="18" y="64" width="86" height="30" rx="6" fill="#eef" stroke="#2563eb" stroke-width="2"/>
+      <text x="61" y="83" font-size="9.5" fill="#2563eb" text-anchor="middle">Actions (그 외)</text>
+      <rect x="210" y="42" width="70" height="36" rx="6" fill="#fff" stroke="#15324d" stroke-width="2"/>
+      <text x="245" y="64" font-size="10" fill="#15324d" text-anchor="middle">alerts.json</text>
+      ${[0,1].map(i=>`<circle r="4.5" fill="${i?'#2563eb':c}"><animateMotion path="M110,${i?79:39} C160,${i?70:48} 170,${i?66:52} 205,60" dur="2s" begin="${i*1}s" repeatCount="indefinite"/></circle>`).join('')}
+      <text x="150" y="110" font-size="9.5" fill="#64748b" text-anchor="middle">섹션을 나눠 맡고, 실패하면 신선한 쪽을 덮지 않음</text>`,
+    hex:`${[[80,40],[110,40],[95,63],[125,63],[65,63],[80,86],[110,86]].map((p,i)=>
+      `<path d="M${p[0]} ${p[1]-14} l12 7 v14 l-12 7 -12-7 v-14 z" fill="${i===2?c+'55':'#fff'}" stroke="${c}" stroke-width="1.6">
+      ${i===2?`<animate attributeName="fill" values="${c}22;${c}88;${c}22" dur="2s" repeatCount="indefinite"/>`:''}</path>`).join('')}
+      <text x="222" y="40" font-size="9.5" fill="#64748b">칸마다:</text>
+      <text x="222" y="56" font-size="9" fill="${c}">침수 이력 · 경사</text>
+      <text x="222" y="70" font-size="9" fill="${c}">인구 · 대피소 도보</text>
+      <text x="222" y="92" font-size="8.5" fill="#64748b">이웃 6칸 전부 등거리</text>`,
+    rulescan:`<rect x="24" y="22" width="96" height="76" rx="6" fill="#fff" stroke="${c}" stroke-width="1.6"/>
+      ${[0,1,2,3].map(i=>`<line x1="34" y1="${36+i*16}" x2="110" y2="${36+i*16}" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round"/>`).join('')}
+      <rect x="30" y="28" width="84" height="18" rx="4" fill="${c}33">
+      <animate attributeName="y" values="28;76;28" dur="2.6s" repeatCount="indefinite"/></rect>
+      <path d="M126 58 H168" stroke="${c}" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="176" y="30" width="100" height="26" rx="6" fill="${c}" opacity=".9"/>
+      <text x="226" y="47" font-size="10" fill="#fff" text-anchor="middle">받을 수 있는 것</text>
+      <rect x="176" y="62" width="100" height="26" rx="6" fill="#fff" stroke="${c}" stroke-width="1.6"/>
+      <text x="226" y="79" font-size="10" fill="${c}" text-anchor="middle">근거 조문 · 기한</text>`,
+    merge:`${[['경계','#0891b2',24],['지형','#7c3aed',48],['침수','#2563eb',72],['인구','#b45309',96]].map(([t2,cc,y])=>
+      `<g><rect x="20" y="${y-11}" width="52" height="18" rx="4" fill="#fff" stroke="${cc}" stroke-width="1.6"/>
+      <text x="46" y="${y+2}" font-size="9" fill="${cc}" text-anchor="middle">${t2}</text>
+      <circle r="3.5" fill="${cc}"><animateMotion path="M78,${y} C130,${y} 150,60 190,60" dur="2s" repeatCount="indefinite"/></circle></g>`).join('')}
+      <path d="M196 46 l12 7 v14 l-12 7 -12-7 v-14 z" fill="${c}44" stroke="${c}" stroke-width="2"/>
+      <text x="252" y="58" font-size="9.5" fill="#64748b">한 칸에 합침</text>`,
+    warn:`<rect x="30" y="30" width="90" height="24" rx="12" fill="#fff" stroke="#c8432b" stroke-width="2"/>
+      <text x="75" y="46" font-size="10" fill="#c8432b" text-anchor="middle">폭염경보</text>
+      <path d="M124 42 H160" stroke="${c}" stroke-width="2" marker-end="url(#ar)"/>
+      <rect x="168" y="22" width="112" height="20" rx="5" fill="${c}22"/>
+      <text x="224" y="36" font-size="9" fill="${c}" text-anchor="middle">지도 연출 (열기·빗줄기…)</text>
+      <rect x="168" y="50" width="112" height="20" rx="5" fill="${c}22"/>
+      <text x="224" y="64" font-size="9" fill="${c}" text-anchor="middle">오늘 할 일 문구</text>
+      <rect x="168" y="78" width="112" height="20" rx="5" fill="${c}22"/>
+      <text x="224" y="92" font-size="9" fill="${c}" text-anchor="middle">대피소 레이어 자동 ON</text>
+      <circle cx="75" cy="80" r="10" fill="none" stroke="#c8432b" stroke-width="2">
+      <animate attributeName="r" values="6;16" dur="1.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0" dur="1.6s" repeatCount="indefinite"/></circle>`,
+    files:`${[['경계'],['대피소'],['DEM'],['인구'],['침수']].map((t2,i)=>
+      `<g><rect x="${28+i*52}" y="34" width="44" height="52" rx="5" fill="#fff" stroke="${c}" stroke-width="1.6"/>
+      <path d="M${28+i*52} 46 h44" stroke="${c}44"/>
+      <text x="${50+i*52}" y="66" font-size="9" fill="${c}" text-anchor="middle">${t2}</text>
+      <animateTransform attributeName="transform" type="translate" values="0,0;0,-4;0,0" dur="2.4s" begin="${i*0.3}s" repeatCount="indefinite"/></g>`).join('')}
+      <text x="150" y="108" font-size="9.5" fill="#64748b" text-anchor="middle">전부 무료·키 불필요 — 누구나 재현 가능한 재료</text>`,
+  };
+  return W+(F[key]||'')+E;
+}
+
+// ═══ three.js ═══════════════════════════════════════════════════
+let scene,camera,renderer,labelRenderer,controls,raycaster,mouse;
+const flow=[],allNodes=[],edgeObjs=[];
+const clock=new THREE.Clock();
+const _UP=new THREE.Vector3(0,1,0);
+let curDate=DATES.length-2, curView='all';   // 기본 = '8/27 오늘'
+
+function init(){
+  scene=new THREE.Scene();scene.background=new THREE.Color(0xeef2f7);
+  scene.fog=new THREE.Fog(0xeef2f7,80,190);
+  camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,2000);
+  camera.position.set(0,26,48);
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  document.getElementById('app').appendChild(renderer.domElement);
+  labelRenderer=new THREE.CSS2DRenderer();labelRenderer.setSize(innerWidth,innerHeight);
+  labelRenderer.domElement.style.cssText='position:absolute;top:0;pointer-events:none';
+  document.getElementById('app').appendChild(labelRenderer.domElement);
+  controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true;controls.dampingFactor=.07;controls.maxDistance=150;controls.minDistance=10;
+  scene.add(new THREE.HemisphereLight(0xffffff,0x9fb0c4,1.05));
+  const d=new THREE.DirectionalLight(0xffffff,.55);d.position.set(12,28,18);scene.add(d);
+  const grid=new THREE.GridHelper(200,100,0xbcc8d6,0xd8e0ea);
+  grid.position.y=-9;grid.material.transparent=true;grid.material.opacity=.6;scene.add(grid);
+  buildNodes();buildEdges();zoneLabels();buildTimeline();
+  raycaster=new THREE.Raycaster();mouse=new THREE.Vector2();
+  renderer.domElement.addEventListener('pointerdown',onDown);
+  renderer.domElement.addEventListener('pointerup',onUp);
+  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);labelRenderer.setSize(innerWidth,innerHeight);});
+  document.querySelectorAll('.vbtn[data-view]').forEach(b=>b.onclick=()=>{curView=b.dataset.view;applyView(true);});
+  applyView(true);animate();
+}
+
+function buildNodes(){
+  NODES.forEach(n=>{
+    const col=new THREE.Color(STAGE[n.stage]);
+    const st=STATUS[n.st];
+    const grp=new THREE.Group();grp.position.set(...n.pos);
+    const ghost=n.st==='ghost', v1=n.st==='v1';
+    const core=new THREE.Mesh(new THREE.IcosahedronGeometry(1.2,1),
+      new THREE.MeshStandardMaterial({color:col,emissive:col,
+        emissiveIntensity:(ghost||v1)? .08:.2,metalness:.25,roughness:.45,flatShading:true,
+        transparent:ghost||v1,opacity:ghost? .5:(v1? .8:1)}));
+    grp.add(core);
+    const shell=new THREE.Mesh(new THREE.IcosahedronGeometry(1.75,1),
+      new THREE.MeshBasicMaterial({color:col,wireframe:true,transparent:true,opacity:ghost? .16:.32}));
+    grp.add(shell);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(2.35,.06,8,48),
+      new THREE.MeshBasicMaterial({color:new THREE.Color(st.ring),transparent:true,opacity:ghost? .3:.7}));
+    ring.rotation.x=Math.PI/2;grp.add(ring);grp.userData.ring=ring;
+    const div=document.createElement('div');div.className='nlabel';
+    div.innerHTML=`${n.t}${st.dot?` <span style="color:${st.ring};font-weight:800">${st.dot}</span>`:''}<span class="ns">${n.s}</span>`;
+    const label=new THREE.CSS2DObject(div);
+    label.position.set(0,(n.pos[2]>0||n.pos[2]===-8)? 2.7 : (n.pos[2]===-3? -3.1 : 2.7),0);grp.add(label);
+    grp.userData.node=n;grp.userData.core=core;grp.userData.labelEl=div;grp.userData.labelObj=label;
+    grp.userData.yBase=n.pos[1];grp.userData.yTarget=n.pos[1];
+    const ghostM=new THREE.Mesh(new THREE.IcosahedronGeometry(1.0,0),
+      new THREE.MeshBasicMaterial({color:0x8fa2b5,wireframe:true,transparent:true,opacity:.22}));
+    ghostM.position.set(...n.pos);ghostM.visible=false;
+    scene.add(ghostM);grp.userData.ghost=ghostM;
+    scene.add(grp);allNodes.push(grp);
+  });
+}
+function nodeById(id){return allNodes.find(g=>g.userData.node.id===id);}
+const ESTYLE={
+  main:{col:0x35506b,op:.8, dashed:false,n:6,speed:.15,size:.36},
+  loop:{col:0x7c3aed,op:.5, dashed:true, n:4,speed:.09,size:.26},
+  north:{col:0x5b7391,op:.28,dashed:true, n:3,speed:.05,size:.17},
+};
+function edgeType(gF,gT,dash){
+  const a=gF.userData.node,b=gT.userData.node;
+  if(a.grp==='plan'||b.grp==='plan')return 'north';
+  if(!dash)return 'main';
+  return 'loop';
+}
+function buildEdges(){
+  EDGES.forEach(([f,t,dash])=>{
+    const gF=nodeById(f),gT=nodeById(t);
+    if(!gF||!gT){console.warn('edge miss',f,t);return;}
+    const A=gF.position,B=gT.position;
+    const ty=edgeType(gF,gT,dash), st=ESTYLE[ty];
+    const mid=A.clone().add(B).multiplyScalar(.5);mid.y+=(ty==='main')? 2.0:4.0;
+    const curve=new THREE.QuadraticBezierCurve3(A.clone(),mid,B.clone());
+    const col=new THREE.Color(st.col);
+    const mat=st.dashed
+      ? new THREE.LineDashedMaterial({color:col,transparent:true,opacity:st.op,dashSize:.7,gapSize:.5})
+      : new THREE.LineBasicMaterial({color:col,transparent:true,opacity:st.op});
+    const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(50)),mat);
+    if(st.dashed)line.computeLineDistances();
+    line.userData.ends=[gF,gT];scene.add(line);edgeObjs.push(line);
+    for(let i=0;i<st.n;i++){
+      const s=new THREE.Mesh(new THREE.ConeGeometry(st.size*.55,st.size*1.7,6),
+        new THREE.MeshBasicMaterial({color:col,transparent:ty!=='main',
+          opacity:ty==='main'?1:(ty==='loop'?.85:.5)}));
+      s.userData.ends=[gF,gT];
+      flow.push({mesh:s,curve,t:i/st.n,speed:st.speed+Math.random()*.03});scene.add(s);
+    }
+  });
+}
+const zoneLbls=[];
+function zoneLabels(){
+  [['① 데이터 파이프라인 — 소스→수집→자산→빌드',-26,10.5,'#0891b2'],
+   ['② 사용자 화면 — 한 장으로 보이는 것',-24,-14.5,'#b45309'],
+   ['③ 다음 로드맵 — 재료 확보/승인 대기/구상',-22,-25,'#5b7391']].forEach(([t,x,z,c])=>{
+    const el=document.createElement('div');el.className='nlabel';
+    el.style.cssText=`font-weight:800;color:${c};font-size:13px`;el.textContent=t;
+    const o=new THREE.CSS2DObject(el);o.position.set(x,-2,z);scene.add(o);zoneLbls.push(o);
+  });
+}
+function buildTimeline(){
+  const box=document.getElementById('tchips');
+  DATES.forEach((d,i)=>{
+    const b=document.createElement('button');b.className='tchip'+(i===curDate?' on':'');
+    b.innerHTML=`${d}<span class="d">${['기점','대확장','첫 실시간','연출·법령','서울+개명','오늘','로드맵'][i]}</span>`;
+    b.onclick=()=>{curDate=i;
+      document.querySelectorAll('.tchip').forEach((c,k)=>c.classList.toggle('on',k===i));
+      applyView(false);};
+    box.appendChild(b);
+  });
+}
+function dateVisible(n){
+  const s=di(n.since), u=n.until? di(n.until):99;
+  return s<=curDate && curDate<u;
+}
+// 화면/엔진 분할: front = 사용자가 브라우저에서 직접 만나는 것
+const SW_VISIBLE=new Set(['map3','fx','finder','prep','i18n','pwa','pages','worker']);
+function applyView(moveCam){
+  const V={
+    all:  {cam:[4,36,50], tgt:[0,0,-9],   show:['pipe','front','plan']},
+    pipe: {cam:[0,22,26], tgt:[-2,0,0],   show:['pipe']},
+    front:{cam:[0,16,4],  tgt:[0,0,-16],  show:['front','pipe']},
+    plan: {cam:[0,16,-12],tgt:[-3,0,-27], show:['plan','front']},
+    sw:   {cam:[2,10,56], tgt:[0,1,-8],   show:['pipe','front','plan']},
+  }[curView];
+  swMode=curView==='sw';
+  document.body.classList.toggle('swmode',swMode);
+  if(swMode){swState.split=.5;document.getElementById('swdiv').style.left='50vw';}
+  allNodes.forEach(g=>{
+    const n=g.userData.node;
+    const on=V.show.includes(n.grp)&&dateVisible(n);
+    g.visible=on;
+    g.userData.labelObj.visible=on;
+    g.userData.swOn=on;
+    g.userData.cat=SW_VISIBLE.has(n.id)?'front':'back';
+    g.userData.ghost.visible=false;
+    g.userData.yTarget=n.pos[1];
+    g.userData.flash=(on&&di(n.since)===curDate&&curDate>0&&!swMode);
+    g.userData.flashUntil=clock.elapsedTime+3.5;
+  });
+  edgeObjs.forEach(l=>{ l.visible=!swMode&&l.userData.ends.every(g=>g.visible); });
+  flow.forEach(p=>{ p.mesh.visible=!swMode&&p.mesh.userData.ends.every(g=>g.visible); });
+  zoneLbls.forEach(o=>o.visible=!swMode);
+  document.getElementById('tcap').innerHTML=DCAP[DATES[curDate]];
+  if(moveCam)camGoal={pos:new THREE.Vector3(...V.cam),tgt:new THREE.Vector3(...V.tgt),t:0};
+  document.querySelectorAll('.vbtn[data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===curView));
+  hidePanel();
+}
+let camGoal=null;
+
+let swMode=false;
+const swState={split:.5,drag:false};
+{
+  const dv=document.getElementById('swdiv');
+  dv.querySelector('.grip').addEventListener('pointerdown',e=>{
+    swState.drag=true;if(controls)controls.enabled=false;
+    e.preventDefault();e.stopPropagation();});
+  addEventListener('pointermove',e=>{
+    if(!swState.drag)return;
+    swState.split=Math.min(.94,Math.max(.06,e.clientX/innerWidth));
+    dv.style.left=(swState.split*100)+'vw';});
+  addEventListener('pointerup',()=>{
+    if(swState.drag){swState.drag=false;if(controls)controls.enabled=true;}});
+}
+function setSwPass(cat){
+  allNodes.forEach(g=>{
+    const mine=g.userData.swOn&&g.userData.cat===cat;
+    g.visible=mine;
+    g.userData.ghost.visible=g.userData.swOn&&!mine;
+    g.userData.ghost.position.copy(g.position);
+  });
+  const vis=o=>{const [a,b]=o.userData.ends;
+    if(!(a.userData.swOn&&b.userData.swOn))return false;
+    const ca=a.userData.cat,cb=b.userData.cat;
+    return ca===cb? ca===cat : true;};
+  edgeObjs.forEach(l=>{l.visible=vis(l);});
+  flow.forEach(p=>{p.mesh.visible=vis(p.mesh);});
+}
+
+let _down=null;
+function onDown(e){_down={x:e.clientX,y:e.clientY,t:performance.now()};}
+function onUp(e){
+  if(!_down)return;
+  const moved=Math.hypot(e.clientX-_down.x,e.clientY-_down.y),dt=performance.now()-_down.t;
+  _down=null; if(moved>10||dt>600)return;
+  mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const vis=allNodes.filter(g=>g.visible);
+  const hit=raycaster.intersectObjects(vis.map(g=>g.userData.core),false)[0];
+  if(hit){showPanel(hit.object.parent.userData.node);
+    vis.forEach(g=>g.userData.labelEl.classList.toggle('dim',g!==hit.object.parent));}
+  else hidePanel();
+}
+const panel=document.getElementById('panel');
+function showPanel(n){
+  const st=STATUS[n.st], col=STAGE[n.stage];
+  let h=`<span class="ptag" style="background:${st.ring}">${st.tag} · ${n.since}${n.until? ' ~ '+n.until:''}</span>
+    <h2>${n.t}</h2><div class="psub">${n.s}</div>`;
+  if(n.anim)h+=`<div class="anim">${animSVG(n.anim,col)}</div>`;
+  if(n.easy)h+=`<div class="easy">${n.easy}</div>`;
+  if(n.li&&n.li.length){h+=`<hr><ul>${n.li.map(x=>`<li>${x}</li>`).join('')}</ul>`;}
+  if(n.tech)h+=`<div class="tech">${n.tech.map(x=>`<span class="chip">${x}</span>`).join('')}</div>`;
+  if(n.m)h+=`<div class="metric">${n.m.map(([k,v])=>`<div class="m"><b>${v}</b><span>${k}</span></div>`).join('')}</div>`;
+  panel.innerHTML=h;panel.classList.add('show');
+}
+function hidePanel(){panel.classList.remove('show');
+  allNodes.forEach(g=>g.userData.labelEl.classList.remove('dim'));}
+
+// ── 발표 모드 ──
+const STEPS=[
+ {d:'8/27',v:'all',k:'AidPage · 파이프라인 아키텍처',t:'전체 지도 — 오늘(8/27) 기준',
+  b:['①데이터 파이프라인(소스→수집→자산→빌드) → ②사용자 화면 → ③다음 로드맵','핵심 노드를 하나씩 줌인해서 봅니다','궁금한 노드는 발표 중에도 직접 클릭 가능']},
+ {d:'8/27',v:'sw',k:'들어가기 전에',t:'화면 vs 엔진 — 분할선을 끌어보세요',
+  b:['오른쪽으로 끌면 사용자가 만나는 <b>화면 8부품</b>','왼쪽으로 끌면 데이터를 만드는 <b>엔진</b>(소스·수집기·빌더)','재난 도구의 신뢰는 엔진 쪽에서 나옵니다']},
+ {d:'8/27',v:'pipe',k:'① 데이터 파이프라인',t:'공공데이터가 한 장의 안내가 되기까지',
+  b:['외부 소스 5 → 수집기 4 → 데이터 자산 5 → 빌드 3','전부 공개 데이터·공개 코드 — 재현 가능성이 원칙']},
+ {d:'8/27',v:'pipe',f:'sd',k:'① 핵심 소스',t:'재난안전데이터 플랫폼 — IP 제한과의 싸움',
+  b:['13개 데이터셋 승인, 데이터셋별 서비스키','<b>등록 IP에서만 호출</b> → 클라우드 수집 불가라는 제약 발견','해법: 수집을 둘로 쪼갠다 (다음 슬라이드)']},
+ {d:'8/27',v:'pipe',f:'homepc',k:'① 이중 수집',t:'홈 PC 수집기 — 제약을 구조로 푼 답',
+  b:['IP 제한 데이터만 집 컴퓨터가 30분마다 수집·푸시','나머지는 GitHub Actions가 그대로 담당','실패 시 신선한 데이터를 덮지 않는 보호 로직']},
+ {d:'8/27',v:'pipe',f:'grid',k:'① 데이터 자산',t:'서울 벌집 격자 9,736칸',
+  b:['침수 이력·경사·인구·대피소 도보를 칸 단위로','육각형 = 이웃 6칸 등거리, 거리 계산 무왜곡','속성만 추가하면 히트맵·카드가 자동 생성되는 구조']},
+ {d:'8/27',v:'pipe',f:'rules',k:'① 심장',t:'지원 규칙 51 — 조건→금액→근거→기한',
+  b:['모든 금액 옆에 근거 조문·기준일·확인 수준','테스트 16개가 스키마를 지킴','다음 단계: 전문가 교차검증으로 등급 상향']},
+ {d:'8/27',v:'front',k:'② 사용자 화면',t:'다섯 번 눌러 결과 한 장',
+  b:['지구본 → 내 동네 → 상황 5문항 → 결과·기한·서류','특보 연출·오늘 할 일이 실데이터로 가동(8/27~)','한/영 완전 이중언어 + PWA 오프라인']},
+ {d:'8/27',v:'front',f:'prep',k:'② 설계 결정',t:'우리 동네 대비 — 비교하지 않는 위험 정보',
+  b:['동네 서열화 논란을 <b>프레임 전환</b>으로 해소','우열 표시 대신 "사실 + 지금 할 대비"만','공식 지정(자연재해위험개선지구) 현황으로 신뢰 보강']},
+ {d:'다음',v:'plan',k:'③ 다음 로드맵',t:'재료는 확보됐고, 순서만 남았다',
+  b:['전국 격자: 침수 38,003건 확보 — 빌드 하루','법령 조문: 승인 대기, 열리면 자동 개통','전문가 검증·사용성 테스트 = 학술적 위치 만들기']},
+ {d:'다음',v:'all',k:'마무리',t:'원칙이 아키텍처를 만들었다',
+  b:['확인 안 된 숫자를 보여주지 않는다 → 확인 수준 표기·검증 트랙','비교·서열 대신 자기 동네+행동 → 탭③ 재설계','제약(IP·키·유료화)은 구조로 푼다 → 이중 수집·키리스 우선']},
+];
+let presoIdx=-1;
+function presoGo(n){
+  presoIdx=Math.max(0,Math.min(STEPS.length-1,n));
+  const s=STEPS[presoIdx];
+  curDate=di(s.d);curView=s.v;
+  document.querySelectorAll('.tchip').forEach((c,k)=>c.classList.toggle('on',k===curDate));
+  applyView(true);
+  if(s.f){
+    const g=nodeById(s.f);
+    if(g&&g.visible){
+      const p=g.userData.node.pos;
+      camGoal={pos:new THREE.Vector3(p[0]+1.5,6.5,p[2]+11),
+               tgt:new THREE.Vector3(p[0],.6,p[2]),t:0};
+      showPanel(g.userData.node);
+      allNodes.forEach(x=>{if(x.visible)x.userData.labelEl.classList.toggle('dim',x!==g);});
+      g.userData.flash=true;g.userData.flashUntil=clock.elapsedTime+3.5;
+    }
+  }
+  document.getElementById('ssk').textContent=s.k;
+  document.getElementById('sst').innerHTML=s.t;
+  document.getElementById('sul').innerHTML=s.b.map(x=>`<li>${x}</li>`).join('');
+  document.getElementById('spos').textContent=`${presoIdx+1} / ${STEPS.length}`;
+}
+function presoEnter(){document.body.classList.add('preso');presoGo(0);}
+function presoExit(){document.body.classList.remove('preso');presoIdx=-1;}
+document.getElementById('presoBtn').onclick=presoEnter;
+document.getElementById('snext').onclick=()=>presoGo(presoIdx+1);
+document.getElementById('sprev').onclick=()=>presoGo(presoIdx-1);
+document.getElementById('sexit').onclick=presoExit;
+addEventListener('keydown',e=>{
+  if(presoIdx<0){if(e.key==='p'||e.key==='P')presoEnter();return;}
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown')presoGo(presoIdx+1);
+  else if(e.key==='ArrowLeft'||e.key==='PageUp')presoGo(presoIdx-1);
+  else if(e.key==='Home')presoGo(0);
+  else if(e.key==='End')presoGo(STEPS.length-1);
+  else if(e.key==='Escape')presoExit();
+});
+
+// ── 루프 ──
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=clock.getDelta(),t=clock.elapsedTime;
+  allNodes.forEach(g=>{
+    if(!g.visible)return;
+    const n=g.userData.node;
+    if(g.userData.ring)g.userData.ring.rotation.z+=dt*.4;
+    g.userData.yBase+=(g.userData.yTarget-g.userData.yBase)*.06;
+    g.position.y=g.userData.yBase+(n.st==='violet'? Math.sin(t*1.7+n.pos[0])*.07:0);
+    if(n.st==='pink'||n.st==='teal')g.userData.core.rotation.y+=dt*.5;
+    const k=(g.userData.flash&&t<g.userData.flashUntil)? 1+Math.sin(t*4)*.13 : 1;
+    g.scale.set(k,k,k);
+  });
+  flow.forEach(p=>{ if(!swMode&&!p.mesh.visible)return;
+    p.t=(p.t+p.speed*dt)%1;
+    p.mesh.position.copy(p.curve.getPoint(p.t));
+    p.mesh.quaternion.setFromUnitVectors(_UP,p.curve.getTangent(p.t).normalize()); });
+  if(camGoal){
+    camGoal.t=Math.min(1,camGoal.t+.012);
+    camera.position.lerp(camGoal.pos,.06);
+    controls.target.lerp(camGoal.tgt,.06);
+    if(camGoal.t>=1)camGoal=null;
+  }
+  controls.update();
+  if(swMode){
+    const w=innerWidth,h=innerHeight,sx=Math.round(w*swState.split);
+    renderer.setScissorTest(true);
+    setSwPass('front');
+    renderer.setScissor(0,0,sx,h);renderer.render(scene,camera);
+    setSwPass('back');
+    renderer.setScissor(sx,0,w-sx,h);renderer.render(scene,camera);
+    renderer.setScissorTest(false);
+    allNodes.forEach(g=>{g.visible=g.userData.swOn;g.userData.labelObj.visible=g.userData.swOn;});
+    labelRenderer.render(scene,camera);
+    allNodes.forEach(g=>{
+      if(!g.userData.swOn)return;
+      const v=g.position.clone().project(camera);
+      const px=(v.x*.5+.5)*w;
+      const ok=g.userData.cat==='front'? px<=sx : px>sx;
+      if(!ok)g.userData.labelEl.style.display='none';
+    });
+  }else{
+    renderer.render(scene,camera);
+    labelRenderer.render(scene,camera);
+  }
+}
+init();
+</script>
+</body>
+</html>

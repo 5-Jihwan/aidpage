@@ -24,6 +24,13 @@ if sys.stderr is None or sys.stdout is None:
     _lf = io.open(os.path.join(ROOT, ".sd_collector.log"), "a", encoding="utf-8")
     sys.stdout = sys.stderr = _lf
 
+
+def flog(msg):
+    """콘솔 유무와 무관하게 항상 파일에 남기는 로그."""
+    from datetime import datetime
+    with io.open(os.path.join(ROOT, ".sd_collector.log"), "a", encoding="utf-8") as f:
+        f.write(f"{datetime.now().isoformat(timespec='seconds')} {msg}\n")
+
 # 키 주입 (fetch_live import 전에)
 _kp = os.path.join(ROOT, ".keys.env.parsed")
 if os.path.exists(_kp):
@@ -62,6 +69,7 @@ def main() -> int:
 
     ok = {k: v.get("status") for k, v in changed.items()}
     log(f"sd sections: {ok}")
+    flog(f"sections: {ok}")
     if not changed:
         log("no SD keys — nothing to do")
         return 0
@@ -97,9 +105,14 @@ def main() -> int:
         if r.returncode != 0:
             git("pull", "--rebase", "-q")
             r = git("push", "-q")
-        log("pushed" if r.returncode == 0 else f"push failed: {r.stderr[:200]}")
+        msg = "pushed" if r.returncode == 0 else f"push failed: {r.stderr[:200]}"
+        log(msg); flog(msg)
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as e:  # noqa: BLE001
+        flog(f"FATAL: {type(e).__name__}: {e}")
+        raise

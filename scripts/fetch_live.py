@@ -342,8 +342,14 @@ WARN_TYPES = ["폭풍해일", "호우", "태풍", "강풍", "대설", "한파", 
 _WARN_RE = re.compile(r"(" + "|".join(WARN_TYPES) + r")\s*(경보|주의보)\s*[:：]\s*([^\n\r]+)")
 
 
+_SEA_RE = re.compile(r"바다|해상|먼바다|앞바다|평수구역")
+
+
 def match_area_codes(area_text, sgg):
-    """Best-effort mapping of KMA area text (e.g. '서울', '경기도(수원, 성남)', '전북(진안)') to sgg codes."""
+    """Best-effort mapping of KMA area text (e.g. '서울', '경기도(수원, 성남)', '전북(진안)') to sgg codes.
+    해상 구역(먼바다 등)은 육지 시군구에 매칭하지 않는다 — '남해동부먼바다'가 남해군에 걸리던 오탐 방지."""
+    if _SEA_RE.search(area_text):
+        return []
     codes = set()
     base = re.sub(r"\(.*?\)", "", area_text).strip()
     inner = " ".join(re.findall(r"\((.*?)\)", area_text))

@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827m';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827m';
-import { getReports, postReport, flagReport } from './api.js?v=20260827m';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827m';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827n';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827n';
+import { getReports, postReport, flagReport } from './api.js?v=20260827n';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827n';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260827m'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827n'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -457,6 +457,7 @@ function syncShelterLayers() {
 }
 /* 지도 범례: 켜진 시설 색 + (격자 표시 중이면) 격자 범례 */
 /* 범례 드래그 이동 — 위치는 이 기기에만 저장(safepic.legendPos), 더블클릭/더블탭 = 원위치 */
+let _legendFit = null;  // 저장된 위치를 현재 화면 안으로 되돌린다(renderLegend가 보이게 한 뒤 호출)
 function initLegendDrag() {
   const box = $('#mapLegend'); if (!box) return;
   const wrap = box.offsetParent || document.body, KEY = 'safepic.legendPos';
@@ -466,6 +467,8 @@ function initLegendDrag() {
     return { x: Math.min(Math.max(4, pos.x), Math.max(4, w - bw - 4)), y: Math.min(Math.max(4, pos.y), Math.max(4, h - bh - 4)) };
   };
   const saved = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { return null; } };
+  // 숨겨진 상태에선 offsetWidth가 0이라 클램프가 무의미하다 — 보이게 된 뒤 _legendFit으로 다시 맞춘다.
+  _legendFit = () => { const p = saved(); if (p) apply(clamp(p)); };
   apply(saved());
   let st = null;
   box.addEventListener('pointerdown', e => { st = { px: e.clientX, py: e.clientY, bx: box.offsetLeft, by: box.offsetTop, moved: false }; box.setPointerCapture(e.pointerId); });
@@ -496,6 +499,7 @@ function renderLegend(kinds) {
   box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + (sh.length ? `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>` : '') +
     (wxl ? `<div class="lg-row lg-grid"><b>${wxl.title}</b>${wxl.html}</div>` : '') + (g ? `<div class="lg-row lg-grid"><b>${g.title}</b>${g.html}</div>` : '') + `<small class="lg-src">${t('legend.src')}</small>`;
   $('#lgToggle').addEventListener('click', () => { state._legendOpen = !state._legendOpen; box.classList.toggle('is-min', mobile && !state._legendOpen); });
+  if (_legendFit) _legendFit();  // 창이 줄어 저장 위치가 화면 밖이면 범례가 통째로 사라진다
 }
 async function renderNearest() {
   const box = $('#nearBox'); if (!box) return;
@@ -1008,7 +1012,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827m').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827n').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

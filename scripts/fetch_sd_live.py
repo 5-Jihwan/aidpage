@@ -100,8 +100,13 @@ def main() -> int:
     log(f"wrote {ALERTS_PATH} sections={wrote}")
 
     if "--push" in sys.argv:
+        # ⚠ pythonw(창 없음)라도 자식 git.exe가 콘솔을 새로 열어 30분마다 창이 깜빡임
+        #   → CREATE_NO_WINDOW로 억제
+        NOWIN = 0x08000000 if os.name == "nt" else 0
+
         def git(*a):
-            return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True)
+            return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True,
+                                  creationflags=NOWIN)
         if "data/live/alerts.json" not in git("status", "--porcelain").stdout:
             log("no git change")
             return 0

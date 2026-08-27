@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827r';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827r';
-import { getReports, postReport, flagReport } from './api.js?v=20260827r';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827r';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827s';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827s';
+import { getReports, postReport, flagReport } from './api.js?v=20260827s';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827s';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260827r'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827s'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -371,7 +371,8 @@ let gridAttr = localStorage.getItem('safepic.gridAttr') || 'slope_mean';
 async function syncGrid() {
   const box = $('#gridBox'), where = $('#whereGrid');
   const mapOn = localStorage.getItem('safepic.gridOn') !== '0';  // 지도 위 격자 겹침 표시 (설정)
-  if (!state.sgg || !(await hasGrid(state.sgg))) { hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; return; }
+  if (!state.sgg || !(await hasGrid(state.sgg))) { state._gridAvail = false; hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(x => x.id === k)) : []); return; }
+  state._gridAvail = true;  // 꺼져 있어도 범례에 '켜기' 줄을 남기려면 자료 유무를 알아야 한다
   const attrs = gridAttrs(state.sgg); if (!attrs.some(a => a.id === gridAttr)) gridAttr = attrs[0] && attrs[0].id;
   // 지도 표시를 꺼도 renderPrepare()의 수치는 캐시된 셀에서 계산하므로 그대로 나온다.
   let leg = null;
@@ -493,7 +494,8 @@ function initLegendDrag() {
   _legendFit = () => { const p = saved(); if (p) apply(clamp(p)); };
   apply(saved());
   let st = null;
-  box.addEventListener('pointerdown', e => { st = { px: e.clientX, py: e.clientY, bx: box.offsetLeft, by: box.offsetTop, moved: false }; box.setPointerCapture(e.pointerId); });
+  // setPointerCapture 이후엔 이벤트가 box로 재타깃되므로, 누른 줄은 pointerdown 시점에 기억해 둔다.
+  box.addEventListener('pointerdown', e => { st = { px: e.clientX, py: e.clientY, bx: box.offsetLeft, by: box.offsetTop, moved: false, hit: e.target.closest('[data-lg]') }; box.setPointerCapture(e.pointerId); });
   box.addEventListener('pointermove', e => {
     if (!st) return;
     const dx = e.clientX - st.px, dy = e.clientY - st.py;
@@ -503,23 +505,46 @@ function initLegendDrag() {
   box.addEventListener('pointerup', () => {
     if (!st) return;
     if (st.moved) { const pos = clamp({ x: box.offsetLeft, y: box.offsetTop }); apply(pos); localStorage.setItem(KEY, JSON.stringify(pos)); }
+    else if (st.hit) toggleLegendLayer(st.hit.dataset.lg);  // 끌지 않고 눌렀으면 = 레이어 스위치
     st = null;
   });
   box.addEventListener('pointercancel', () => { st = null; });
   box.addEventListener('dblclick', () => { localStorage.removeItem(KEY); box.style.left = box.style.top = box.style.right = box.style.bottom = ''; });
   window.addEventListener('resize', () => { const p = saved(); if (p) apply(clamp(p)); });
 }
+/* 범례 = 레이어 스위치. 줄을 누르면 그 레이어가 꺼지고, 꺼진 줄은 회색으로 남는다
+   — 사라지게 하면 다시 켜질 방법이 없어진다. */
+function toggleLegendLayer(key) {
+  if (key === 'grid') {
+    const K = 'safepic.gridOn', on = localStorage.getItem(K) !== '0';
+    localStorage.setItem(K, on ? '0' : '1');
+    const cb = $('#btnGridOn'); if (cb) cb.checked = !on;   // 설정 서람과 동기화
+    syncGrid();
+  } else if (key === 'wx') {
+    if (state.wxmap) { state._wxLast = state.wxmap; state.wxmap = ''; }
+    else if (state._wxLast) state.wxmap = state._wxLast;
+    else return;
+    localStorage.setItem('safepic.wxmap', state.wxmap);
+    $$('#wxsel input').forEach(i => { i.checked = (i.value === state.wxmap); });
+    applyWxLayer();
+  }
+}
 function renderLegend(kinds) {
   const box = $('#mapLegend'); if (!box) return;
   const en = getLang() === 'en';
   const sh = kinds.map(k => state.shelters.avail.find(a => a.id === k)).filter(Boolean);
   const g = state._gridLegend, wxl = state._wxLegend;
-  if (!sh.length && !g && !wxl) { box.hidden = true; return; }
+  const gridOff = !!state._gridAvail && localStorage.getItem('safepic.gridOn') === '0';
+  const wxOff = !wxl && !!state._wxLast;
+  if (!sh.length && !g && !wxl && !gridOff && !wxOff) { box.hidden = true; return; }
   box.hidden = false;
   const mobile = matchMedia(MQ_MOBILE).matches; box.classList.toggle('is-min', mobile && !state._legendOpen);
   box.title = t('legend.drag');
+  const onRow = (key, l) => `<div class="lg-row lg-grid is-sw" data-lg="${key}" title="${t('legend.tap.off')}"><b>${l.title}</b>${l.html}</div>`;
+  const offRow = (key, title) => `<div class="lg-row lg-grid is-sw is-off" data-lg="${key}" title="${t('legend.tap.on')}"><b>${title}</b><span class="lg-off">${t('legend.off')}</span></div>`;
   box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + (sh.length ? `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>` : '') +
-    (wxl ? `<div class="lg-row lg-grid"><b>${wxl.title}</b>${wxl.html}</div>` : '') + (g ? `<div class="lg-row lg-grid"><b>${g.title}</b>${g.html}</div>` : '') + `<small class="lg-src">${t('legend.src')}</small>`;
+    (wxl ? onRow('wx', wxl) : wxOff ? offRow('wx', t('wx.' + state._wxLast)) : '') +
+    (g ? onRow('grid', g) : gridOff ? offRow('grid', t('grid.title')) : '') + `<small class="lg-src">${t('legend.src')}</small>`;
   $('#lgToggle').addEventListener('click', () => { state._legendOpen = !state._legendOpen; box.classList.toggle('is-min', mobile && !state._legendOpen); });
   if (_legendFit) _legendFit();  // 창이 줄어 저장 위치가 화면 밖이면 범례가 통째로 사라진다
 }
@@ -803,7 +828,7 @@ function fmtTime(iso) { if (!iso) return ''; const d = new Date(iso); if (isNaN(
 function initWxSel() {
   $('#wxselT').addEventListener('click', () => $('#wxsel').classList.toggle('is-open'));
   document.addEventListener('click', e => { if (!e.target.closest('#wxsel')) $('#wxsel').classList.remove('is-open'); });
-  $$('#wxsel input').forEach(i => { i.checked = (i.value === state.wxmap); i.addEventListener('change', () => { if (!i.checked) return; state.wxmap = i.value; localStorage.setItem('safepic.wxmap', i.value); applyWxLayer(); }); });
+  $$('#wxsel input').forEach(i => { i.checked = (i.value === state.wxmap); i.addEventListener('change', () => { if (!i.checked) return; state.wxmap = i.value; state._wxLast = i.value || null; localStorage.setItem('safepic.wxmap', i.value); applyWxLayer(); }); });
   paintWxTitle();
 }
 function paintWxTitle() { const b = $('#wxselT'); if (b) b.textContent = state.wxmap ? `${t('wx.title')}: ${t('wx.' + (state.wxmap === 'wind' ? 'wind' : state.wxmap))}` : t('wx.title'); }
@@ -1034,7 +1059,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827r').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827s').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

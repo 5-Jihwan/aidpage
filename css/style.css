@@ -358,6 +358,11 @@ html.big .route-row a{font-size:.95rem;padding:7px 8px}
 /* map legend (bottom-left) */
 .map-legend{position:absolute;left:16px;bottom:22px;z-index:5;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:.78rem;color:var(--text);box-shadow:0 4px 14px rgba(20,32,46,.08);max-width:min(420px,calc(100% - 32px))}
 .lg-row{display:flex;flex-wrap:wrap;gap:4px 10px} .lg-row span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap} .lg-row i{width:10px;height:10px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+.lg-row.is-sw{cursor:pointer;border-radius:8px;padding:3px 5px;margin-left:-5px;margin-right:-5px}
+.lg-row.is-sw:hover{background:var(--bg)}
+.lg-row.is-off{opacity:.5}
+.lg-row.is-off b{text-decoration:line-through;text-decoration-thickness:1px}
+.lg-off{color:var(--mute);font-family:var(--label)}
 .lg-grid{margin-top:4px;padding-top:4px;border-top:1px dashed var(--line)} .lg-grid i{border-radius:2px} .lg-grid b{margin-right:4px;color:var(--ink)}
 .lg-src{display:block;margin-top:4px;color:var(--mute);font-family:var(--label);font-size:.72rem}
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .map-legend{left:10px;bottom:calc(50dvh + 40px);max-width:calc(100% - 20px);font-size:.72rem} .map-legend .lg-src{display:none} html.big .map-legend{bottom:calc(56dvh + 40px)} }

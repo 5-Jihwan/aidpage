@@ -19,6 +19,11 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
+# pythonw(창 없는 실행)에서는 stdout/stderr가 없다 → 로그 파일로 대체
+if sys.stderr is None or sys.stdout is None:
+    _lf = io.open(os.path.join(ROOT, ".sd_collector.log"), "a", encoding="utf-8")
+    sys.stdout = sys.stderr = _lf
+
 # 키 주입 (fetch_live import 전에)
 _kp = os.path.join(ROOT, ".keys.env.parsed")
 if os.path.exists(_kp):

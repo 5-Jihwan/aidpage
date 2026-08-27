@@ -610,3 +610,7 @@ html.big .lang-top-t{font-size:1rem;height:42px}
 .prep-head span{color:var(--mute);font-size:.88rem}
 .prep-head b{font-family:var(--mono);color:var(--ink)}
 .prep-act{margin-top:5px;font-size:.86rem;color:var(--accent2);word-break:keep-all}
+/* 겹친 시설 목록 팝업 */
+.shpop-row{padding:6px 8px;margin-top:4px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:.85rem}
+.shpop-row:hover{background:var(--bg)}
+.shpop-row small{color:var(--mute);margin-left:4px}

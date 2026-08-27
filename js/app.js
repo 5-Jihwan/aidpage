@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827b';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827b';
-import { getReports, postReport, flagReport } from './api.js?v=20260827b';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827b';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827c';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827c';
+import { getReports, postReport, flagReport } from './api.js?v=20260827c';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827c';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260827b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827c'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -352,6 +352,9 @@ const PREP_ROWS = [
   { id: 'depth', label: 'prep.r.depth',
     val: cs => Math.max(0, ...cs.map(c => c.flood_depth_max_m || 0)) || null,
     fmt: v => v.toFixed(1) + ' m', act: v => v >= 0.5 ? 'prep.a.depth' : null },
+  { id: 'lslide', label: 'prep.r.lslide',
+    val: cs => { const n = cs.reduce((a, c) => a + (c.landslide_hist_n || 0), 0); return cs.some(c => c.landslide_hist_n != null) ? n : null; },
+    fmt: v => v ? `${v}` : t('prep.none.lslide'), act: v => v > 0 ? 'prep.a.lslide' : null },
   { id: 'slope', label: 'prep.r.slope',
     val: cs => cs.reduce((a, c) => a + (c.slope_mean || 0), 0) / cs.length,
     fmt: v => v.toFixed(1) + '°', act: v => v >= 15 ? 'prep.a.slope' : null },
@@ -972,7 +975,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827b').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827c').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

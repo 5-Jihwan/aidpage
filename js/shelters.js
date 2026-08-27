@@ -67,28 +67,81 @@ function ensureIcon(k) {
   map.addImage(name, x.getImageData(0, 0, 60, 60), { pixelRatio: 2 });
   return name;
 }
-function ensureLayer(kind) {
-  const k = KINDS.find(x => x.id === kind); const src = 'sh-' + kind;
-  if (map.getSource(src)) return;
-  map.addSource(src, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-  map.addLayer({ id: src + '-dot', type: 'symbol', source: src, minzoom: 9, layout: { 'icon-image': ensureIcon(k), 'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05], 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
-  map.addLayer({ id: src + '-label', type: 'symbol', source: src, minzoom: 13.5, layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.2 } });
-  map.on('mouseenter', src + '-dot', () => map.getCanvas().style.cursor = 'pointer');
-  map.on('mouseleave', src + '-dot', () => map.getCanvas().style.cursor = '');
-  map.on('click', src + '-dot', e => {
-    const p = e.features[0].properties;
-    const html = `<b>${p.name || ''}</b><br><small>${k.icon} ${document.documentElement.lang === 'en' ? k.en : k.ko}${p.cap ? ` · ${p.cap}${document.documentElement.lang === 'en' ? '' : '명'}` : ''}${p.type && !/^\d|^FTL|^\d{3}$/.test(p.type) ? ` · ${p.type}` : ''}<br>${p.addr || ''}${p.hours ? `<br>🕒 ${p.hours}` : ''}${p.tel ? `<br>📞 <a href="tel:${p.tel}">${p.tel}</a>` : ''}</small>${map.routeLinks ? map.routeLinks(e.lngLat.lng, e.lngLat.lat, p.name) : ''}${map.srcBadge ? map.srcBadge(p.src, p.asof) : ''}`; map.openPopup ? map.openPopup(e.lngLat, html) : new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(e.lngLat).setHTML(html).addTo(map);
+/* ── 통합 클러스터 소스: 같은 자리에 시설이 겹치면 대표 아이콘 + 우상단 개수 배지,
+      누르면 그 자리의 시설 목록 (사용자 피드백: 겹친 아이콘 구분 불가) ── */
+const KIND_IDS = KINDS.map(k => k.id);
+const EMPTY_FC = { type: 'FeatureCollection', features: [] };
+function detailHTML(p, lngLat) {
+  const k = KINDS.find(x => x.id === p.kind) || KINDS[0];
+  const en = document.documentElement.lang === 'en';
+  return `<b>${p.name || ''}</b><br><small>${k.icon} ${en ? k.en : k.ko}${p.cap ? ` · ${p.cap}${en ? '' : '명'}` : ''}${p.type && !/^\d|^FTL|^\d{3}$/.test(p.type) ? ` · ${p.type}` : ''}<br>${p.addr || ''}${p.hours ? `<br>🕒 ${p.hours}` : ''}${p.tel ? `<br>📞 <a href="tel:${p.tel}">${p.tel}</a>` : ''}</small>${map.routeLinks ? map.routeLinks(lngLat.lng, lngLat.lat, p.name) : ''}${map.srcBadge ? map.srcBadge(p.src, p.asof) : ''}`;
+}
+function openPopup(lngLat, html) {
+  if (map.openPopup) return map.openPopup(lngLat, html);
+  const pop = new maplibregl.Popup({ closeButton: false, offset: 8 }).setLngLat(lngLat).addTo(map);
+  if (typeof html === 'string') pop.setHTML(html); else pop.setDOMContent(html);
+  return pop;
+}
+function ensureAll() {
+  if (map.getSource('sh-all')) return;
+  KINDS.forEach(ensureIcon);
+  map.addSource('sh-all', { type: 'geojson', data: EMPTY_FC, cluster: true, clusterRadius: 22, clusterMaxZoom: 24,
+    clusterProperties: { ki: ['min', ['get', 'ki']] } });
+  const iconSize = ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05];
+  map.addLayer({ id: 'sh-pt', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['!', ['has', 'point_count']],
+    layout: { 'icon-image': ['concat', 'sh-ic-', ['get', 'kind']], 'icon-size': iconSize, 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
+  map.addLayer({ id: 'sh-cluster', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
+    layout: { 'icon-image': ['concat', 'sh-ic-', ['at', ['get', 'ki'], ['literal', KIND_IDS]]], 'icon-size': iconSize, 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
+  map.addLayer({ id: 'sh-cluster-badge', type: 'circle', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
+    paint: { 'circle-radius': 8, 'circle-color': '#c8432b', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5, 'circle-translate': [11, -11] } });
+  map.addLayer({ id: 'sh-cluster-count', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
+    layout: { 'text-field': ['case', ['>', ['get', 'point_count'], 9], '9+', ['to-string', ['get', 'point_count']]], 'text-size': 10, 'text-font': ['Noto Sans Regular'], 'text-offset': [1.1, -1.1], 'text-allow-overlap': true }, paint: { 'text-color': '#fff' } });
+  map.addLayer({ id: 'sh-label', type: 'symbol', source: 'sh-all', minzoom: 13.5, filter: ['!', ['has', 'point_count']],
+    layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.2 } });
+  for (const id of ['sh-pt', 'sh-cluster']) {
+    map.on('mouseenter', id, () => map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', id, () => map.getCanvas().style.cursor = '');
+  }
+  map.on('click', 'sh-pt', e => openPopup(e.lngLat, detailHTML(e.features[0].properties, e.lngLat)));
+  map.on('click', 'sh-cluster', async e => {
+    const f = e.features[0], src = map.getSource('sh-all');
+    const n = f.properties.point_count;
+    try {
+      if (n > 12) { // 너무 많으면 그 지점으로 줌인 (진짜 같은 좌표 무더기는 12 이하가 대부분)
+        const z = await src.getClusterExpansionZoom(f.properties.cluster_id);
+        map.easeTo({ center: e.lngLat, zoom: Math.min(z, 17.5) });
+        return;
+      }
+      const leaves = await src.getClusterLeaves(f.properties.cluster_id, 12, 0);
+      const en = document.documentElement.lang === 'en';
+      const box = document.createElement('div');
+      box.innerHTML = `<b>${en ? `${n} facilities here` : `이 자리의 시설 ${n}곳`}</b>`;
+      leaves.forEach(lf => {
+        const p = lf.properties, k = KINDS.find(x => x.id === p.kind) || KINDS[0];
+        const row = document.createElement('div');
+        row.className = 'shpop-row';
+        row.innerHTML = `${k.icon} <b>${p.name || (en ? k.en : k.ko)}</b> <small>${en ? k.en : k.ko}</small>`;
+        row.addEventListener('click', () => { box.innerHTML = detailHTML(p, e.lngLat); });
+        box.appendChild(row);
+      });
+      openPopup(e.lngLat, box);
+    } catch { /* cluster gone (zoom change) */ }
   });
 }
 export async function setActive(kinds, sido) {
   activeKinds = new Set(kinds); currentSido = sido;
+  ensureAll();
+  const feats = [];
   for (const k of KINDS) {
-    const src = 'sh-' + k.id;
-    if (!activeKinds.has(k.id)) { if (map.getSource(src)) map.getSource(src).setData({ type: 'FeatureCollection', features: [] }); continue; }
-    ensureLayer(k.id);
+    if (!activeKinds.has(k.id)) continue;
     const fc = await load(k.id, sido);
-    if (fc && map.getSource(src)) map.getSource(src).setData(fc);
+    if (!fc) continue;
+    const ki = KIND_IDS.indexOf(k.id);
+    for (const f of fc.features) {
+      feats.push({ type: 'Feature', geometry: f.geometry, properties: { ...f.properties, kind: k.id, ki } });
+    }
   }
+  if (map.getSource('sh-all')) map.getSource('sh-all').setData({ type: 'FeatureCollection', features: feats });
 }
 const R = 6371000;
 function dist(a, b) { const toR = x => x * Math.PI / 180; const dLat = toR(b[1] - a[1]), dLon = toR(b[0] - a[0]); const s = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[1])) * Math.cos(toR(b[1])) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(s)); }

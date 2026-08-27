@@ -1,11 +1,12 @@
 // AidPage — H3 grid layer for pilot districts. Shows only attributes that actually have data.
-import { getLang } from './i18n.js?v=20260827b';
+import { getLang } from './i18n.js?v=20260827c';
 export const ATTRS = [
   { id: 'shelter_min_walk', ko: '가까운 대피소 도보(분)', en: 'Walk to shelter (min)', unit: '분', unit_en: 'min', ramp: ['#eef2f8', '#9a7328'] },
   { id: 'slope_mean', ko: '평균 경사', en: 'Mean slope', unit: '°', ramp: ['#eef2f8', '#9a7328'] },
   { id: 'elev_mean', ko: '평균 고도', en: 'Mean elevation', unit: 'm', ramp: ['#eef2f8', '#1a5fc4'] },
   { id: 'flood_hist_n', ko: '침수 이력(회)', en: 'Flood history', unit: '', ramp: ['#eef2f8', '#0f4a9e'] },
   { id: 'flood_depth_max_m', ko: '최대 침수심', en: 'Max flood depth', unit: 'm', ramp: ['#eef2f8', '#0f4a9e'] },
+  { id: 'landslide_hist_n', ko: '산사태 이력(건)', en: 'Landslide history', unit: '', ramp: ['#eef2f8', '#7a4a12'] },
   { id: 'semi_basement_r', ko: '반지하 비율', en: 'Semi-basement share', unit: '%', ramp: ['#eef2f8', '#c2447e'], pct: true },
   { id: 'elderly_alone_r', ko: '고령 1인세대 비율 (행정동)', en: 'Elderly living alone (dong)', unit: '%', ramp: ['#eef2f8', '#c2447e'], pct: true },
   { id: 'bldg_age30_r', ko: '30년 이상 건물 비율', en: 'Buildings 30y+', unit: '%', ramp: ['#eef2f8', '#9a7328'], pct: true },

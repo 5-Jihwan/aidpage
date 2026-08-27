@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827i';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827i';
-import { getReports, postReport, flagReport } from './api.js?v=20260827i';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827i';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827k';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827k';
+import { getReports, postReport, flagReport } from './api.js?v=20260827k';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827k';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260827i'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827k'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -100,7 +100,7 @@ function initMap() {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'bottom-right');
   map.on('style.load', () => {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
-    localizeLabels(); addAdminLayers(); initShelterUI(); initGrid(map); initGridClick();
+    localizeLabels(); hideRoadShields(); addAdminLayers(); initShelterUI(); initGrid(map); initGridClick();
     map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 3000, essential: true, curve: 1.3 });
     map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); });
   });
@@ -117,8 +117,18 @@ function milMaskExpr() {
   return ['any', ['==', ['coalesce', ['get', 'class'], ''], 'military'],  // aerodrome_label class
           ['all', kwHit, ['!', excHit]]];
 }
+/* 베이스맵 라벨 현지화.
+   주의: 원본 text-field가 name을 참조하는 레이어만 건드린다.
+   positron의 도로번호 방패(highway-shield-*, road_shield_us)는 text-field가 ref이고
+   아이콘이 road_{ref_length} — 글자 수에 맞춰 상자 폭이 정해진 스프라이트다.
+   여기에 도로 이름을 넣으면 상자 세로변이 글자를 가로지른다(자유로 → 자·로에 걸림). */
+let _origTextField = null;
 function localizeLabels() {
   const style = map.getStyle();
+  if (!_origTextField) {
+    _origTextField = new Map();
+    for (const l of style.layers || []) if (l.type === 'symbol' && l.layout && l.layout['text-field']) _origTextField.set(l.id, l.layout['text-field']);
+  }
   const vecSrc = Object.keys(style.sources || {}).find(s => (style.sources[s] || {}).type === 'vector');
   const ko = ['coalesce', ['get', 'name:ko'], ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
   const enRaw = ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
@@ -131,7 +141,18 @@ function localizeLabels() {
     if (l.type !== 'symbol' || !l.layout || !l.layout['text-field']) continue;
     if (vecSrc && l.source !== vecSrc) continue;  // 베이스맵 레이어만 (자체 라벨은 각자 관리)
     if (['sgg-label', 'emd-label'].includes(l.id)) continue;
+    if (!/name/.test(JSON.stringify(_origTextField.get(l.id) ?? ''))) continue;  // ref 방패·번지수 등은 그대로 둔다
     try { map.setLayoutProperty(l.id, 'text-field', field); } catch (e) { console.warn('localizeLabels', l.id, e); }
+  }
+}
+/* 도로번호 방패(road_{ref_length} 상자)는 표시하지 않는다.
+   재난 안내에 도로번호는 쓰이지 않고, 한/영 2줄 도로명 라벨과 자리를 다툰다.
+   판별은 id가 아니라 원본 text-field로 — ref만 참조하고 name이 없으면 방패다. */
+function hideRoadShields() {
+  for (const [id, tf] of _origTextField || []) {
+    const s = JSON.stringify(tf);
+    if (!/ref/.test(s) || /name/.test(s) || !map.getLayer(id)) continue;
+    try { map.setLayoutProperty(id, 'visibility', 'none'); } catch (e) { console.warn('hideRoadShields', id, e); }
   }
 }
 /* 시군구·읍면동 자체 라벨: EN이면 로마자(name_en), 없으면 한글 폴백 */
@@ -981,7 +1002,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827i').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827k').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

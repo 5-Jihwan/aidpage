@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827p';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827p';
-import { getReports, postReport, flagReport } from './api.js?v=20260827p';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827p';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260827q';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260827q';
+import { getReports, postReport, flagReport } from './api.js?v=20260827q';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260827q';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260827p'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260827q'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -353,9 +353,12 @@ function initHome() {
 let gridAttr = localStorage.getItem('safepic.gridAttr') || 'slope_mean';
 async function syncGrid() {
   const box = $('#gridBox'), where = $('#whereGrid');
+  const mapOn = localStorage.getItem('safepic.gridOn') !== '0';  // 지도 위 격자 겹침 표시 (설정)
   if (!state.sgg || !(await hasGrid(state.sgg))) { hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; return; }
   const attrs = gridAttrs(state.sgg); if (!attrs.some(a => a.id === gridAttr)) gridAttr = attrs[0] && attrs[0].id;
-  const leg = showGrid(state.sgg, gridAttr);
+  // 지도 표시를 꺼도 renderPrepare()의 수치는 캐시된 셀에서 계산하므로 그대로 나온다.
+  let leg = null;
+  if (mapOn) leg = showGrid(state.sgg, gridAttr); else hideGrid();
   // 범례 스팬은 지도 범례와 패널 카드 두 곳에서 쓰므로 한 번만 생성
   const legSpans = leg ? leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('') : '';
   state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: legSpans } : null;
@@ -363,7 +366,7 @@ async function syncGrid() {
   const html = `<div class="grid-attrs">${attrs.map(a => `<button type="button" class="chip ${a.id === gridAttr ? 'is-on' : ''}" data-a="${a.id}">${getLang() === 'en' ? a.en : a.ko}</button>`).join('')}</div>` +
     (leg ? `<div class="legend">${legSpans}<span><i style="background:#d9dee7"></i>${t('grid.nodata')}</span></div>` : '') +
     `<div class="fine">${t('grid.note')}</div>`;
-  for (const el of [box, where]) { if (!el) continue; el.hidden = false; el.innerHTML = `<h3>${t('grid.title')}</h3>` + html; $$('.chip', el).forEach(b => b.addEventListener('click', () => { gridAttr = b.dataset.a; localStorage.setItem('safepic.gridAttr', gridAttr); syncGrid(); })); }
+  for (const el of [box, where]) { if (!el) continue; el.hidden = !mapOn; el.innerHTML = `<h3>${t('grid.title')}</h3>` + html; $$('.chip', el).forEach(b => b.addEventListener('click', () => { gridAttr = b.dataset.a; localStorage.setItem('safepic.gridAttr', gridAttr); syncGrid(); })); }
   $('#wherePending').hidden = true;
   renderPrepare(); applyFolds();
 }
@@ -1012,7 +1015,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827p').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260827q').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1045,6 +1048,9 @@ function initSize() {
   const fb = $('#btnFxBanner'), FK = 'safepic.fxBanner';
   const applyFB = on => { root.classList.toggle('no-fxbanner', !on); fb.checked = on; };
   applyFB(localStorage.getItem(FK) !== '0');
+  const gb = $('#btnGridOn'), GK = 'safepic.gridOn';
+  gb.checked = localStorage.getItem(GK) !== '0';
+  gb.addEventListener('change', () => { localStorage.setItem(GK, gb.checked ? '1' : '0'); syncGrid(); });
   fb.addEventListener('change', () => {
     localStorage.setItem(FK, fb.checked ? '1' : '0'); applyFB(fb.checked);
     // 다시 켜면 ×로 닫아둔 것도 함께 되살린다 (발효 중인 특보가 있을 때만)

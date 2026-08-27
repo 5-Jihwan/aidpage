@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260827p">
+<link rel="stylesheet" href="css/style.css?v=20260827q">
 </head>
 <body>
 
@@ -78,7 +78,9 @@
     </div></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.map">지도 표시</h4>
     <label class="drawer-row"><input type="checkbox" id="btnFxBanner" checked><span data-i18n="fx.banner.t">특보 배너를 지도 위에 표시</span></label>
-    <small class="fine" data-i18n="fx.banner.n">꺼도 '내 동네' 패널의 특보 카드에는 그대로 나옵니다.</small></section>
+    <small class="fine" data-i18n="fx.banner.n">꺼도 '내 동네' 패널의 특보 카드에는 그대로 나옵니다.</small>
+    <label class="drawer-row"><input type="checkbox" id="btnGridOn" checked><span data-i18n="grid.on.t">위험 격자를 지도에 겹쳐 표시</span></label>
+    <small class="fine" data-i18n="grid.on.n">꺼도 '우리 동네 위험'의 수치는 패널에 그대로 나옵니다.</small></section>
   <section class="drawer-sec desktop-only"><h4 data-i18n="drawer.panel">화면</h4><button type="button" class="btn btn-ghost btn-sm" id="btnPanelToggle" data-i18n="panel.collapse">패널 접기/펼치기</button></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.more">더 보기</h4><button type="button" class="drawer-link" data-tab="about" data-i18n="tab.about">방법·한계</button><a class="drawer-link" href="https://github.com/5-Jihwan/aidpage" target="_blank" rel="noopener">GitHub</a><div class="fine" data-i18n="drawer.note">입력은 서버로 가지 않고 이 브라우저 안에서만 계산됩니다.</div></section>
 </aside>
@@ -259,6 +261,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260827p"></script>
+<script type="module" src="js/app.js?v=20260827q"></script>
 </body>
 </html>

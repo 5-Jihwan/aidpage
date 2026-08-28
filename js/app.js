@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260829b';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260829b';
-import { getReports, postReport, flagReport } from './api.js?v=20260829b';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260829b';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260829c';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260829c';
+import { getReports, postReport, flagReport } from './api.js?v=20260829c';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260829c';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260829b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260829c'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -756,15 +756,40 @@ function renderMsgs() {
     + `<small class="fine">${t('msg.src')}</small>`;
 }
 function relTime(ts) { const m = Math.round((Date.now() - ts) / 60000); if (m < 60) return t('rel.min', { n: m }); const h = Math.round(m / 60); if (h < 24) return t('rel.hour', { n: h }); return t('rel.day', { n: Math.round(h / 24) }); }
-/* 오늘의 한 줄 — 하루 1개 회전(날짜 기반), 출처 고정. 게임식 팁이 아니라 규칙·행동요령 한 줄 */
-function renderTip(step = 0) {
+/* 오늘의 한 줄 — 날짜 기반으로 시작해 일정 시간마다 다음 줄로 넘어간다.
+   읽는 도중에 바뀌면 안 되므로 마우스·포커스가 카드 위에 있으면 멈추고,
+   화살표로 직접 넘긴 사람은 '직접 보겠다'는 뜻이므로 자동 넘김을 끈다.
+   탭이 백그라운드면 돌리지 않는다(안 보는 사이 여러 개가 지나가는 것 방지). */
+const TIP_MS = () => (document.documentElement.classList.contains('big') ? 14000 : 9000);
+function stopTipTimer() { if (state._tipTimer) { clearTimeout(state._tipTimer); state._tipTimer = null; } }
+function startTipTimer() {
+  stopTipTimer();
+  if (state._tipManual || state._tipHold || document.hidden) return;
+  if (!state.tips || state.tips.tips.length < 2) return;
+  state._tipTimer = setTimeout(() => renderTip(1, { auto: true }), TIP_MS());
+}
+function renderTip(step = 0, opts = {}) {
   const box = $('#tipCard'); if (!box || !state.tips || !state.tips.tips.length) return;
+  if (step !== 0 && !opts.auto) state._tipManual = true;   // 사용자가 조작하면 자동 넘김 중단
   const tips = state.tips.tips, day = Math.floor(Date.now() / 86400000);
   state._tipIdx = ((state._tipIdx == null ? day : state._tipIdx) + step + tips.length) % tips.length;
   const tp = tips[state._tipIdx], en = getLang() === 'en';
   box.hidden = false;
-  box.innerHTML = `<div class="tip-head"><span class="tip-label">${t('tip.title')}</span><span class="tip-nav"><button type="button" class="tip-btn" data-d="-1" aria-label="prev">‹</button><span class="mono">${state._tipIdx + 1}/${tips.length}</span><button type="button" class="tip-btn" data-d="1" aria-label="next">›</button></span></div><p class="tip-text">${en ? tp.en : tp.ko}</p><small class="tip-src">${t('tip.src')} ${en ? (tp.src_en || tp.src) : tp.src}</small>`;
+  box.innerHTML = `<div class="tip-head"><span class="tip-label">${t('tip.title')}</span><span class="tip-nav"><button type="button" class="tip-btn" data-d="-1" aria-label="prev">‹</button><span class="mono">${state._tipIdx + 1}/${tips.length}</span><button type="button" class="tip-btn" data-d="1" aria-label="next">›</button></span></div><p class="tip-text">${en ? tp.en : tp.ko}</p><small class="tip-src">${t('tip.src')} ${en ? (tp.src_en || tp.src) : tp.src}</small>${state._tipManual ? '' : `<span class=\"tip-prog\" style=\"animation-duration:${TIP_MS()}ms\"></span>`}`;
   $$('.tip-btn', box).forEach(b => b.addEventListener('click', () => renderTip(+b.dataset.d)));
+  if (!box.dataset.tipBound) {   // 카드는 다시 그려도 요소는 같으므로 1회만 바인딩
+    box.dataset.tipBound = '1';
+    // 재개할 때는 같은 팁을 다시 그린다 — 그래야 진행 표시줄과 타이머가 0에서 함께 출발한다.
+    const hold = on => { state._tipHold = on; on ? stopTipTimer() : renderTip(0); };
+    box.addEventListener('mouseenter', () => hold(true));
+    box.addEventListener('mouseleave', () => hold(false));
+    box.addEventListener('focusin', () => hold(true));
+    box.addEventListener('focusout', () => hold(false));
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopTipTimer(); else if (!state._tipManual && !state._tipHold) renderTip(0);
+    });
+  }
+  startTipTimer();
 }
 /* 지금 받아주는 응급실 (E-Gen 실시간 가용병상, 하루 3회 갱신) */
 function renderER() {
@@ -1060,7 +1085,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260829b').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260829c').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

@@ -96,7 +96,8 @@ def parse_law(data: dict, want: dict) -> dict:
         no = str(u.get("조문번호") or "").strip()
         if not no:
             continue
-        key = f"제{no}조"
+        branch = str(u.get("조문가지번호") or "").strip().lstrip("0")
+        key = f"제{no}조의{branch}" if branch else f"제{no}조"
         if key not in want["arts"]:
             continue
         parts = [strip_tags(u.get("조문내용"))]
@@ -109,14 +110,23 @@ def parse_law(data: dict, want: dict) -> dict:
         out["arts"][key] = "\n".join(p for p in parts if p)
     # 별표 (본문 응답에 별표단위가 없으면 파일 링크만 남긴다)
     annex_units = _as_list((law.get("별표") or {}).get("별표단위"))
+
+    def _flat(v):
+        if isinstance(v, (list, tuple)):
+            return '\n'.join(t for t in (_flat(x) for x in v) if t)
+        return strip_tags(v)
+
     for a in annex_units:
         if not isinstance(a, dict):
             continue
+        if str(a.get("별표구분") or "별표").strip() != "별표":
+            continue  # 서식·별지는 제외 (별표 번호와 충돌)
         no = str(a.get("별표번호") or "").strip().lstrip("0")
-        key = f"별표{no}"
+        branch = str(a.get("별표가지번호") or "").strip().lstrip("0")
+        key = f"별표{no}의{branch}" if branch else f"별표{no}"
         if key not in want["annexes"]:
             continue
-        txt = strip_tags(a.get("별표내용")) or strip_tags(a.get("별표제목"))
+        txt = _flat(a.get("별표내용")) or strip_tags(a.get("별표제목"))
         link = a.get("별표서식파일링크")
         if link:
             txt = (txt + f"\n(서식 파일: https://www.law.go.kr{link})").strip()

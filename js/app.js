@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260828b';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260828b';
-import { getReports, postReport, flagReport } from './api.js?v=20260828b';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260828b';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260828c';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260828c';
+import { getReports, postReport, flagReport } from './api.js?v=20260828c';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260828c';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260828b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260828c'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1059,7 +1059,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260828b').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260828c').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1274,7 +1274,7 @@ document.addEventListener('toggle', async e => {
   const parts = [];
   if (doc) {
     if (d.dataset.art && doc.arts && doc.arts[d.dataset.art]) parts.push(`<h5>${doc.name || ''} ${d.dataset.art}</h5><p>${doc.arts[d.dataset.art]}</p>`);
-    if (d.dataset.annex && doc.annexes && doc.annexes[d.dataset.annex]) parts.push(`<h5>${d.dataset.annex}</h5><p>${doc.annexes[d.dataset.annex]}</p>`);
+    if (d.dataset.annex && doc.annexes && doc.annexes[d.dataset.annex]) parts.push(`<h5>${d.dataset.annex}</h5><pre class="law-annex">${doc.annexes[d.dataset.annex]}</pre>`);
     if (parts.length && (doc.effective || doc.updated)) parts.push(`<small class="fine">${t('law.asof', { d: doc.effective || doc.updated })}</small>`);
   }
   body.innerHTML = parts.join('') || `<small class="muted">${t('law.pending')}</small>`;

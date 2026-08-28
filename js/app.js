@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260829a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260829a';
-import { getReports, postReport, flagReport } from './api.js?v=20260829a';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260829a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260829b';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260829b';
+import { getReports, postReport, flagReport } from './api.js?v=20260829b';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260829b';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260829a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260829b'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1060,7 +1060,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260829a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260829b').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1268,7 +1268,9 @@ function lawRefEn(s) {
     .replace(/^별표(\d+)(?:의(\d+))?$/, (m, a, b) => 'Annex ' + a + (b ? '-' + b : ''));
 }
 function lawFoldHTML(r) {
-  const L = r.law; if (!L || (!L.mst && !L.name)) return '';
+  const L = r.law;
+  // 조문 미연결(조례·행정계획·내부 규정 근거)은 사유를 한 줄로 밝힌다 — 누락과 구분하기 위해
+  if (!L || (!L.mst && !L.name)) return r.law_note ? `<small class="fine law-note">${escapeHTML(r.law_note)}</small>` : '';
   const tag = [L.art, L.annex].filter(Boolean).map(lawRefEn).join(' · ');
   return `<details class="lawfold" data-mst="${L.mst || ''}" data-art="${L.art || ''}" data-annex="${L.annex || ''}"><summary>${t('law.fold')}${tag ? ` — ${tag}` : ''}</summary><div class="law-body">${t('law.loading')}</div></details>`;
 }

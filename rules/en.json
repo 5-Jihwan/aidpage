@@ -314,7 +314,7 @@
     "Damage confirmation",
     "ID"
    ],
-   "basis": "Telecommunications Business Act art. 28 (terms of use) — each carrier's disaster reduction clause · Regulation art. 12"
+   "basis": "Regulation art. 12(2)9 (indirect-support agency: telecom carriers) - each carrier's disaster reduction clause in its filed terms of use"
   },
   "indirect.citygas": {
    "label": "City-gas bill reduction",
@@ -379,7 +379,7 @@
     "Business registration",
     "Guarantee application"
    ],
-   "basis": "Regional Credit Guarantee Foundation Act · SME Promotion Act art. 66 (disaster-hit SMEs) · Regulation art. 12"
+   "basis": "Regulation art. 12(2)2,4,5 (indirect-support agencies: SBC, Korea Credit Guarantee Fund, Regional Credit Guarantee Foundations) - each agency's disaster guarantee guideline"
   },
   "indirect.sme_emergency_loan": {
    "label": "Emergency business-stability loan for small businesses",

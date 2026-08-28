@@ -3,19 +3,42 @@
     "title": "간접지원 (재난지역 25종 + 특별재난지역 추가 13종 = 38종 중 검증 가능 항목)",
     "asof": "2026-08-21",
     "sources": [
-      {"name": "재난 및 안전관리 기본법 제60조(특별재난지역 선포)·제61조(특별재난지역에 대한 지원)·제66조", "url": "https://www.law.go.kr/법령/재난및안전관리기본법"},
-      {"name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정 제12조 (간접지원·피해정보 제공, 17개 기관)", "url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945"},
-      {"name": "행정안전부 2025.7 특별재난지역 선포 보도자료 (간접지원 항목·수준)", "url": "https://www.mois.go.kr"},
-      {"name": "행정안전부 2026-08 보도 (일반 25종 + 특별 13종 = 38종)", "url": "https://www.mois.go.kr"},
-      {"name": "지방세특례제한법 제92조 (천재지변 등으로 인한 대체취득 및 피해 감면)", "url": "https://www.law.go.kr/법령/지방세특례제한법/제92조"},
-      {"name": "국세기본법 제6조 (천재 등으로 인한 기한의 연장)", "url": "https://www.law.go.kr/법령/국세기본법/제6조"}
+      {
+        "name": "재난 및 안전관리 기본법 제60조(특별재난지역 선포)·제61조(특별재난지역에 대한 지원)·제66조",
+        "url": "https://www.law.go.kr/법령/재난및안전관리기본법"
+      },
+      {
+        "name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정 제12조 (간접지원·피해정보 제공, 17개 기관)",
+        "url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945"
+      },
+      {
+        "name": "행정안전부 2025.7 특별재난지역 선포 보도자료 (간접지원 항목·수준)",
+        "url": "https://www.mois.go.kr"
+      },
+      {
+        "name": "행정안전부 2026-08 보도 (일반 25종 + 특별 13종 = 38종)",
+        "url": "https://www.mois.go.kr"
+      },
+      {
+        "name": "지방세특례제한법 제92조 (천재지변 등으로 인한 대체취득 및 피해 감면)",
+        "url": "https://www.law.go.kr/법령/지방세특례제한법/제92조"
+      },
+      {
+        "name": "국세기본법 제6조 (천재 등으로 인한 기한의 연장)",
+        "url": "https://www.law.go.kr/법령/국세기본법/제6조"
+      }
     ],
-    "note": "channel=auto_after_report: 지자체가 피해사실확인서·피해자 명단을 해당 기관에 통보(규정 §12)하여 별도 신청 없이 적용. channel=apply: 피해사실확인서를 지참해 해당 기관에 직접 신청. special_zone=true: 특별재난지역 선포 지역에만 적용(추가 13종)."
+    "note": "channel=auto_after_report: 지자체가 피해사실확인서·피해자 명단을 해당 기관에 통보(규정 §12)하여 별도 신청 없이 적용. channel=apply: 피해사실확인서를 지참해 해당 기관에 직접 신청. special_zone=true: 특별재난지역 선포 지역에만 적용(추가 13종).",
+    "law_note": "law 필드 = 국가법령정보 조문 원문 연동용(mst/조문/별표). 조례·행정계획·내부 규정이 근거인 항목은 law 없이 law_note로 사유를 명시한다(현재 4건). effective_from = 근거 법령·고시의 현행 시행일, rate_asof = 금액을 원문과 대조한 날."
   },
   "rules": [
     {
       "id": "indirect.nhis_premium",
-      "law": {"mst": "276651", "name": "국민건강보험법", "art": "제75조"},
+      "law": {
+        "mst": "276651",
+        "name": "국민건강보험법",
+        "art": "제75조"
+      },
       "group": "indirect",
       "label": "건강보험료 경감",
       "summary": "재난 발생 다음 달부터 3개월간 건강보험료 30~50% 경감(피해 정도별).",
@@ -23,14 +46,28 @@
       "amount_text": "보험료 30~50% × 3개월",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods", "injury", "death"],
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death"
+        ],
         "special_zone": true
       },
       "channel": "auto_after_report",
       "deadline_days_after_event": null,
       "where": "국민건강보험공단 (지자체 피해자 명단 통보)",
-      "docs": ["피해사실확인서(지자체 통보로 대체)"],
+      "docs": [
+        "피해사실확인서(지자체 통보로 대체)"
+      ],
       "basis": "국민건강보험법 제75조(보험료의 경감) 및 시행령 제44조 · 규정 제12조 간접지원",
       "basis_url": "https://www.law.go.kr/법령/국민건강보험법/제75조",
       "effective_from": "2025-07-01",
@@ -40,7 +77,11 @@
     },
     {
       "id": "indirect.nhis_late_fee",
-      "law": {"mst": "276651", "name": "국민건강보험법", "art": "제80조"},
+      "law": {
+        "mst": "276651",
+        "name": "국민건강보험법",
+        "art": "제80조"
+      },
       "group": "indirect",
       "label": "건강보험료 연체금 징수 예외",
       "summary": "6개월간 건강보험료 연체금 징수 예외.",
@@ -48,14 +89,28 @@
       "amount_text": "연체금 면제 6개월",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods", "injury", "death"],
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death"
+        ],
         "special_zone": true
       },
       "channel": "auto_after_report",
       "deadline_days_after_event": null,
       "where": "국민건강보험공단",
-      "docs": ["피해사실확인서(지자체 통보로 대체)"],
+      "docs": [
+        "피해사실확인서(지자체 통보로 대체)"
+      ],
       "basis": "국민건강보험법 제80조(연체금) 단서 · 규정 제12조",
       "basis_url": "https://www.law.go.kr/법령/국민건강보험법/제80조",
       "effective_from": "2025-07-01",
@@ -65,7 +120,11 @@
     },
     {
       "id": "indirect.nps_exemption",
-      "law": {"mst": "280269", "name": "국민연금법", "art": "제91조"},
+      "law": {
+        "mst": "280269",
+        "name": "국민연금법",
+        "art": "제91조"
+      },
       "group": "indirect",
       "label": "국민연금 보험료 납부예외",
       "summary": "지역가입자는 재난 피해를 사유로 최장 12개월 연금보험료 납부예외 신청 가능.",
@@ -73,13 +132,28 @@
       "amount_text": "납부예외 최장 12개월 (지역가입자)",
       "unit": "인",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods", "injury", "death"]
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "국민연금공단 지사 (전화 1355)",
-      "docs": ["피해사실확인서", "납부예외 신청서"],
+      "docs": [
+        "피해사실확인서",
+        "납부예외 신청서"
+      ],
       "basis": "국민연금법 제91조(연금보험료 납부의 예외) · 규정 제12조",
       "basis_url": "https://www.law.go.kr/법령/국민연금법/제91조",
       "effective_from": "2025-07-01",
@@ -89,7 +163,11 @@
     },
     {
       "id": "indirect.electricity",
-      "law": {"mst": "279945", "name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정", "art": "제12조"},
+      "law": {
+        "mst": "279945",
+        "name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정",
+        "art": "제12조"
+      },
       "group": "indirect",
       "label": "전기요금 감면",
       "summary": "주택 멸실(전파·유실) 1개월분 전액 면제, 파손(반파·침수) 1개월분 50% 감면.",
@@ -97,14 +175,25 @@
       "amount_text": "멸실 1개월분 면제 / 파손 1개월분 50%",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full"],
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full"
+        ],
         "special_zone": true
       },
       "channel": "auto_after_report",
       "deadline_days_after_event": null,
       "where": "한국전력공사 (국번없이 123)",
-      "docs": ["피해사실확인서(지자체 통보로 대체, 누락 시 직접 제출)"],
+      "docs": [
+        "피해사실확인서(지자체 통보로 대체, 누락 시 직접 제출)"
+      ],
       "basis": "한국전력공사 기본공급약관 (재해 특별감면) · 규정 제12조",
       "basis_url": "https://cyber.kepco.co.kr",
       "effective_from": "2025-07-01",
@@ -114,7 +203,11 @@
     },
     {
       "id": "indirect.telecom",
-      "law": {"mst": "286079", "name": "전기통신사업법", "art": "제28조"},
+      "law": {
+        "mst": "279945",
+        "name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정",
+        "art": "제12조"
+      },
       "group": "indirect",
       "label": "통신요금 감면 (이동전화·인터넷)",
       "summary": "가구당 이동전화 1회선 최대 12,500원 감면, 인터넷전화 100%·초고속인터넷 50% 감면(1개월분).",
@@ -122,24 +215,40 @@
       "amount_text": "이동전화 1회선 최대 12,500원 / 인터넷전화 100% / 초고속인터넷 50%",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full"],
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full"
+        ],
         "special_zone": true
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "가입 통신사 고객센터 (SKT 114 / KT 100 / LGU+ 101)",
-      "docs": ["피해사실확인서", "신분증"],
-      "basis": "전기통신사업법 제28조(이용약관) 각 사 약관 재해 감면 · 규정 제12조",
+      "docs": [
+        "피해사실확인서",
+        "신분증"
+      ],
+      "basis": "규정 제12조②9호(간접 지원 실시기관: 전기통신사업자) · 각 사 이용약관 재해 감면 (「전기통신사업법」 제28조에 따라 신고된 약관)",
       "basis_url": "https://www.msit.go.kr",
       "effective_from": "2025-07-01",
       "rate_asof": "2025-07-31",
       "confidence": "verified",
-      "notes": "2025.7 특별재난지역 기준. 통신사에 따라 지자체 명단 기반 자동 적용 사례도 있으나 원칙은 신청."
+      "notes": "2025.7 특별재난지역 기준. 통신사에 따라 지자체 명단 기반 자동 적용 사례도 있으나 원칙은 신청. 근거 정정(2026-08-29): 전기통신사업법 제28조는 이용약관 '신고' 절차 조문이므로 감면 근거가 아니다. 감면의 실질 근거는 규정 제12조의 간접 지원 통보 체계와 각 사 약관이다."
     },
     {
       "id": "indirect.citygas",
-      "law": {"mst": "276497", "name": "도시가스사업법", "art": "제20조"},
+      "law": {
+        "mst": "276497",
+        "name": "도시가스사업법",
+        "art": "제20조"
+      },
       "group": "indirect",
       "label": "도시가스 요금 감면",
       "summary": "1개월분 정액 감면 (취사 전용 1,680원 / 취사·난방 전파 12,400원·반파 6,200원).",
@@ -147,14 +256,24 @@
       "amount_text": "취사 1,680원 / 취사·난방 전파 12,400원·반파 6,200원 (1개월분)",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent", "shop"],
-        "damage": ["flood", "half", "full"],
+        "housing": [
+          "own",
+          "rent",
+          "shop"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full"
+        ],
         "special_zone": true
       },
       "channel": "auto_after_report",
       "deadline_days_after_event": null,
       "where": "관할 도시가스사",
-      "docs": ["피해사실확인서(지자체 통보로 대체)"],
+      "docs": [
+        "피해사실확인서(지자체 통보로 대체)"
+      ],
       "basis": "도시가스사업법 제20조(공급규정) 각 사 공급규정 재해 감면 · 규정 제12조",
       "basis_url": "https://www.motie.go.kr",
       "effective_from": "2025-07-01",
@@ -164,7 +283,11 @@
     },
     {
       "id": "indirect.district_heating",
-      "law": {"mst": "283985", "name": "집단에너지사업법", "art": "제17조"},
+      "law": {
+        "mst": "283985",
+        "name": "집단에너지사업법",
+        "art": "제17조"
+      },
       "group": "indirect",
       "label": "지역난방 요금 감면",
       "summary": "지역난방 공급 세대의 기본요금 감면(피해 정도별).",
@@ -172,14 +295,23 @@
       "amount_text": "기본요금 1개월분 감면 (수준 미확인)",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent"],
-        "damage": ["flood", "half", "full"],
+        "housing": [
+          "own",
+          "rent"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full"
+        ],
         "special_zone": true
       },
       "channel": "auto_after_report",
       "deadline_days_after_event": null,
       "where": "한국지역난방공사 등 열공급사업자",
-      "docs": ["피해사실확인서"],
+      "docs": [
+        "피해사실확인서"
+      ],
       "basis": "집단에너지사업법 제17조(공급규정) 재해 감면 · 규정 제12조",
       "basis_url": "https://www.kdhc.co.kr",
       "effective_from": "2025-07-01",
@@ -189,7 +321,11 @@
     },
     {
       "id": "indirect.local_tax",
-      "law": {"mst": "286607", "name": "지방세특례제한법", "art": "제92조"},
+      "law": {
+        "mst": "286607",
+        "name": "지방세특례제한법",
+        "art": "제92조"
+      },
       "group": "indirect",
       "label": "지방세 감면·징수유예 (재산세·주민세·자동차세 등)",
       "summary": "피해 재산의 지방세 감면 및 납기연장·징수유예. 특별재난지역은 최장 2년.",
@@ -197,13 +333,25 @@
       "amount_text": "감면 + 징수유예 (일반 최장 1년 / 특별재난지역 최장 2년)",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods"]
+        "housing": [
+          "own",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "시·군·구 세무과 / 위택스(wetax.go.kr)",
-      "docs": ["피해사실확인서", "감면·징수유예 신청서"],
+      "docs": [
+        "피해사실확인서",
+        "감면·징수유예 신청서"
+      ],
       "basis": "지방세특례제한법 제92조(천재지변 등으로 인한 피해 감면) · 지방세징수법 제25조(징수유예) · 지방세기본법 제26조(기한의 연장)",
       "basis_url": "https://www.law.go.kr/법령/지방세특례제한법/제92조",
       "effective_from": "2025-07-01",
@@ -213,7 +361,11 @@
     },
     {
       "id": "indirect.national_tax",
-      "law": {"mst": "288571", "name": "국세기본법", "art": "제6조"},
+      "law": {
+        "mst": "288571",
+        "name": "국세기본법",
+        "art": "제6조"
+      },
       "group": "indirect",
       "label": "국세 납기연장·징수유예",
       "summary": "부가세·소득세 등 신고·납부기한 연장(일반 9개월~1년, 특별재난지역 최장 2년) 및 체납처분 유예.",
@@ -221,13 +373,28 @@
       "amount_text": "납기연장 일반 9개월~1년 / 특별재난지역 최장 2년",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods", "injury", "death"]
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "관할 세무서 / 홈택스(hometax.go.kr) / 국세상담 126",
-      "docs": ["피해사실확인서", "기한연장 신청서"],
+      "docs": [
+        "피해사실확인서",
+        "기한연장 신청서"
+      ],
       "basis": "국세기본법 제6조(천재 등으로 인한 기한의 연장) · 국세징수법 제13조(납부기한 등의 연장) · 제15조(납부고지의 유예)",
       "basis_url": "https://www.law.go.kr/법령/국세기본법/제6조",
       "effective_from": "2025-07-01",
@@ -237,7 +404,11 @@
     },
     {
       "id": "indirect.highschool_tuition",
-      "law": {"mst": "286321", "name": "초·중등교육법 시행령", "art": "제97조"},
+      "law": {
+        "mst": "286321",
+        "name": "초·중등교육법 시행령",
+        "art": "제97조"
+      },
       "group": "indirect",
       "label": "고등학생 수업료 감면",
       "summary": "피해 가구 고등학생 자녀 수업료를 최대 100만원 범위에서 6개월간 감면.",
@@ -245,13 +416,28 @@
       "amount_text": "최대 100만원 범위 6개월",
       "unit": "인",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods", "injury", "death"]
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "재학 고등학교 행정실 / 시·도교육청",
-      "docs": ["피해사실확인서", "재학증명서"],
+      "docs": [
+        "피해사실확인서",
+        "재학증명서"
+      ],
       "basis": "초·중등교육법 시행령 제97조(수업료 감면) · 규정 제12조",
       "basis_url": "https://www.law.go.kr/법령/초·중등교육법시행령",
       "effective_from": "2025-07-01",
@@ -261,7 +447,11 @@
     },
     {
       "id": "indirect.sme_guarantee",
-      "law": {"mst": "284099", "name": "중소기업진흥에 관한 법률", "art": "제66조"},
+      "law": {
+        "mst": "279945",
+        "name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정",
+        "art": "제12조"
+      },
       "group": "indirect",
       "label": "재해 중소기업·소상공인 특례보증 (보증료 인하)",
       "summary": "재해 소상공인 특례보증 시 보증료율 0.5% → 0.1%, 보증비율 100%.",
@@ -269,23 +459,38 @@
       "amount_text": "보증료 0.5% → 0.1%",
       "unit": "업체",
       "conditions": {
-        "housing": ["shop"],
-        "damage": ["flood", "half", "full", "goods"]
+        "housing": [
+          "shop"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "지역신용보증재단 / 신용보증기금 / 소상공인시장진흥공단",
-      "docs": ["피해사실확인서", "사업자등록증", "보증신청서"],
-      "basis": "지역신용보증재단법 · 중소기업진흥에 관한 법률 제66조(재해 중소기업 지원) · 규정 제12조",
+      "docs": [
+        "피해사실확인서",
+        "사업자등록증",
+        "보증신청서"
+      ],
+      "basis": "규정 제12조②2호·4호·5호(간접 지원 실시기관: 중소벤처기업진흥공단·신용보증기금·지역신용보증재단) · 각 기관 재해 특례보증 지침",
       "basis_url": "https://www.koreg.or.kr",
       "effective_from": "2025-07-01",
       "rate_asof": "2025-07-31",
       "confidence": "verified",
-      "notes": "소진공 재해 긴급경영안정자금(직접대출, 저리) 별도 — 금리·한도 미확인."
+      "notes": "소진공 재해 긴급경영안정자금(직접대출, 저리) 별도 — 금리·한도 미확인. 근거 정정(2026-08-29): 중소기업진흥에 관한 법률 제66조는 '기금의 운용과 관리' 조문으로 재해 지원 근거가 아니다. 규정 제12조의 실시기관 열거로 대체."
     },
     {
       "id": "indirect.sme_emergency_loan",
-      "law": {"mst": "281985", "name": "소상공인 보호 및 지원에 관한 법률", "art": "제9조"},
+      "law": {
+        "mst": "281985",
+        "name": "소상공인 보호 및 지원에 관한 법률",
+        "art": "제9조"
+      },
       "group": "indirect",
       "label": "소상공인 재해 긴급경영안정자금 융자",
       "summary": "소상공인시장진흥공단 정책자금 중 재해 피해 소상공인 대상 저리 직접대출.",
@@ -293,13 +498,23 @@
       "amount_text": "한도·금리 미확인 (연도별 공고)",
       "unit": "업체",
       "conditions": {
-        "housing": ["shop"],
-        "damage": ["flood", "half", "full", "goods"]
+        "housing": [
+          "shop"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "소상공인시장진흥공단 지역센터 (1357)",
-      "docs": ["피해사실확인서", "사업자등록증"],
+      "docs": [
+        "피해사실확인서",
+        "사업자등록증"
+      ],
       "basis": "소상공인 보호 및 지원에 관한 법률 제9조 · 소상공인 정책자금 운용지침",
       "basis_url": "https://ols.semas.or.kr",
       "effective_from": null,
@@ -309,7 +524,11 @@
     },
     {
       "id": "indirect.military_postpone",
-      "law": {"mst": "283699", "name": "병역법", "art": "제61조"},
+      "law": {
+        "mst": "283699",
+        "name": "병역법",
+        "art": "제61조"
+      },
       "group": "indirect",
       "label": "병역의무 이행기일 연기",
       "summary": "특별재난지역 피해 가구 병역의무자의 입영·소집 등 이행기일 연기.",
@@ -317,14 +536,29 @@
       "amount_text": "이행기일 연기",
       "unit": "인",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods", "injury", "death"],
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death"
+        ],
         "special_zone": true
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "지방병무청 (1588-9090)",
-      "docs": ["피해사실확인서", "연기원서"],
+      "docs": [
+        "피해사실확인서",
+        "연기원서"
+      ],
       "basis": "병역법 제61조(입영 등의 연기) · 병역법 시행령 제129조",
       "basis_url": "https://www.law.go.kr/법령/병역법/제61조",
       "effective_from": "2025-07-01",
@@ -341,24 +575,43 @@
       "amount_text": "훈련 면제·보류",
       "unit": "인",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods", "injury", "death"],
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death"
+        ],
         "special_zone": true
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "관할 예비군 동대 / 읍·면·동(민방위)",
-      "docs": ["피해사실확인서"],
+      "docs": [
+        "피해사실확인서"
+      ],
       "basis": "예비군법 시행규칙 (훈련 보류) · 민방위기본법 시행규칙 · 규정 제12조",
       "basis_url": "https://www.law.go.kr/법령/예비군법",
       "effective_from": "2025-07-01",
       "rate_asof": null,
       "confidence": "reported",
-      "notes": "특별재난지역 추가 간접지원 목록(보도)에 포함."
+      "notes": "특별재난지역 추가 간접지원 목록(보도)에 포함.",
+      "law_note": "조문 미연결(의도): 예비군법 시행규칙·민방위기본법 시행규칙의 훈련 보류 사유는 시행규칙 별표 수준이라 조문 단위 특정이 어려움. 근거는 basis·basis_url 참조."
     },
     {
       "id": "indirect.tv_license",
-      "law": {"mst": "286311", "name": "방송법 시행령", "art": "제44조"},
+      "law": {
+        "mst": "286311",
+        "name": "방송법 시행령",
+        "art": "제44조"
+      },
       "group": "indirect",
       "label": "TV 수신료 면제",
       "summary": "주택 멸실(전파·유실) 세대의 TV 수신료 면제.",
@@ -366,14 +619,21 @@
       "amount_text": "수신료 면제 (기간 미확인)",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent"],
-        "damage": ["full"],
+        "housing": [
+          "own",
+          "rent"
+        ],
+        "damage": [
+          "full"
+        ],
         "special_zone": true
       },
       "channel": "auto_after_report",
       "deadline_days_after_event": null,
       "where": "KBS 수신료콜센터 (1588-1801) / 한국전력",
-      "docs": ["피해사실확인서"],
+      "docs": [
+        "피해사실확인서"
+      ],
       "basis": "방송법 시행령 제44조(수신료 면제) · 규정 제12조",
       "basis_url": "https://www.law.go.kr/법령/방송법시행령",
       "effective_from": "2025-07-01",
@@ -390,23 +650,38 @@
       "amount_text": "지자체별 상이 (조례)",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent", "shop"],
-        "damage": ["flood", "half", "full"]
+        "housing": [
+          "own",
+          "rent",
+          "shop"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "시·군·구 상수도사업소",
-      "docs": ["피해사실확인서"],
+      "docs": [
+        "피해사실확인서"
+      ],
       "basis": "각 지자체 수도급수 조례·하수도 사용 조례 (재해 감면)",
       "basis_url": "https://www.elis.go.kr",
       "effective_from": null,
       "rate_asof": null,
       "confidence": "estimate",
-      "notes": "전국 공통 기준 없음. 관할 지자체 확인 필요."
+      "notes": "전국 공통 기준 없음. 관할 지자체 확인 필요.",
+      "law_note": "조문 미연결(의도): 각 지자체 수도급수·하수도 사용 조례 소관이라 단일 법령 조문이 없음. 근거는 basis·basis_url 참조."
     },
     {
       "id": "indirect.farm_loan_relief",
-      "law": {"mst": "273323", "name": "농어업재해대책법", "art": "제4조"},
+      "law": {
+        "mst": "273323",
+        "name": "농어업재해대책법",
+        "art": "제4조"
+      },
       "group": "indirect",
       "label": "농업정책자금 상환연기·이자감면",
       "summary": "피해 농가의 농업정책자금 대출 원금 상환연기 및 이자 감면, 재해대책경영자금 융자.",
@@ -414,13 +689,23 @@
       "amount_text": "상환연기 최장 2년·이자감면 (피해율별)",
       "unit": "세대",
       "conditions": {
-        "housing": ["farm"],
-        "damage": ["flood", "half", "full", "goods"]
+        "housing": [
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "지역 농협 / 시·군 농업 부서",
-      "docs": ["피해사실확인서", "농업경영체 등록 확인서"],
+      "docs": [
+        "피해사실확인서",
+        "농업경영체 등록 확인서"
+      ],
       "basis": "농어업재해대책법 제4조(재해대책) · 농업정책자금 운용지침",
       "basis_url": "https://www.law.go.kr/법령/농어업재해대책법",
       "effective_from": "2025-07-01",
@@ -437,23 +722,43 @@
       "amount_text": "상환유예 (기간 미확인)",
       "unit": "인",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods", "injury", "death"]
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "한국장학재단 (1599-2000)",
-      "docs": ["피해사실확인서", "가족관계증명서"],
+      "docs": [
+        "피해사실확인서",
+        "가족관계증명서"
+      ],
       "basis": "취업 후 학자금 상환 특별법 · 한국장학재단 학자금대출 업무기준 (재해 피해자 상환유예) · 규정 2024-11-19 개정(학자금 지원 반영)",
       "basis_url": "https://www.kosaf.go.kr",
       "effective_from": "2024-11-19",
       "rate_asof": null,
       "confidence": "reported",
-      "notes": "2024-11-19 영 개정 시 학자금 관련 지원이 반영된 것으로 파악되나 조문 대조 미완료."
+      "notes": "2024-11-19 영 개정 시 학자금 관련 지원이 반영된 것으로 파악되나 조문 대조 미완료.",
+      "law_note": "조문 미연결(의도): 한국장학재단 업무기준(내부 규정) 소관으로 법령 조문이 아님. 근거는 basis·basis_url 참조."
     },
     {
       "id": "indirect.emergency_welfare",
-      "law": {"mst": "270789", "name": "긴급복지지원법", "art": "제9조"},
+      "law": {
+        "mst": "270789",
+        "name": "긴급복지지원법",
+        "art": "제9조"
+      },
       "group": "indirect",
       "label": "긴급복지 생계지원",
       "summary": "재난으로 생계 곤란 시 긴급복지지원법에 따른 생계비·주거·의료 지원(소득·재산 기준 적용).",
@@ -461,14 +766,38 @@
       "amount_text": "가구원 수별 생계지원 (2026년 단가 미확인; 2025년 4인 기준 약 187만원/월)",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent", "shop", "farm"],
-        "damage": ["flood", "half", "full", "goods", "injury", "death", "heat", "cold"],
-        "household": ["basic", "near_poor", "single_parent", "senior", "disabled"]
+        "housing": [
+          "own",
+          "rent",
+          "shop",
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death",
+          "heat",
+          "cold"
+        ],
+        "household": [
+          "basic",
+          "near_poor",
+          "single_parent",
+          "senior",
+          "disabled"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "읍·면·동 주민센터 / 보건복지상담센터 129",
-      "docs": ["긴급지원 신청서", "피해사실확인서", "소득·재산 확인(행정정보 공동이용)"],
+      "docs": [
+        "긴급지원 신청서",
+        "피해사실확인서",
+        "소득·재산 확인(행정정보 공동이용)"
+      ],
       "basis": "긴급복지지원법 제2조(위기상황: 화재·자연재해 등) · 제9조(긴급지원의 종류)",
       "basis_url": "https://www.law.go.kr/법령/긴급복지지원법",
       "effective_from": "2026-01-01",
@@ -478,7 +807,11 @@
     },
     {
       "id": "indirect.temp_housing",
-      "law": {"mst": "259439", "name": "재해구호법", "art": "제4조"},
+      "law": {
+        "mst": "259439",
+        "name": "재해구호법",
+        "art": "제4조"
+      },
       "group": "indirect",
       "label": "이재민 임시주거 지원 (공공임대·임시조립주택)",
       "summary": "주택 전파·반파 이재민에게 LH 공공임대 임시거처 또는 임시조립주택 제공.",
@@ -486,13 +819,22 @@
       "amount_text": "임시거처 제공 (최대 거주기간 지자체별)",
       "unit": "세대",
       "conditions": {
-        "housing": ["own", "rent"],
-        "damage": ["full", "half"]
+        "housing": [
+          "own",
+          "rent"
+        ],
+        "damage": [
+          "full",
+          "half"
+        ]
       },
       "channel": "apply",
       "deadline_days_after_event": null,
       "where": "시·군·구 재난부서 / LH 지역본부",
-      "docs": ["피해사실확인서", "주민등록표등본"],
+      "docs": [
+        "피해사실확인서",
+        "주민등록표등본"
+      ],
       "basis": "재해구호법 제4조(구호의 종류: 임시주거시설 제공) · 공공주택 특별법 시행규칙 (재해 이재민 특별공급)",
       "basis_url": "https://www.law.go.kr/법령/재해구호법/제4조",
       "effective_from": "2025-07-01",
@@ -502,7 +844,11 @@
     },
     {
       "id": "indirect.psych_support",
-      "law": {"mst": "282883", "name": "재난 및 안전관리 기본법", "art": "제66조의2"},
+      "law": {
+        "mst": "282883",
+        "name": "재난 및 안전관리 기본법",
+        "art": "제66조의2"
+      },
       "group": "indirect",
       "label": "재난심리회복 지원 (무료 상담)",
       "summary": "재난 피해자와 가족에게 무료 심리상담 및 고위험군 치료 연계.",
@@ -510,7 +856,16 @@
       "amount_text": "무료 상담",
       "unit": "인",
       "conditions": {
-        "damage": ["flood", "half", "full", "goods", "injury", "death", "heat", "cold"]
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death",
+          "heat",
+          "cold"
+        ]
       },
       "channel": "info",
       "deadline_days_after_event": null,
@@ -532,19 +887,29 @@
       "amount_text": "상담·접수",
       "unit": "세대",
       "conditions": {
-        "damage": ["flood", "half", "full", "goods", "injury", "death"],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods",
+          "injury",
+          "death"
+        ],
         "special_zone": true
       },
       "channel": "info",
       "deadline_days_after_event": null,
       "where": "피해 현장 설치 센터 (행안부 공지)",
-      "docs": ["신분증"],
+      "docs": [
+        "신분증"
+      ],
       "basis": "행정안전부 2026-07-22 중앙합동 재난피해자 지원센터 운영 계획",
       "basis_url": "https://www.mois.go.kr",
       "effective_from": "2026-07-22",
       "rate_asof": null,
       "confidence": "reported",
-      "notes": "설치 요건(재난 규모)은 사안별. 특별재난지역 선포 규모 재난에 준하여 표시."
+      "notes": "설치 요건(재난 규모)은 사안별. 특별재난지역 선포 규모 재난에 준하여 표시.",
+      "law_note": "조문 미연결(의도): 행정안전부 운영계획(행정계획)이라 법령 조문이 아님. 근거는 basis·basis_url 참조."
     }
   ]
 }

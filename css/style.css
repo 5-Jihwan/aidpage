@@ -637,3 +637,4 @@ html.big .lang-top-t{font-size:1rem;height:42px}
 .msg-more{margin:6px 0 2px}
 .msg-more summary{cursor:pointer;color:var(--accent);font-size:.86rem;user-select:none;padding:4px 0}
 .msg-more summary:hover{text-decoration:underline}
+.law-note{display:block;margin-top:5px;color:var(--mute);font-size:.8rem;line-height:1.5}

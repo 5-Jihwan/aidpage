@@ -64,7 +64,7 @@ def collect_refs() -> dict[str, dict]:
             law = r.get("law")
             if not law or not law.get("mst"):
                 continue
-            e = refs.setdefault(str(law["mst"]), {"name": law.get("name"), "arts": set(), "annexes": set()})
+            e = refs.setdefault(str(law["mst"]), {"name": law.get("name"), "arts": set(), "annexes": set(), "kind": law.get("kind") or "law"})
             if law.get("art"):
                 e["arts"].add(law["art"])
             if law.get("annex"):
@@ -134,6 +134,26 @@ def parse_law(data: dict, want: dict) -> dict:
     return out
 
 
+def parse_admrul(data: dict, want: dict) -> dict:
+    """행정규칙 본문 응답(조문내용=문자열 리스트) → parse_law와 동일한 출력 형태."""
+    root = data.get("AdmRulService") or data
+    info = root.get("행정규칙기본정보") or {}
+    out = {
+        "name": strip_tags(info.get("행정규칙명") or want.get("name") or ""),
+        "effective": str(info.get("시행일자") or info.get("발령일자") or ""),
+        "arts": {},
+        "annexes": {},
+    }
+    if re.fullmatch(r"[0-9]{8}", out["effective"]):
+        out["effective"] = f"{out['effective'][:4]}-{out['effective'][4:6]}-{out['effective'][6:]}"
+    for item in _as_list(root.get("조문내용")):
+        txt = strip_tags(item)
+        m = re.match(r"(제[0-9]+조(?:의[0-9]+)?)", txt)
+        if m and m.group(1) in want["arts"]:
+            out["arts"][m.group(1)] = txt
+    return out
+
+
 def main() -> int:
     if not OC:
         log("LAW_OC not set — skipping (no files touched)")
@@ -157,8 +177,12 @@ def main() -> int:
         except Exception:  # noqa: BLE001
             pass
         try:
-            data = get_json({"OC": OC, "target": "law", "MST": mst, "type": "JSON"})
-            doc = parse_law(data, want)
+            if want.get("kind") == "admrul":
+                data = get_json({"OC": OC, "target": "admrul", "LM": want["name"], "type": "JSON"})
+                doc = parse_admrul(data, want)
+            else:
+                data = get_json({"OC": OC, "target": "law", "MST": mst, "type": "JSON"})
+                doc = parse_law(data, want)
         except Exception as e:  # noqa: BLE001
             log(f"mst={mst} FAIL: {e}")
             fail += 1

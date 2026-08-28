@@ -21,6 +21,7 @@
     {
       "id": "relief_fund.house_full",
       "law": {
+        "mst": "45813",
         "name": "의연금품 관리·운영 규정",
         "art": "제7조",
         "kind": "admrul"
@@ -64,6 +65,7 @@
     {
       "id": "relief_fund.house_half",
       "law": {
+        "mst": "45813",
         "name": "의연금품 관리·운영 규정",
         "art": "제7조",
         "kind": "admrul"
@@ -107,6 +109,7 @@
     {
       "id": "relief_fund.house_flood",
       "law": {
+        "mst": "45813",
         "name": "의연금품 관리·운영 규정",
         "art": "제7조",
         "kind": "admrul"
@@ -149,6 +152,7 @@
     {
       "id": "relief_fund.house_minor_quake",
       "law": {
+        "mst": "45813",
         "name": "의연금품 관리·운영 규정",
         "art": "제7조",
         "kind": "admrul"
@@ -188,6 +192,7 @@
     {
       "id": "relief_fund.death",
       "law": {
+        "mst": "45813",
         "name": "의연금품 관리·운영 규정",
         "art": "제7조",
         "kind": "admrul"
@@ -230,6 +235,7 @@
     {
       "id": "relief_fund.injury_severe",
       "law": {
+        "mst": "45813",
         "name": "의연금품 관리·운영 규정",
         "art": "제7조",
         "kind": "admrul"
@@ -272,6 +278,7 @@
     {
       "id": "relief_fund.injury_minor",
       "law": {
+        "mst": "45813",
         "name": "의연금품 관리·운영 규정",
         "art": "제7조",
         "kind": "admrul"

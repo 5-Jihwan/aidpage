@@ -46,7 +46,9 @@ def get_json(params: dict) -> dict:
 
 
 def strip_tags(s) -> str:
-    return re.sub(r"<[^>]+>", "", str(s or "")).strip()
+    """실제 HTML 태그만 제거한다. 법령 본문의 <개정 2013. 3. 23.> 같은
+    꺾쇠 표기는 개정 이력이므로 반드시 남긴다(코드리뷰 2026-08-29)."""
+    return re.sub(r"</?[A-Za-z][^>]*>", "", str(s or "")).strip()
 
 
 # 법령명 영어 참고 번역 (EN 모드 표시용; 비공식)
@@ -133,6 +135,9 @@ def parse_law(data: dict, want: dict) -> dict:
                 for ho in _as_list(h.get("호")):
                     if isinstance(ho, dict):
                         parts.append(strip_tags(ho.get("호내용")))
+                        for mok in _as_list(ho.get("목")):  # 가.나.다. — 규칙 다수가 목 단위를 인용
+                            if isinstance(mok, dict):
+                                parts.append(strip_tags(mok.get("목내용")))
         out["arts"][key] = "\n".join(p for p in parts if p)
     # 별표 (본문 응답에 별표단위가 없으면 파일 링크만 남긴다)
     annex_units = _as_list((law.get("별표") or {}).get("별표단위"))
@@ -176,7 +181,8 @@ def parse_admrul(data: dict, want: dict) -> dict:
         txt = strip_tags(item)
         m = re.match(r"(제[0-9]+조(?:의[0-9]+)?)", txt)
         if m and m.group(1) in want["arts"]:
-            out["arts"][m.group(1)] = txt
+            # 행정규칙은 조문 전체가 한 문자열 — 항(①②③) 앞에서 줄을 나눠 가독성 확보
+            out["arts"][m.group(1)] = re.sub(r"(?<!^)([\u2460-\u246f])", "\n\\1", txt)
     return out
 
 
@@ -226,11 +232,20 @@ def main() -> int:
             changes["items"] = ([{"mst": mst, "name": doc["name"], "from": prev["effective"],
                                   "to": doc["effective"], "found": doc["updated"]}]
                                 + [c for c in changes.get("items", []) if c.get("mst") != mst])[:50]
+        if want["arts"] and not doc["arts"]:
+            # 응답 스키마가 바뀌면 파서가 조용히 빈 결과를 낸다 — 정상 스냅샷을 덮어쓰지 않는다.
+            log(f"::warning::mst={mst} 조문 0건 파싱 — 기존 스냅샷 유지(스키마 확인 필요)")
+            fail += 1
+            continue
         json.dump(doc, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
         got = f"arts {len(doc['arts'])}/{len(want['arts'])}, annexes {len(doc['annexes'])}/{len(want['annexes'])}"
         log(f"mst={mst} ok ({got})")
         if len(doc["arts"]) < len(want["arts"]):
             log(f"::warning::mst={mst} missing arts: {sorted(set(want['arts']) - set(doc['arts']))} — 스키마 확인 필요")
+        if doc.get("effective") and doc["effective"] > datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d"):
+            log(f"::warning::mst={mst} 시행일 {doc['effective']} 이 미래 — 미시행판을 근거로 표시 중(핀 재확인 필요)")
+        if len(doc["annexes"]) < len(want["annexes"]):
+            log(f"::warning::mst={mst} missing annexes: {sorted(set(want['annexes']) - set(doc['annexes']))} — 스키마 확인 필요")
         ok += 1
     json.dump(changes, open(changes_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     log(f"done ok={ok} fail={fail}")

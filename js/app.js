@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260828c';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260828c';
-import { getReports, postReport, flagReport } from './api.js?v=20260828c';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260828c';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260828d';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260828d';
+import { getReports, postReport, flagReport } from './api.js?v=20260828d';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260828d';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260828c'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260828d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -744,15 +744,16 @@ function msgsFor() {
   const e = state.emd && state.idx.byEmd.get(state.emd), s = state.sgg && state.idx.bySgg.get(state.sgg);
   const sgg = (e && e.sgg_name) || (s && s.name) || '';
   const sido = (e && e.sido_name) || (s && s.sido_name) || '';
-  return M.items.filter(m => { const r = m.region || ''; return (sgg && r.includes(sgg)) || (sido && r.includes(sido)) || /전국/.test(r); }).slice(0, 5);
+  return M.items.filter(m => { const r = m.region || ''; return (sgg && r.includes(sgg)) || (sido && r.includes(sido)) || /전국/.test(r); }).slice(0, 30);
 }
 function renderMsgs() {
   const box = $('#msgCard'); if (!box) return;
   const ms = state.sgg ? msgsFor() : [];
   box.hidden = !ms.length; if (!ms.length) { box.innerHTML = ''; return; }
-  box.innerHTML = `<h3>${t('msg.title')}</h3>` + ms.map(m =>
-    `<div class="msg-item${/위급|긴급/.test(m.step || '') ? ' is-urgent' : ''}"><div class="msg-head"><span class="msg-type">${escapeHTML(m.type || '') || t('msg.alert')}</span><small class="muted">${m.time ? relTime(Date.parse(m.time)) : ''} · ${escapeHTML((m.region || '').split(',')[0])}</small></div><div class="msg-text">${escapeHTML(m.text || '')}</div></div>`
-  ).join('') + `<small class="fine">${t('msg.src')}</small>`;
+  const item = m => `<div class="msg-item${/위급|긴급/.test(m.step || '') ? ' is-urgent' : ''}"><div class="msg-head"><span class="msg-type">${escapeHTML(m.type || '') || t('msg.alert')}</span><small class="muted">${m.time ? relTime(Date.parse(m.time)) : ''} · ${escapeHTML((m.region || '').split(',')[0])}</small></div><div class="msg-text">${escapeHTML(m.text || '')}</div></div>`;
+  box.innerHTML = `<h3>${t('msg.title')}</h3>` + ms.slice(0, 3).map(item).join('')
+    + (ms.length > 3 ? `<details class="msg-more"><summary>${t('msg.more', { n: ms.length - 3 })}</summary>${ms.slice(3).map(item).join('')}</details>` : '')
+    + `<small class="fine">${t('msg.src')}</small>`;
 }
 function relTime(ts) { const m = Math.round((Date.now() - ts) / 60000); if (m < 60) return t('rel.min', { n: m }); const h = Math.round(m / 60); if (h < 24) return t('rel.hour', { n: h }); return t('rel.day', { n: Math.round(h / 24) }); }
 /* 오늘의 한 줄 — 하루 1개 회전(날짜 기반), 출처 고정. 게임식 팁이 아니라 규칙·행동요령 한 줄 */
@@ -1059,7 +1060,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260828c').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260828d').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1261,9 +1262,14 @@ async function lawDoc(mst) {
   catch { _lawCache[mst] = null; }
   return _lawCache[mst];
 }
+function lawRefEn(s) {
+  if (getLang() !== 'en' || !s) return s;
+  return s.replace(/^제(\d+)조(?:의(\d+))?$/, (m, a, b) => 'Art. ' + a + (b ? '-' + b : ''))
+    .replace(/^별표(\d+)(?:의(\d+))?$/, (m, a, b) => 'Annex ' + a + (b ? '-' + b : ''));
+}
 function lawFoldHTML(r) {
   const L = r.law; if (!L || (!L.mst && !L.name)) return '';
-  const tag = [L.art, L.annex].filter(Boolean).join(' · ');
+  const tag = [L.art, L.annex].filter(Boolean).map(lawRefEn).join(' · ');
   return `<details class="lawfold" data-mst="${L.mst || ''}" data-art="${L.art || ''}" data-annex="${L.annex || ''}"><summary>${t('law.fold')}${tag ? ` — ${tag}` : ''}</summary><div class="law-body">${t('law.loading')}</div></details>`;
 }
 document.addEventListener('toggle', async e => {
@@ -1273,8 +1279,9 @@ document.addEventListener('toggle', async e => {
   const doc = d.dataset.mst ? await lawDoc(d.dataset.mst) : null;
   const parts = [];
   if (doc) {
-    if (d.dataset.art && doc.arts && doc.arts[d.dataset.art]) parts.push(`<h5>${doc.name || ''} ${d.dataset.art}</h5><p>${doc.arts[d.dataset.art]}</p>`);
-    if (d.dataset.annex && doc.annexes && doc.annexes[d.dataset.annex]) parts.push(`<h5>${d.dataset.annex}</h5><pre class="law-annex">${doc.annexes[d.dataset.annex]}</pre>`);
+    const en = getLang() === 'en', lawName = (en && doc.name_en) || doc.name || '';
+    if (d.dataset.art && doc.arts && doc.arts[d.dataset.art]) parts.push(`<h5>${lawName} ${lawRefEn(d.dataset.art)}</h5>${en ? `<small class="fine">${t('law.origko')}</small>` : ''}<p>${doc.arts[d.dataset.art]}</p>`);
+    if (d.dataset.annex && doc.annexes && doc.annexes[d.dataset.annex]) parts.push(`<h5>${lawRefEn(d.dataset.annex)}</h5><pre class="law-annex">${doc.annexes[d.dataset.annex]}</pre>`);
     if (parts.length && (doc.effective || doc.updated)) parts.push(`<small class="fine">${t('law.asof', { d: doc.effective || doc.updated })}</small>`);
   }
   body.innerHTML = parts.join('') || `<small class="muted">${t('law.pending')}</small>`;

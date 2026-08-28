@@ -49,6 +49,32 @@ def strip_tags(s) -> str:
     return re.sub(r"<[^>]+>", "", str(s or "")).strip()
 
 
+# 법령명 영어 참고 번역 (EN 모드 표시용; 비공식)
+NAME_EN = {
+    "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정": "Regulations on Cost-Bearing Standards for Natural Disaster Relief and Recovery",
+    "재난 및 안전관리 기본법": "Framework Act on the Management of Disasters and Safety",
+    "재해구호법": "Disaster Relief Act",
+    "긴급복지지원법": "Emergency Aid and Support Act",
+    "에너지법": "Energy Act",
+    "노인복지법": "Welfare of Senior Citizens Act",
+    "국민건강보험법": "National Health Insurance Act",
+    "국민연금법": "National Pension Act",
+    "전기통신사업법": "Telecommunications Business Act",
+    "도시가스사업법": "Urban Gas Business Act",
+    "집단에너지사업법": "Integrated Energy Supply Act",
+    "지방세특례제한법": "Restriction of Special Local Taxation Act",
+    "국세기본법": "Framework Act on National Taxes",
+    "초·중등교육법 시행령": "Enforcement Decree of the Elementary and Secondary Education Act",
+    "방송법 시행령": "Enforcement Decree of the Broadcasting Act",
+    "중소기업진흥에 관한 법률": "Small and Medium Enterprises Promotion Act",
+    "소상공인 보호 및 지원에 관한 법률": "Act on the Protection of and Support for Micro Enterprises",
+    "병역법": "Military Service Act",
+    "농어업재해대책법": "Agricultural and Fishery Disaster Countermeasures Act",
+    "풍수해·지진재해보험법": "Storm, Flood and Earthquake Insurance Act",
+    "의연금품 관리·운영 규정": "Relief Fund Management and Operation Regulation",
+}
+
+
 def collect_refs() -> dict[str, dict]:
     """rules/*.json → {mst: {name, arts:set, annexes:set}}"""
     refs: dict[str, dict] = {}
@@ -190,6 +216,9 @@ def main() -> int:
         from datetime import datetime, timezone, timedelta
 
         doc["updated"] = datetime.now(timezone(timedelta(hours=9))).isoformat(timespec="seconds")
+        _nk = str(doc.get("name") or "").replace("ㆍ", "·")
+        if NAME_EN.get(_nk):
+            doc["name_en"] = NAME_EN[_nk]
         # 개정 감지
         if prev and prev.get("effective") and doc.get("effective") and prev["effective"] != doc["effective"]:
             msg = f"{doc['name']} 시행일 변경 {prev['effective']} → {doc['effective']} — 금액·기준 재확인 필요"

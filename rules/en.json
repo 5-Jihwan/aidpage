@@ -195,7 +195,7 @@
     "Damage confirmation (municipal survey)",
     "Bank account in your name"
    ],
-   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2026-05-27)"
   },
   "relief_fund.house_half": {
    "label": "Relief fund — home half-destroyed",
@@ -206,7 +206,7 @@
     "Damage confirmation",
     "Bank account in your name"
    ],
-   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2026-05-27)"
   },
   "relief_fund.house_flood": {
    "label": "Relief fund — flooded home",
@@ -217,7 +217,7 @@
     "Damage confirmation",
     "Bank account in your name"
    ],
-   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2026-05-27)"
   },
   "relief_fund.house_minor_quake": {
    "label": "Relief fund — minor earthquake damage",
@@ -228,7 +228,7 @@
     "Damage confirmation",
     "Bank account in your name"
    ],
-   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2026-05-27)"
   },
   "relief_fund.death": {
    "label": "Relief fund — death or missing",
@@ -240,7 +240,7 @@
     "Family relation certificate",
     "Death certificate"
    ],
-   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2026-05-27)"
   },
   "relief_fund.injury_severe": {
    "label": "Relief fund — injury (disability grade 1–7)",
@@ -251,7 +251,7 @@
     "Damage confirmation",
     "Disability certificate"
    ],
-   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2026-05-27)"
   },
   "relief_fund.injury_minor": {
    "label": "Relief fund — injury (disability grade 8–14)",
@@ -262,7 +262,7 @@
     "Damage confirmation",
     "Disability certificate"
    ],
-   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2024-08-27)"
+   "basis": "Relief Fund Management and Operation Regulation art. 7 (amended 2026-05-27)"
   },
   "indirect.nhis_premium": {
    "label": "Health-insurance premium reduction",
@@ -561,6 +561,17 @@
     "ID"
    ],
    "basis": "Storm and Earthquake Insurance Act art. 7 · Enforcement Decree art. 9"
+  },
+  "relief_fund.business": {
+   "label": "Relief fund — farm/fishery business damage",
+   "amount_text": "₩2M per household",
+   "summary": "Paid to farm, fishery, forestry, or salt-producing households that received business stability support after a disaster.",
+   "where": "Community center",
+   "docs": [
+    "Damage confirmation",
+    "Bank account in your name"
+   ],
+   "basis": "Relief Fund Management and Operation Regulation art. 7-2-3 (amended 2026-05-27)"
   }
  },
  "steps": {

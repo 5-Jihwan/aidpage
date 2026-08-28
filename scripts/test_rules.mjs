@@ -149,11 +149,12 @@ test('지진 경미피해(goods) 자가 → 의연금 소파 200만원, 침수 �
 });
 
 // ---- 10. 농가 ----
-test('농가 침수 → 농경지 복구(금액 미확정)·농업자금·온실보험, 주택 침수금 없음', () => {
+test('농가 침수 → 농경지 복구(금액 미확정)·경영상피해 의연금 200만원·농업자금·온실보험, 주택 침수금 없음', () => {
   const r = evaluate(rules, { housing: 'farm', damage: ['flood'], hazard: 'rain', today: '2026-08-21' });
   assert.ok(ids(r.cash).includes('cash.farm_recovery'));
+  assert.ok(ids(r.relief_fund).includes('relief_fund.business'));
   assert.ok(!ids(r.cash).includes('cash.house_flood'));
-  assert.equal(r.total_cash_krw, 0);
+  assert.equal(r.total_cash_krw, 2000000);
   assert.ok(r.total_cash_has_unpriced);
   assert.ok(ids(r.apply).includes('indirect.farm_loan_relief'));
   assert.ok(ids(r.insurance).includes('insurance.greenhouse'));

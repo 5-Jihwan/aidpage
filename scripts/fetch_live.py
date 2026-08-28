@@ -501,8 +501,10 @@ def fetch_landslide_sd(prev):
            "source": "산림청 산사태 예보·예측 · 재난안전데이터공유플랫폼"}
     now = now_kst()
     errs = []
+    ok_any = False
     try:  # 공식 예보: 지역별 마지막 상태가 '발령'이고 48시간 이내인 것
         rows = sd_rows("ls_fcst", 100)
+        ok_any = True
         last_by_region: dict[str, dict] = {}
         for r in sorted(rows, key=lambda r: str(r.get("FRCST_APNT_DT") or "")):
             rg = str(r.get("OCRN_FRCST_APNT_INST_NM") or "").strip()
@@ -520,6 +522,7 @@ def fetch_landslide_sd(prev):
         errs.append(e.code)
     try:  # 예측: 최신 분석 시각 배치(6시간 이내)만
         rows = sd_rows("ls_pred", 100)
+        ok_any = True
         latest = max((str(r.get("PREDC_ANLS_DT") or "") for r in rows), default="")
         dt = _sd_dt(latest)
         if dt and (now - dt) <= timedelta(hours=6):
@@ -530,7 +533,7 @@ def fetch_landslide_sd(prev):
                                          "at": dt.isoformat(timespec="seconds")})
     except HttpError as e:
         errs.append(e.code)
-    if errs and not sec["items"]:
+    if errs and not ok_any:
         sec = dict(prev or {}, status="error:" + errs[0])
     elif errs:
         sec["status"] = "partial:" + errs[0]

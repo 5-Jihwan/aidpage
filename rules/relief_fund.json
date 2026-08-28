@@ -20,6 +20,11 @@
   "rules": [
     {
       "id": "relief_fund.house_full",
+      "law": {
+        "name": "의연금품 관리·운영 규정",
+        "art": "제7조",
+        "kind": "admrul"
+      },
       "group": "relief_fund",
       "label": "의연금 — 주택 전파·유실",
       "summary": "실거주 주택이 전파·유실된 세대에 의연금 지급. 재난지원금과 별도·중복 수령.",
@@ -58,6 +63,11 @@
     },
     {
       "id": "relief_fund.house_half",
+      "law": {
+        "name": "의연금품 관리·운영 규정",
+        "art": "제7조",
+        "kind": "admrul"
+      },
       "group": "relief_fund",
       "label": "의연금 — 주택 반파",
       "summary": "실거주 주택이 반파된 세대에 의연금 지급.",
@@ -96,6 +106,11 @@
     },
     {
       "id": "relief_fund.house_flood",
+      "law": {
+        "name": "의연금품 관리·운영 규정",
+        "art": "제7조",
+        "kind": "admrul"
+      },
       "group": "relief_fund",
       "label": "의연금 — 주택 침수",
       "summary": "실거주 주택이 침수된 세대에 의연금 지급. 세입자 포함.",
@@ -133,6 +148,11 @@
     },
     {
       "id": "relief_fund.house_minor_quake",
+      "law": {
+        "name": "의연금품 관리·운영 규정",
+        "art": "제7조",
+        "kind": "admrul"
+      },
       "group": "relief_fund",
       "label": "의연금 — 주택 소파 (지진)",
       "summary": "지진으로 주택이 소파된 세대에 의연금 지급.",
@@ -167,6 +187,11 @@
     },
     {
       "id": "relief_fund.death",
+      "law": {
+        "name": "의연금품 관리·운영 규정",
+        "art": "제7조",
+        "kind": "admrul"
+      },
       "group": "relief_fund",
       "label": "의연금 — 사망·실종",
       "summary": "자연재난으로 사망·실종한 사람의 유족에게 지급.",
@@ -204,6 +229,11 @@
     },
     {
       "id": "relief_fund.injury_severe",
+      "law": {
+        "name": "의연금품 관리·운영 규정",
+        "art": "제7조",
+        "kind": "admrul"
+      },
       "group": "relief_fund",
       "label": "의연금 — 부상 (장해 1~7급)",
       "summary": "장해등급 1~7급에 해당하는 부상자에게 지급.",
@@ -241,6 +271,11 @@
     },
     {
       "id": "relief_fund.injury_minor",
+      "law": {
+        "name": "의연금품 관리·운영 규정",
+        "art": "제7조",
+        "kind": "admrul"
+      },
       "group": "relief_fund",
       "label": "의연금 — 부상 (장해 8~14급)",
       "summary": "장해등급 8~14급에 해당하는 부상자에게 지급.",

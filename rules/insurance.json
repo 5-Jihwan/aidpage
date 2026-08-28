@@ -12,6 +12,7 @@
   "rules": [
     {
       "id": "insurance.house_general",
+      "law": {"name": "풍수해·지진재해보험법", "art": "제7조"},
       "group": "insurance",
       "label": "풍수해·지진재해보험 — 주택 (일반)",
       "summary": "주택 소유자·세입자가 가입하는 풍수해·지진재해보험 보험료의 55% 이상을 정부가 지원.",
@@ -35,6 +36,7 @@
     },
     {
       "id": "insurance.house_single_parent_near_poor",
+      "law": {"name": "풍수해·지진재해보험법", "art": "제7조"},
       "group": "insurance",
       "label": "풍수해·지진재해보험 — 주택 (한부모·차상위)",
       "summary": "한부모가족·차상위계층은 보험료 77.5% 이상 지원.",
@@ -59,6 +61,7 @@
     },
     {
       "id": "insurance.house_basic",
+      "law": {"name": "풍수해·지진재해보험법", "art": "제7조"},
       "group": "insurance",
       "label": "풍수해·지진재해보험 — 주택 (기초생활수급)",
       "summary": "기초생활수급자는 보험료 86.5% 이상 지원.",
@@ -83,6 +86,7 @@
     },
     {
       "id": "insurance.house_vulnerable_zone_full",
+      "law": {"name": "풍수해·지진재해보험법", "art": "제7조"},
       "group": "insurance",
       "label": "풍수해·지진재해보험 — 재해취약지역 저소득층 (전액)",
       "summary": "재해취약지역(침수흔적·산사태취약·자연재해위험개선지구 등) 내 저소득층 주택은 보험료 100% 지원.",
@@ -107,6 +111,7 @@
     },
     {
       "id": "insurance.greenhouse",
+      "law": {"name": "풍수해·지진재해보험법", "art": "제7조"},
       "group": "insurance",
       "label": "풍수해·지진재해보험 — 온실(비닐하우스)",
       "summary": "농·임업용 온실 보험료 70% 이상 지원.",
@@ -130,6 +135,7 @@
     },
     {
       "id": "insurance.small_biz",
+      "law": {"name": "풍수해·지진재해보험법", "art": "제7조"},
       "group": "insurance",
       "label": "풍수해·지진재해보험 — 소상공인 상가·공장",
       "summary": "소상공인 상가·공장(건물·시설·재고) 보험료 55% 이상 지원.",

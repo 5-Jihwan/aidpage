@@ -13,6 +13,7 @@
   "rules": [
     {
       "id": "heat_cold.heat_shelter",
+      "law": {"name": "재난 및 안전관리 기본법", "art": "제3조"},
       "group": "heat_cold",
       "label": "무더위쉼터 이용",
       "summary": "폭염특보 시 경로당·주민센터·은행 등 지정 무더위쉼터를 누구나 무료 이용. 야간·휴일 연장 쉼터 별도 지정.",
@@ -35,6 +36,7 @@
     },
     {
       "id": "heat_cold.cold_shelter",
+      "law": {"name": "재난 및 안전관리 기본법", "art": "제3조"},
       "group": "heat_cold",
       "label": "한파쉼터 이용",
       "summary": "한파특보 시 지정 한파쉼터(경로당·복지관 등)를 무료 이용. 한파응급대피소(역사·터미널 등) 별도.",
@@ -57,6 +59,7 @@
     },
     {
       "id": "heat_cold.energy_voucher",
+      "law": {"name": "에너지법", "art": "제16조의2"},
       "group": "heat_cold",
       "label": "에너지바우처 (하절기·동절기)",
       "summary": "기초생활수급(생계·의료·주거·교육) 가구 중 노인·장애인·영유아·임산부·중증질환자 등 포함 가구에 냉방(전기요금 차감)·난방(연료비) 바우처 지급.",
@@ -80,6 +83,7 @@
     },
     {
       "id": "heat_cold.emergency_welfare_heat_cold",
+      "law": {"name": "긴급복지지원법", "art": "제9조"},
       "group": "heat_cold",
       "label": "긴급복지 지원 (폭염·한파 위기가구)",
       "summary": "폭염·한파로 생계·주거가 곤란해진 위기가구에 긴급 생계비·연료비·의료비 지원. 냉난방기기 지원 연계.",
@@ -103,6 +107,7 @@
     },
     {
       "id": "heat_cold.heat_illness_care",
+      "law": {"name": "노인복지법", "art": "제27조의2"},
       "group": "heat_cold",
       "label": "온열·한랭질환 응급대응 및 취약계층 건강관리",
       "summary": "폭염·한파 특보 시 독거노인·장애인 등에 생활지원사 안부확인, 방문건강관리, 응급실 감시체계 운영.",
@@ -126,6 +131,7 @@
     },
     {
       "id": "heat_cold.cooling_heating_device",
+      "law": {"name": "에너지법", "art": "제16조의2"},
       "group": "heat_cold",
       "label": "취약계층 냉·난방기기 지원 (지자체·에너지공단)",
       "summary": "저소득 가구에 냉방기(선풍기·에어컨)·난방기기·단열(에너지효율개선) 지원. 지자체·한국에너지재단 사업.",

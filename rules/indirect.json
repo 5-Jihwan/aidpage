@@ -15,6 +15,7 @@
   "rules": [
     {
       "id": "indirect.nhis_premium",
+      "law": {"name": "국민건강보험법", "art": "제75조"},
       "group": "indirect",
       "label": "건강보험료 경감",
       "summary": "재난 발생 다음 달부터 3개월간 건강보험료 30~50% 경감(피해 정도별).",
@@ -39,6 +40,7 @@
     },
     {
       "id": "indirect.nhis_late_fee",
+      "law": {"name": "국민건강보험법", "art": "제80조"},
       "group": "indirect",
       "label": "건강보험료 연체금 징수 예외",
       "summary": "6개월간 건강보험료 연체금 징수 예외.",
@@ -63,6 +65,7 @@
     },
     {
       "id": "indirect.nps_exemption",
+      "law": {"name": "국민연금법", "art": "제91조"},
       "group": "indirect",
       "label": "국민연금 보험료 납부예외",
       "summary": "지역가입자는 재난 피해를 사유로 최장 12개월 연금보험료 납부예외 신청 가능.",
@@ -86,6 +89,7 @@
     },
     {
       "id": "indirect.electricity",
+      "law": {"name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정", "art": "제12조"},
       "group": "indirect",
       "label": "전기요금 감면",
       "summary": "주택 멸실(전파·유실) 1개월분 전액 면제, 파손(반파·침수) 1개월분 50% 감면.",
@@ -110,6 +114,7 @@
     },
     {
       "id": "indirect.telecom",
+      "law": {"name": "전기통신사업법", "art": "제28조"},
       "group": "indirect",
       "label": "통신요금 감면 (이동전화·인터넷)",
       "summary": "가구당 이동전화 1회선 최대 12,500원 감면, 인터넷전화 100%·초고속인터넷 50% 감면(1개월분).",
@@ -134,6 +139,7 @@
     },
     {
       "id": "indirect.citygas",
+      "law": {"name": "도시가스사업법", "art": "제20조"},
       "group": "indirect",
       "label": "도시가스 요금 감면",
       "summary": "1개월분 정액 감면 (취사 전용 1,680원 / 취사·난방 전파 12,400원·반파 6,200원).",
@@ -158,6 +164,7 @@
     },
     {
       "id": "indirect.district_heating",
+      "law": {"name": "집단에너지사업법", "art": "제17조"},
       "group": "indirect",
       "label": "지역난방 요금 감면",
       "summary": "지역난방 공급 세대의 기본요금 감면(피해 정도별).",
@@ -182,6 +189,7 @@
     },
     {
       "id": "indirect.local_tax",
+      "law": {"name": "지방세특례제한법", "art": "제92조"},
       "group": "indirect",
       "label": "지방세 감면·징수유예 (재산세·주민세·자동차세 등)",
       "summary": "피해 재산의 지방세 감면 및 납기연장·징수유예. 특별재난지역은 최장 2년.",
@@ -205,6 +213,7 @@
     },
     {
       "id": "indirect.national_tax",
+      "law": {"name": "국세기본법", "art": "제6조"},
       "group": "indirect",
       "label": "국세 납기연장·징수유예",
       "summary": "부가세·소득세 등 신고·납부기한 연장(일반 9개월~1년, 특별재난지역 최장 2년) 및 체납처분 유예.",
@@ -228,6 +237,7 @@
     },
     {
       "id": "indirect.highschool_tuition",
+      "law": {"name": "초·중등교육법 시행령", "art": "제97조"},
       "group": "indirect",
       "label": "고등학생 수업료 감면",
       "summary": "피해 가구 고등학생 자녀 수업료를 최대 100만원 범위에서 6개월간 감면.",
@@ -251,6 +261,7 @@
     },
     {
       "id": "indirect.sme_guarantee",
+      "law": {"name": "중소기업진흥에 관한 법률", "art": "제66조"},
       "group": "indirect",
       "label": "재해 중소기업·소상공인 특례보증 (보증료 인하)",
       "summary": "재해 소상공인 특례보증 시 보증료율 0.5% → 0.1%, 보증비율 100%.",
@@ -274,6 +285,7 @@
     },
     {
       "id": "indirect.sme_emergency_loan",
+      "law": {"name": "소상공인 보호 및 지원에 관한 법률", "art": "제9조"},
       "group": "indirect",
       "label": "소상공인 재해 긴급경영안정자금 융자",
       "summary": "소상공인시장진흥공단 정책자금 중 재해 피해 소상공인 대상 저리 직접대출.",
@@ -297,6 +309,7 @@
     },
     {
       "id": "indirect.military_postpone",
+      "law": {"name": "병역법", "art": "제61조"},
       "group": "indirect",
       "label": "병역의무 이행기일 연기",
       "summary": "특별재난지역 피해 가구 병역의무자의 입영·소집 등 이행기일 연기.",
@@ -345,6 +358,7 @@
     },
     {
       "id": "indirect.tv_license",
+      "law": {"name": "방송법 시행령", "art": "제44조"},
       "group": "indirect",
       "label": "TV 수신료 면제",
       "summary": "주택 멸실(전파·유실) 세대의 TV 수신료 면제.",
@@ -392,6 +406,7 @@
     },
     {
       "id": "indirect.farm_loan_relief",
+      "law": {"name": "농어업재해대책법", "art": "제4조"},
       "group": "indirect",
       "label": "농업정책자금 상환연기·이자감면",
       "summary": "피해 농가의 농업정책자금 대출 원금 상환연기 및 이자 감면, 재해대책경영자금 융자.",
@@ -438,6 +453,7 @@
     },
     {
       "id": "indirect.emergency_welfare",
+      "law": {"name": "긴급복지지원법", "art": "제9조"},
       "group": "indirect",
       "label": "긴급복지 생계지원",
       "summary": "재난으로 생계 곤란 시 긴급복지지원법에 따른 생계비·주거·의료 지원(소득·재산 기준 적용).",
@@ -462,6 +478,7 @@
     },
     {
       "id": "indirect.temp_housing",
+      "law": {"name": "재해구호법", "art": "제4조"},
       "group": "indirect",
       "label": "이재민 임시주거 지원 (공공임대·임시조립주택)",
       "summary": "주택 전파·반파 이재민에게 LH 공공임대 임시거처 또는 임시조립주택 제공.",
@@ -485,6 +502,7 @@
     },
     {
       "id": "indirect.psych_support",
+      "law": {"name": "재난 및 안전관리 기본법", "art": "제66조의2"},
       "group": "indirect",
       "label": "재난심리회복 지원 (무료 상담)",
       "summary": "재난 피해자와 가족에게 무료 심리상담 및 고위험군 치료 연계.",

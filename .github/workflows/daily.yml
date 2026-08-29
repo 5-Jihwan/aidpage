@@ -32,14 +32,20 @@ jobs:
           LAW_OC: ${{ secrets.LAW_INFORM_KEY }}
         run: python scripts/fetch_daily.py
 
+      - name: Fetch welfare service list
+        env:
+          DATA_WELFARE_KEY: ${{ secrets.DATA_WELFARE_KEY }}
+        run: python scripts/fetch_welfare.py
+
       - name: Commit if changed
         run: |
           git config user.name "daily-bot"
           git config user.email "daily-bot@users.noreply.github.com"
           [ -d data/ref/law ] && git add data/ref/law || true
+          [ -f data/ref/welfare.json ] && git add data/ref/welfare.json || true
           if git diff --cached --quiet; then
             echo "no changes"
             exit 0
           fi
-          git commit -m "ref: law $(date -u +%F)"
+          git commit -m "ref: law+welfare $(date -u +%F)"
           git push || (git pull --rebase && git push)

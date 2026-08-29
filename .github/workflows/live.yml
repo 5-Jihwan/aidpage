@@ -4,7 +4,9 @@ on:
   schedule:
     # Baseline every 30 min (UTC). GitHub minimum is 5 min; see data/live/README.md
     # for switching to "*/10 * * * *" during active 호우/태풍/대설 경보 (.hot flag).
-    - cron: "*/30 * * * *"
+    # 10분마다 깨어나되, 평시엔 정시·30분 슬롯만 실제 수집한다.
+    # 호우/태풍/대설 경보 발효(.hot 플래그) 중에는 매 10분 수집 — 경보가 곧 스위치다.
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -23,11 +25,26 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Gate — full cadence only while a severe warning is active
+        id: gate
+        run: |
+          MIN=$(date -u +%M)
+          if [ "$MIN" -lt 10 ] || { [ "$MIN" -ge 30 ] && [ "$MIN" -lt 40 ]; }; then
+            echo "run=true"  >> "$GITHUB_OUTPUT"   # 평시 30분 슬롯
+          elif [ -f data/live/.hot ]; then
+            echo "run=true"  >> "$GITHUB_OUTPUT"   # 경보 발효 중 → 10분 주기
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "skip: off-slot and no active severe warning"
+          fi
+
       - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
         with:
           python-version: "3.12"
 
       - name: Fetch live data
+        if: steps.gate.outputs.run == 'true'
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           SAFETYDATA_KEY: ${{ secrets.SAFETYDATA_KEY }}
@@ -50,12 +67,14 @@ jobs:
         run: python scripts/fetch_live.py
 
       - name: Report cadence hint
+        if: steps.gate.outputs.run == 'true'
         run: |
           if [ -f data/live/.hot ]; then
             echo "::warning title=HOT::Active 호우/태풍/대설 경보 - consider switching cron to */10 (see data/live/README.md)"
           fi
 
       - name: Commit if changed
+        if: steps.gate.outputs.run == 'true'
         run: |
           git config user.name "live-bot"
           git config user.email "live-bot@users.noreply.github.com"

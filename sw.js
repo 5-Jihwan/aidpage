@@ -9,7 +9,7 @@
    캐시를 셸/데이터로 나눈 이유: 예전엔 참조·시설·격자까지 VERSION 캐시에 있어서,
    셸 버전을 올릴 때마다(하루 10여 회) 138MB 격자를 포함한 전부가 삭제·재다운로드됐다.
    버전을 타는 건 셸뿐이고, 데이터는 DATA_CACHE에서 배포와 무관하게 살아남는다. */
-const VERSION = 'safepic-20260829c';   // 앱 셸 전용 — 배포마다 바뀐다
+const VERSION = 'safepic-20260829d';   // 앱 셸 전용 — 배포마다 바뀐다
 const DATA_CACHE = 'safepic-data-1';   // 참조·시설·격자 — 셸 버전을 올려도 살아남는다
 const FONT_CACHE = 'safepic-fonts';
 const KEEP = [VERSION, DATA_CACHE, FONT_CACHE];
@@ -58,3 +58,65 @@ async function networkFirst(req) {
   try { const r = await fetch(fresh); if (r.ok) c.put(req, r.clone()); return r; } catch { return (await c.match(req, { ignoreSearch: true })) || Response.error(); }
 }
 function refresh(req, c) { fetch(req).then(r => { if (r.ok) c.put(req, r.clone()); }).catch(() => {}); }
+
+/* ── 웹 푸시 — 서버는 페이로드 없이 "신호"만 보낸다(개인정보 미발송).
+   수신 시 alerts.json을 새로 읽어, 구독한 지역에 해당하는 특보·재난문자로
+   "지금 무엇을 하면 되는가" 알림을 구성한다. 지역은 구독 시 페이지가 IndexedDB에 저장. ── */
+function pushDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('aidpage-push', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function pushRegion() {
+  try {
+    const db = await pushDB();
+    return await new Promise((res) => {
+      const g = db.transaction('kv').objectStore('kv').get('region');
+      g.onsuccess = () => res(g.result || null); g.onerror = () => res(null);
+    });
+  } catch { return null; }
+}
+self.addEventListener('push', (e) => {
+  e.waitUntil((async () => {
+    const reg = await pushRegion();  // { sgg, sido, sggName, sidoName }
+    let title = 'AidPage', body = '새 재난 정보가 있습니다. 열어서 확인하세요.', tag = 'aidpage-alert';
+    try {
+      const r = await fetch('data/live/alerts.json', { cache: 'no-cache' });
+      const d = await r.json();
+      const hit = [];
+      for (const w of (d.warnings && d.warnings.items) || []) {
+        const codes = w.area_codes || [];
+        if (!reg || codes.includes(reg.sgg) || codes.some(c => String(c).slice(0, 2) === reg.sido))
+          hit.push(`${w.type} ${w.level}`);
+      }
+      const msgs = ((d.messages && d.messages.items) || []).filter(m => {
+        const rg = m.region || '';
+        return !reg || rg.includes(reg.sggName || '\u0000') || rg.includes(reg.sidoName || '\u0000') || /전국/.test(rg);
+      });
+      if (hit.length) {
+        title = `${reg && reg.sggName ? reg.sggName + ' — ' : ''}${hit[0]} 발효`;
+        body = '대피소 위치와 지금 할 일을 확인하세요.';
+        tag = 'aidpage-warn';
+      } else if (msgs.length) {
+        title = `${reg && reg.sggName ? reg.sggName + ' ' : ''}긴급재난문자`;
+        body = (msgs[0].text || '').slice(0, 120);
+        tag = 'aidpage-msg';
+      }
+    } catch { /* 오프라인 등 — 기본 문구로 알림 */ }
+    await self.registration.showNotification(title, {
+      body, tag, renotify: false, icon: 'og.png', badge: 'og.png',
+      data: { url: self.registration.scope },
+    });
+  })());
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil((async () => {
+    const url = (e.notification.data && e.notification.data.url) || self.registration.scope;
+    const wins = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const w of wins) if (w.url.startsWith(self.registration.scope)) return w.focus();
+    return clients.openWindow(url);
+  })());
+});

@@ -14,6 +14,7 @@ import io
 import json
 import os
 import subprocess
+import urllib.request
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -50,6 +51,79 @@ if os.path.exists(_kp):
 
 from fetch_live import (ALERTS_PATH, SD_KEY, now_kst, log,  # noqa: E402
                         fetch_warnings_sd, fetch_prewarn_sd, fetch_landslide_sd, fetch_messages)
+
+
+# ── 웹 푸시 트리거 ─────────────────────────────────────────────
+# 직전 수집분과 비교해 "새로 나타난" 특보·재난문자만 골라 Worker에 발송을 요청한다.
+# 서버 push엔 페이로드가 없고(SW가 alerts.json을 다시 읽음), 여기선 대상 지역 코드만 보낸다.
+PUSH_STATE = os.path.join(ROOT, ".push_state.json")
+PUSH_URL = "https://safepic-api.safepic.workers.dev/push/send"
+
+
+def _warn_key(w):
+    return f"{w.get('type')}|{w.get('level')}|{','.join(sorted(map(str, w.get('area_codes') or [])))}"
+
+
+def push_notify(out):
+    auth = os.environ.get("PUSH_AUTH", "").strip()
+    if not auth:
+        return
+    try:
+        st = json.load(io.open(PUSH_STATE, encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — 첫 실행: 현재 상태만 기록하고 발송하지 않는다(재알림 방지)
+        st = None
+
+    warns = (out.get("warnings") or {}).get("items") or []
+    msgs = (out.get("messages") or {}).get("items") or []
+    cur = {"warn_keys": sorted({_warn_key(w) for w in warns}),
+           "msg_ids": sorted({str(m.get("id")) for m in msgs if m.get("id")})[-500:]}
+
+    if st is not None:
+        seen_w, seen_m = set(st.get("warn_keys") or []), set(st.get("msg_ids") or [])
+        sggs, sidos, allmsg = set(), set(), False
+        for w in warns:
+            if _warn_key(w) in seen_w:
+                continue
+            for c in (w.get("area_codes") or []):
+                c = str(c)
+                if len(c) >= 5:
+                    sggs.add(c[:5])
+                elif len(c) >= 2:
+                    sidos.add(c[:2])
+        new_msgs = [m for m in msgs if str(m.get("id")) not in seen_m]
+        if new_msgs:
+            try:
+                idx = json.load(io.open(os.path.join(ROOT, "data", "admin", "sgg_index.json"),
+                                        encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                idx = []
+            for m in new_msgs:
+                rg = str(m.get("region") or "")
+                if "전국" in rg:
+                    allmsg = True
+                    continue
+                hit = False
+                for rec in idx:
+                    if rec.get("sido_name") and rec["sido_name"] in rg and rec.get("name") and rec["name"] in rg:
+                        sggs.add(str(rec["code"])); hit = True
+                if not hit:  # 시군구 매칭 실패 → 시도 단위로 넓혀 발송
+                    for rec in idx:
+                        if rec.get("sido_name") and rec["sido_name"] in rg:
+                            sidos.add(str(rec["code"])[:2])
+        if allmsg or sggs or sidos:
+            body = json.dumps({"all": allmsg, "sggs": sorted(sggs), "sidos": sorted(sidos)}).encode()
+            req = urllib.request.Request(PUSH_URL, data=body, method="POST",
+                                         headers={"Content-Type": "application/json",
+                                                  "X-Push-Auth": auth,
+                                                  # Cloudflare가 Python-urllib UA를 봇 차단(1010)함
+                                                  "User-Agent": "aidpage-collector"})
+            try:
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    log(f"push_notify: {r.read().decode()[:120]}")
+            except Exception as e:  # noqa: BLE001 — 발송 실패는 수집을 막지 않는다
+                log(f"push_notify failed: {e}")
+
+    json.dump(cur, io.open(PUSH_STATE, "w", encoding="utf-8"))
 
 
 def main() -> int:
@@ -98,6 +172,7 @@ def main() -> int:
     json.dump(out, io.open(ALERTS_PATH, "w", encoding="utf-8"), ensure_ascii=False,
               separators=(",", ":"))
     log(f"wrote {ALERTS_PATH} sections={wrote}")
+    push_notify(out)
 
     if "--push" in sys.argv:
         # ⚠ pythonw(창 없음)라도 자식 git.exe가 콘솔을 새로 열어 30분마다 창이 깜빡임

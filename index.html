@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260829c">
+<link rel="stylesheet" href="css/style.css?v=20260829d">
 </head>
 <body>
 
@@ -64,6 +64,9 @@
   <section class="drawer-sec"><h4 data-i18n="drawer.lang">언어</h4><div class="lang pill" role="group" aria-label="언어"><button class="lang-btn" data-lang="ko">한국어</button><button class="lang-btn" data-lang="en">English</button></div></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.size">글씨 크기</h4><div class="size pill" role="group" aria-label="글씨 크기"><button class="size-btn" data-size="normal" data-i18n="size.normal">보통</button><button class="size-btn" data-size="big" data-i18n="size.big">큰 글씨</button></div>
     <label class="drawer-row"><input type="checkbox" id="btnContrast"><span data-i18n="size.contrast.t">글자와 배경 대비를 높입니다</span></label></section>
+  <section class="drawer-sec"><h4 data-i18n="drawer.push">재난 알림</h4>
+    <label class="drawer-row"><input type="checkbox" id="btnPush"><span data-i18n="push.t">내 동네에 특보·재난문자가 오면 알림을 받습니다</span></label>
+    <small class="fine" id="pushHint" data-i18n="push.hint">동네를 먼저 선택하면 켤 수 있어요. 알림에는 개인정보가 담기지 않습니다.</small></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.profile">우리 집 (입력은 이 기기에만 저장)</h4>
     <div class="prof">
       <label><span data-i18n="prof.floor">사는 층</span><select id="pfFloor"><option value="">—</option><option value="semi" data-i18n="prof.floor.semi">반지하·지하</option><option value="low" data-i18n="prof.floor.low">1~2층</option><option value="mid" data-i18n="prof.floor.mid">3층 이상</option><option value="high" data-i18n="prof.floor.high">고층(10층 이상)</option></select></label>
@@ -261,6 +264,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260829c"></script>
+<script type="module" src="js/app.js?v=20260829d"></script>
 </body>
 </html>

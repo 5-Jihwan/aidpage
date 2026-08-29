@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260829c';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260829c';
-import { getReports, postReport, flagReport } from './api.js?v=20260829c';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260829c';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260829d';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260829d';
+import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub } from './api.js?v=20260829d';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260829d';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260829c'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260829d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1085,7 +1085,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260829c').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260829d').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1110,6 +1110,56 @@ function initSize() {
   const saved = localStorage.getItem(KEY);
   apply(saved || 'normal');
   $$('.size-btn[data-size]').forEach(b => b.addEventListener('click', () => set(b.dataset.size)));
+
+/* ── 재난 알림(웹 푸시) 구독. 페이로드 없는 push라 서버로 가는 개인정보가 없고,
+   지역 판정용 {sgg,sido,이름}만 Worker와 이 기기(IndexedDB)에 저장한다. ── */
+function pushIDB(val) {
+  return new Promise((res) => {
+    const r = indexedDB.open('aidpage-push', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onerror = () => res(null);
+    r.onsuccess = () => {
+      const tx = r.result.transaction('kv', 'readwrite');
+      if (val !== undefined) { tx.objectStore('kv').put(val, 'region'); tx.oncomplete = () => res(val); }
+      else { const g = tx.objectStore('kv').get('region'); g.onsuccess = () => res(g.result || null); }
+    };
+  });
+}
+function b64uToU8(s) { const b = atob(s.replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); }
+function initPush() {
+  const cb = $('#btnPush'); if (!cb) return;
+  const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  if (!supported) { cb.disabled = true; return; }
+  navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription())
+    .then(sub => { cb.checked = !!sub; }).catch(() => {});
+  cb.addEventListener('change', async () => {
+    cb.disabled = true;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (cb.checked) {
+        if (!state.sgg) { toast(t('push.needRegion')); cb.checked = false; return; }
+        if (await Notification.requestPermission() !== 'granted') { toast(t('push.denied')); cb.checked = false; return; }
+        const v = await getVapid();
+        if (!v || !v.key) { toast(t('push.fail')); cb.checked = false; return; }
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToU8(v.key) });
+        const n = nameOf();
+        const region = { sgg: state.sgg, sido: state.sgg.slice(0, 2), sggName: n.sggName || '', sidoName: n.sidoName || '' };
+        await pushIDB(region);
+        const j = sub.toJSON();
+        const r = await pushSub({ endpoint: sub.endpoint, keys: j.keys, sgg: region.sgg, sido: region.sido });
+        if (r.status !== 'ok') { await sub.unsubscribe().catch(() => {}); toast(t('push.fail')); cb.checked = false; return; }
+        toast(t('push.on', { r: n.sggName || '' }));
+      } else {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) { await pushUnsub({ endpoint: sub.endpoint }).catch(() => {}); await sub.unsubscribe().catch(() => {}); }
+        toast(t('push.off'));
+      }
+    } catch { toast(t('push.fail')); cb.checked = false; }
+    finally { cb.disabled = false; }
+  });
+}
+
+  initPush();
   const cb = $('#btnContrast'), CK = 'safepic.contrast';
   const applyC = on => { root.classList.toggle('contrast', on); cb.checked = on; };
   applyC(localStorage.getItem(CK) === '1');

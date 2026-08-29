@@ -17,3 +17,4 @@ data/ref/sd/
 .sd_collector.log
 .sd_collector2.log
 .progress_map.html
+.push_state.json

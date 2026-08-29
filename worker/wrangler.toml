@@ -9,9 +9,11 @@ id = "bbc699ecd17c412e818a6d02c4db26d7"
 
 [vars]
 ALLOWED_ORIGINS = "https://5-jihwan.github.io,http://localhost:8799,http://127.0.0.1:8799"
+VAPID_PUB = "BE-Kig3XCsYhyfHMZ-C2Lze1mJLiK31jqwgf4Ahs-ltkUpAJU2rcWN6_qovark19GxrXePHJ4s6N0jog8c0gj2I"
 
 # Secrets (never in this file): set with `npx wrangler secret put NAME`
 #   BIGKINDS_KEY   빅카인즈
 #   LAW_OC         국가법령정보 OPEN API (이메일 ID 앞부분)
 #   KMA_APIHUB_KEY 기상청 API허브 (레이더·위성 이미지)
 #   SERPAPI_KEY    (선택)
+#   VAPID_JWK      웹푸시 서명키(JWK JSON) / PUSH_AUTH  발송 인증 토큰

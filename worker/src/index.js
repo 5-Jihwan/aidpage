@@ -32,6 +32,10 @@ export default {
         case '/reports': return json(await reports(url, env), 200, cors);
         case '/report': return json(await report(req, env, ip), 200, cors);
         case '/report/flag': return json(await flag(req, env, ip), 200, cors);
+        case '/push/vapid': return json({ status: 'ok', key: env.VAPID_PUB || '' }, 200, cors);
+        case '/push/sub': return json(await pushSub(req, env), 200, cors);
+        case '/push/unsub': return json(await pushUnsub(req, env), 200, cors);
+        case '/push/send': return pushSend(req, env, cors);
         default: return json({ status: 'error:404' }, 404, cors);
       }
     } catch (e) {
@@ -159,3 +163,89 @@ async function flag(req, env, ip) {
   return { status: 'ok', flags: it.flags, hidden: it.flags >= REPORT.hideAt };
 }
 async function hashIp(ip) { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip + '|safepic')); return [...new Uint8Array(d)].slice(0, 6).map(x => x.toString(16).padStart(2, '0')).join(''); }
+
+/* ---------- /push — 웹 푸시 (특보·재난문자 알림) ----------
+   페이로드 없는 push(RFC8030)만 보낸다 → RFC8291 암호화가 필요 없고,
+   알림 내용은 SW가 push 수신 시 alerts.json을 새로 읽어 구성한다.
+   따라서 서버는 "지금 다시 봐" 신호만 전달하며 개인정보를 발송하지 않는다.
+   구독 저장: KV psub:<sha256(endpoint)> = { endpoint, sgg, sido, t } (TTL 180일,
+   재구독 시 갱신). keys(p256dh/auth)는 향후 페이로드 push 대비로만 보관. */
+const PUSH_TTL = 180 * 86400;
+
+async function subKey(endpoint) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(endpoint));
+  return 'psub:' + [...new Uint8Array(d)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+async function pushSub(req, env) {
+  if (req.method !== 'POST') return { status: 'error:405' };
+  const b = await req.json().catch(() => null);
+  if (!b || !b.endpoint || !/^https:\/\//.test(b.endpoint)) return { status: 'error:bad_sub' };
+  const rec = { endpoint: b.endpoint, keys: b.keys || null,
+                sgg: String(b.sgg || '').slice(0, 5), sido: String(b.sido || '').slice(0, 2),
+                t: now() };
+  await env.CACHE.put(await subKey(b.endpoint), JSON.stringify(rec), { expirationTtl: PUSH_TTL });
+  return { status: 'ok' };
+}
+
+async function pushUnsub(req, env) {
+  if (req.method !== 'POST') return { status: 'error:405' };
+  const b = await req.json().catch(() => null);
+  if (!b || !b.endpoint) return { status: 'error:bad_sub' };
+  await env.CACHE.delete(await subKey(b.endpoint));
+  return { status: 'ok' };
+}
+
+/* VAPID(RFC8292): aud별 ES256 JWT. 서명키는 시크릿 VAPID_JWK(JWK JSON). */
+const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function vapidHeader(env, aud) {
+  const jwk = JSON.parse(env.VAPID_JWK);
+  const key = await crypto.subtle.importKey('jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const enc = (o) => b64u(new TextEncoder().encode(JSON.stringify(o)));
+  const head = enc({ typ: 'JWT', alg: 'ES256' });
+  const body = enc({ aud, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: 'mailto:ojh121523@gmail.com' });
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(head + '.' + body));
+  return `vapid t=${head}.${body}.${b64u(sig)}, k=${env.VAPID_PUB}`;
+}
+
+async function pushSend(req, env, cors) {
+  if (req.method !== 'POST') return json({ status: 'error:405' }, 405, cors);
+  if (!env.PUSH_AUTH || req.headers.get('X-Push-Auth') !== env.PUSH_AUTH)
+    return json({ status: 'error:403' }, 403, cors);
+  const b = await req.json().catch(() => ({}));
+  const sggs = new Set((b.sggs || []).map(String));       // 시군구 코드 5자리
+  const sidos = new Set((b.sidos || []).map(String));     // 시도 코드 2자리
+  const all = b.all === true;                             // 전국 발송(재난문자 '전국')
+
+  const targets = [];
+  let cursor;
+  do {
+    const page = await env.CACHE.list({ prefix: 'psub:', cursor });
+    for (const k of page.keys) {
+      const rec = await env.CACHE.get(k.name, 'json');
+      if (!rec || !rec.endpoint) continue;
+      if (all || sggs.has(rec.sgg) || sidos.has(rec.sido) || (rec.sgg && sggs.size === 0 && sidos.size === 0))
+        targets.push({ key: k.name, endpoint: rec.endpoint });
+    }
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor);
+
+  let sent = 0, gone = 0, failed = 0;
+  const auds = new Map();
+  for (let i = 0; i < targets.length; i += 20) {
+    await Promise.all(targets.slice(i, i + 20).map(async (t) => {
+      try {
+        const aud = new URL(t.endpoint).origin;
+        if (!auds.has(aud)) auds.set(aud, await vapidHeader(env, aud));
+        const r = await fetch(t.endpoint, {
+          method: 'POST',
+          headers: { 'TTL': '1800', 'Urgency': 'high', 'Authorization': auds.get(aud) },
+        });
+        if (r.status === 404 || r.status === 410) { gone++; await env.CACHE.delete(t.key); }
+        else if (r.ok || r.status === 201) sent++;
+        else failed++;
+      } catch { failed++; }
+    }));
+  }
+  return json({ status: 'ok', matched: targets.length, sent, gone, failed }, 200, cors);
+}

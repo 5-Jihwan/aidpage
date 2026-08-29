@@ -107,18 +107,36 @@ def main() -> int:
         def git(*a):
             return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True,
                                   creationflags=NOWIN)
+        # ⚠ pull --rebase 가 충돌하면 git 은 detached HEAD 로 멈춘다. 예전 구현은
+        #   반환값을 보지 않고 그 위에 계속 커밋해 브랜치가 갈라지고 push 가 영구 실패했다
+        #   (2026-08-29 복구). 매 실행마다 정상 상태를 먼저 보장한다.
+        gd = os.path.join(ROOT, ".git")
+        if any(os.path.exists(os.path.join(gd, d)) for d in ("rebase-merge", "rebase-apply")):
+            git("rebase", "--abort")
+            log("aborted stale rebase")
+        if not git("symbolic-ref", "--quiet", "--short", "HEAD").stdout.strip():
+            git("checkout", "-q", "main")
+            log("detached HEAD -> main")
+
         if "data/live/alerts.json" not in git("status", "--porcelain").stdout:
             log("no git change")
             return 0
-        git("stash", "--include-untracked", "--", "data/live/alerts.json")
-        git("pull", "--rebase", "-q")
-        git("stash", "pop")
+        # 커밋을 먼저 한다 — stash/pop 실패로 변경분이 유실되던 경로를 없앱다.
         git("add", "data/live/alerts.json")
-        git("commit", "-q", "-m", f"live(sd-local) {now_kst().strftime('%Y-%m-%dT%H:%M')}")
+        c = git("commit", "-q", "-m", f"live(sd-local) {now_kst().strftime('%Y-%m-%dT%H:%M')}")
+        if c.returncode != 0:
+            msg = f"commit failed: {c.stderr[:200]}"
+            log(msg); flog(msg)
+            return 0
+        # 자동 생성 파일이므로 충돌 시 로컬(최신 수집분)을 채택한다.
+        # 리베이스에서 우리 커밋은 'theirs' 쪽이다.
+        pl = git("pull", "--rebase", "-X", "theirs", "-q")
+        if pl.returncode != 0:
+            git("rebase", "--abort")
+            msg = f"pull failed, retry next cycle: {pl.stderr[:200]}"
+            log(msg); flog(msg)
+            return 0
         r = git("push", "-q")
-        if r.returncode != 0:
-            git("pull", "--rebase", "-q")
-            r = git("push", "-q")
         msg = "pushed" if r.returncode == 0 else f"push failed: {r.stderr[:200]}"
         log(msg); flog(msg)
     return 0

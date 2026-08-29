@@ -12,6 +12,7 @@ import json
 import os
 import sys
 import urllib.parse
+import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -31,14 +32,29 @@ def log(msg: str) -> None:
     print(f"[fetch_welfare] {msg}", flush=True)
 
 
+def _open(url: str) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": "aidpage-daily"})
+    try:
+        with urllib.request.urlopen(req, timeout=40) as r:
+            return r.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:  # 게이트웨이 오류도 본문에 사유가 있다 — 보이게 한다
+        detail = e.read().decode("utf-8", "replace")[:300] if e.fp else ""
+        raise RuntimeError(f"HTTP {e.code}: {detail}") from None
+
+
 def fetch_page(page: int) -> ET.Element:
-    q = urllib.parse.urlencode({
-        "serviceKey": KEY, "callTp": "L", "pageNo": page, "numOfRows": ROWS,
-        "srchKeyCode": "001",  # 001=서비스명+내용 전체 검색(키워드 없음 → 전체 목록)
-    })
-    req = urllib.request.Request(f"{API}?{q}", headers={"User-Agent": "aidpage-daily"})
-    with urllib.request.urlopen(req, timeout=40) as r:
-        body = r.read().decode("utf-8", "replace")
+    # data.go.kr 키는 포털이 URL 인코딩된 형태로 주는 경우가 많다 — 이중 인코딩을 피하려고
+    # 키는 그대로 붙이고, 실패 시 unquote 변형도 시도한다.
+    tail = f"&callTp=L&pageNo={page}&numOfRows={ROWS}&srchKeyCode=001"
+    last = None
+    for key in dict.fromkeys([KEY, urllib.parse.unquote(KEY), urllib.parse.quote(KEY, safe="")]):
+        try:
+            body = _open(f"{API}?serviceKey={key}{tail}")
+            break
+        except RuntimeError as e:
+            last = e
+    else:
+        raise last
     if body.lstrip().startswith("{"):
         raise RuntimeError(f"unexpected JSON response: {body[:160]}")
     root = ET.fromstring(body)

@@ -23,7 +23,10 @@ except Exception:  # noqa: BLE001
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "ref", "welfare.json")
-KEY = os.environ.get("DATA_WELFARE_KEY", "").strip()
+# 전용 키가 미등록(코드 30)으로 실패한 이력이 있어 계정 공용 키를 폴백으로 둔다
+# (data.go.kr 인증키는 계정 단위 — 같은 계정으로 활용신청했다면 어느 키든 통한다).
+KEYS = [(n, os.environ.get(n, "").strip()) for n in ("DATA_WELFARE_KEY", "DATA_GO_KR_KEY")]
+KEYS = [(n, k) for n, k in KEYS if k]
 API = "https://apis.data.go.kr/B554287/NationalWelfareInformationsV001/NationalWelfarelistV001"
 ROWS = 100
 
@@ -44,15 +47,23 @@ def _open(url: str) -> str:
 
 def fetch_page(page: int) -> ET.Element:
     # data.go.kr 키는 포털이 URL 인코딩된 형태로 주는 경우가 많다 — 이중 인코딩을 피하려고
-    # 키는 그대로 붙이고, 실패 시 unquote 변형도 시도한다.
+    # 키는 그대로 붙이고, 실패 시 unquote 변형도 시도한다. 키 값은 절대 로그에 남기지 않는다.
     tail = f"&callTp=L&pageNo={page}&numOfRows={ROWS}&srchKeyCode=001"
     last = None
-    for key in dict.fromkeys([KEY, urllib.parse.unquote(KEY), urllib.parse.quote(KEY, safe="")]):
-        try:
-            body = _open(f"{API}?serviceKey={key}{tail}")
-            break
-        except RuntimeError as e:
-            last = e
+    for name, raw in KEYS:
+        for key in dict.fromkeys([raw, urllib.parse.unquote(raw), urllib.parse.quote(raw, safe="")]):
+            try:
+                body = _open(f"{API}?serviceKey={key}{tail}")
+                if page == 1:
+                    log(f"key {name} accepted")
+                break
+            except RuntimeError as e:
+                last = e
+        else:
+            if page == 1:
+                log(f"key {name} rejected: {str(last)[:200]}")
+            continue
+        break
     else:
         raise last
     if body.lstrip().startswith("{"):
@@ -67,8 +78,8 @@ def fetch_page(page: int) -> ET.Element:
 
 
 def main() -> int:
-    if not KEY:
-        log("DATA_WELFARE_KEY not set — skipping (no files touched)")
+    if not KEYS:
+        log("DATA_WELFARE_KEY/DATA_GO_KR_KEY not set — skipping (no files touched)")
         return 0
     root = fetch_page(1)
     total_t = root.findtext(".//totalCount")

@@ -16,7 +16,7 @@ concurrency:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,16 +26,22 @@ jobs:
         with:
           python-version: "3.12"
 
+      # 복지 목록을 법령보다 먼저: 법령(law.go.kr)이 GitHub IP에서 간헐적으로
+      # 매달려 잡 전체가 타임아웃 취소되던 이력(08-28~29) 때문. 각 스텝은 독립.
+      - name: Fetch welfare service list
+        continue-on-error: true
+        env:
+          DATA_WELFARE_KEY: ${{ secrets.DATA_WELFARE_KEY }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: python scripts/fetch_welfare.py
+
       - name: Fetch law reference data
+        continue-on-error: true
+        timeout-minutes: 8
         env:
           # 시크릿 이름은 LAW_INFORM_KEY (사용자 지정), 스크립트 내부 env 이름은 LAW_OC
           LAW_OC: ${{ secrets.LAW_INFORM_KEY }}
         run: python scripts/fetch_daily.py
-
-      - name: Fetch welfare service list
-        env:
-          DATA_WELFARE_KEY: ${{ secrets.DATA_WELFARE_KEY }}
-        run: python scripts/fetch_welfare.py
 
       - name: Commit if changed
         run: |

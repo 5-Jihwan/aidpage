@@ -608,7 +608,12 @@ html.no-fxbanner .fx-banner{display:none}
 /* 상단 언어 드롭다운 — 사이트 pill 테마와 통일 (네이티브 select 대체) */
 .lang-top{position:relative;flex:none;margin-left:6px;height:auto!important;padding:0!important;border:0!important;background:none!important;box-shadow:none}
 .lang-top-t{height:36px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:.85rem;color:var(--ink);white-space:nowrap;cursor:pointer}
-@media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .lang-top-t{height:32px;padding:0 9px;font-size:.78rem} }
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){
+  .lang-top-t{height:32px;padding:0 9px;font-size:.78rem}
+  /* 모바일 .top은 overflow:hidden — 헤더 안 absolute 메뉴가 잘려 탭이 안 됐다. fixed로 클리핑 탈출 */
+  .lang-menu{position:fixed;top:calc(var(--top-h) + 6px);right:8px}
+  .lang-menu button{padding:12px 14px;font-size:.95rem}
+}
 .lang-top-t:hover{background:var(--bg)}
 .lang-top-t::after{content:' ▾';color:var(--mute);font-weight:400}
 .lang-menu{position:absolute;top:calc(100% + 6px);right:0;display:none;flex-direction:column;gap:2px;min-width:132px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(20,32,46,.16);padding:6px;z-index:60}

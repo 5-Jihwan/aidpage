@@ -626,6 +626,32 @@ html.no-fxbanner .fx-banner{display:none}
   .lang-menu button{padding:12px 14px;font-size:.95rem}
 }
 html.big .lang-top-t{font-size:1rem;height:42px}
+/* 첫 진입 오버레이 — 질문 하나만. 지도는 뒤에서 흐리게 */
+.welcome{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(20,32,46,.38);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.welcome[hidden]{display:none}
+.welcome-card{background:#fff;border-radius:20px;max-width:560px;width:100%;padding:26px 24px 20px;box-shadow:0 24px 60px rgba(20,32,46,.28);max-height:calc(100dvh - 36px);overflow:auto}
+.welcome-brand{display:inline-flex;align-items:center;gap:8px;margin-bottom:14px}
+.welcome-card .h1{margin-bottom:6px}
+.wel-lead{margin:0 0 14px;color:var(--mute);font-size:.92rem;line-height:1.5}
+.welcome-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wcard{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:14px 14px 12px;min-height:96px;border-radius:14px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s}
+.wcard:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(26,95,196,.12);transform:translateY(-1px)}
+.wcard .card-ic{font-size:1.6rem;margin-bottom:4px}
+.wcard b{font-size:1.02rem;color:var(--ink);line-height:1.25}
+.wcard small{color:var(--mute);font-size:.78rem}
+.welcome-sub #welBack{margin-bottom:10px}
+.welcome-skip{display:block;margin:16px auto 0;border:0;background:none;color:var(--mute);cursor:pointer;font-size:.9rem;text-decoration:underline;text-underline-offset:3px}
+.welcome-skip:hover{color:var(--ink)}
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){
+  .welcome{align-items:flex-end;padding:0}
+  .welcome-card{border-radius:20px 20px 0 0;max-width:none;padding:22px 18px 18px}
+  .wcard{min-height:88px;padding:12px 12px 10px}
+  .wcard .card-ic{font-size:1.4rem}
+  .wcard b{font-size:.95rem}
+}
+html.big .wcard b{font-size:1.1rem} html.big .wcard small{font-size:.9rem}
+/* 서류 발급처 링크 */
+.doc-list a{margin-left:6px;font-size:.82rem;white-space:nowrap}
 /* 탭③ 우리 동네 대비 */
 .prep-row{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin-bottom:8px}
 .prep-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}

@@ -1,5 +1,5 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260829d';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831b';
 import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260829d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub } from './api.js?v=20260829d';
 import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260829d';
@@ -1255,6 +1255,28 @@ function applySituation(sit, navigate) {
 function initCards() {
   $$('#sitCards .card').forEach(b => b.addEventListener('click', () => applySituation(b.dataset.sit, true)));
 }
+/* 첫 진입 오버레이 — 화면에 질문 하나만 남긴다. 4묶음 → (피해만) 세부 상황.
+   공유 링크·저장된 우리 집이 있으면 건너뛰고, '처음으로'가 다시 이 화면을 연다. */
+function initWelcome() {
+  const w = $('#welcome'); if (!w) return;
+  const close = () => { w.hidden = true; };
+  const open = () => { w.hidden = false; $('#welSub').hidden = true; $('#welGroups').hidden = false; };
+  state._welOpen = open;
+  const GROUP_SIT = { evac: 'evacuating', prep: 'before_rain', proxy: 'proxy' };
+  const DAMAGE_SITS = ['house_flood', 'shop_flood', 'injury', 'no_news', 'past'];
+  $$('#welGroups .wcard').forEach(b => b.addEventListener('click', () => {
+    const g = b.dataset.g;
+    if (GROUP_SIT[g]) { close(); applySituation(GROUP_SIT[g], true); return; }
+    const sc = $('#welSubCards');
+    sc.innerHTML = DAMAGE_SITS.map(s => `<button type="button" class="wcard" data-sit="${s}"><span class="card-ic">${SIT_ICON[s]}</span><b>${t(SIT_KEY[s])}</b><small>${t(SIT_KEY[s] + '.s')}</small></button>`).join('');
+    $$('.wcard', sc).forEach(x => x.addEventListener('click', () => { close(); applySituation(x.dataset.sit, true); }));
+    $('#welGroups').hidden = true; $('#welSub').hidden = false;
+  }));
+  $('#welBack').addEventListener('click', () => { $('#welSub').hidden = true; $('#welGroups').hidden = false; });
+  $('#welSkip').addEventListener('click', close);
+  addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  if (!location.hash && !getHome()) open();
+}
 /* 상황 바: 지금 고른 상황을 보여주고 한 번에 바꾼다 */
 function renderSitBar() {
   const bar = $('#sitBar'); if (!bar) return;
@@ -1394,13 +1416,19 @@ function nearMisses(inp) {
   }
   return out.slice(0, 6);
 }
+/* 서류명 → 온라인 발급·접수처 (확인된 것만: 피해신고=국민안전24, 증명서류=정부24) */
+const DOC_SITES = [
+  { re: /피해신고서/, url: 'https://www.safekorea.go.kr', key: 'docs.site.safe' },
+  { re: /등본|건축물대장|가족관계|한부모|차상위|증명서/, url: 'https://www.gov.kr', key: 'docs.site.gov' },
+];
+const docSiteLink = d => { const s = DOC_SITES.find(x => x.re.test(d)); return s ? ` <a href="${s.url}" target="_blank" rel="noopener">${t(s.key)} ↗</a>` : ''; };
 /* ⑦ 준비할 서류: 매칭된 항목의 docs 합집합, 체크 상태는 세션에 저장 */
 function docsHTML(res) {
   const items = [...(res.cash || []), ...(res.relief_fund || []), ...(res.apply || []), ...(res.insurance || [])];
   const docs = [...new Set(items.flatMap(r => r.docs || []))];
   if (!docs.length) return '';
   const done = new Set(JSON.parse(sessionStorage.getItem('safepic.docs') || '[]'));
-  return `<div class="result-block docs"><h3>${t('res.docs')}</h3><ul class="doc-list">${docs.map((d, i) => `<li><label><input type="checkbox" data-doc="${i}" ${done.has(d) ? 'checked' : ''}><span>${d}</span></label></li>`).join('')}</ul><small class="muted">${t('res.docs.s')}</small></div>`;
+  return `<div class="result-block docs"><h3>${t('res.docs')}</h3><ul class="doc-list">${docs.map((d, i) => `<li><label><input type="checkbox" data-doc="${i}" ${done.has(d) ? 'checked' : ''}><span>${d}</span></label>${docSiteLink(d)}</li>`).join('')}</ul><small class="muted">${t('res.docs.s')}</small></div>`;
 }
 function itemHTML(r) {
   const amt = r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '');
@@ -1467,11 +1495,11 @@ function renderRulesTable() {
   applyStatic();
   if (getLang() === 'en') document.title = 'AidPage · Your situation, your safety — on one page';
   $$('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
-  const goStart = () => { setTab('now'); resetNation(); const w = $('#wizard'); if (w) { w.reset(); syncWizardLoc(); } const r = $('#result'); if (r) r.hidden = true; $('#mapHint').classList.remove('is-hidden'); };
+  const goStart = () => { setTab('now'); resetNation(); const w = $('#wizard'); if (w) { w.reset(); syncWizardLoc(); } const r = $('#result'); if (r) r.hidden = true; $('#mapHint').classList.remove('is-hidden'); if (state._welOpen) state._welOpen(); };
   $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });
   $('#btnStart').addEventListener('click', goStart);
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
-  initCards(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
+  initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
   let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); }, 150); });
   await loadCore(); renderCrumb(); renderLive();
   initMap();

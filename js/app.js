@@ -2,7 +2,7 @@
 import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831d';
 import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260831d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831d';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260831d';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260831e';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
@@ -303,6 +303,43 @@ function addAdminLayers() {
   map.on('click', 'sido-fill', e => { if (overShelter(e)) return; if (map.queryRenderedFeatures(e.point, { layers: ['sgg-fill', 'emd-fill'] }).length) return; const f = e.features[0]; if (f) selectSido(f.properties.code); });
   map.on('click', () => $('#mapHint').classList.add('is-hidden'));
 }
+/* ---------- 포커스 연출 — 선택한 시군구/동을 '무대'로 (08-31 사용자 아이디어) ----------
+   ① 바깥은 반투명 마스크로 가라앉히고 ② 선택 지오메트리를 화면 고정 그림자로 띄우고(플로팅 카드)
+   ③ 테두리 링. 피치·3D 익스트루전 없이 톱다운에서 성립하는 2.5D — 지구본 투영과도 충돌 없음. */
+const EMPTYFC = { type: 'FeatureCollection', features: [] };
+const FOCUS_BOX = [[116, 29], [143, 29], [143, 45], [116, 45], [116, 29]]; // 한반도 주변 넉넉한 사각 (마스크 외곽)
+function focusFeatures() {
+  if (state.emd && state.geo.emd) { const fs = featuresWhere(state.geo.emd, 'code', state.emd); if (fs.length) return fs; }
+  if (state.sgg) return featuresWhere(state.geo.sgg, 'code', state.sgg);
+  return []; // 시도·전국은 무대가 너무 커서 연출하지 않는다
+}
+/* 시설 클리핑: 선택 폴리곤 '안'만 (bbox는 관악구처럼 대각선 모양에서 이웃 구 모서리가 새어 들어온다).
+   bbox 선별 후에만 pip — 선택 없으면 null → 시도 전체(기존 동작). '가까운 곳' 목록은 클립과 무관. */
+function focusClip() {
+  const fs = focusFeatures(); if (!fs.length) return null;
+  const b = bboxOf(fs);
+  return { sig: `${state.sgg}|${state.emd || ''}`,
+           keep: (lon, lat) => lon >= b[0] && lon <= b[2] && lat >= b[1] && lat <= b[3] && fs.some(f => pipFeature(lon, lat, f)) };
+}
+function applyFocus() {
+  if (!map || !map.getLayer('sgg-fill')) return;
+  if (!map.getSource('focus-mask')) {
+    map.addSource('focus-mask', { type: 'geojson', data: EMPTYFC });
+    map.addSource('focus-sel', { type: 'geojson', data: EMPTYFC });
+    // 스택: 베이스맵 < 마스크 < 그림자 < 행정 면·선 < 링 < 라벨 (경계선·라벨은 흐리지 않아 길찾기 유지)
+    map.addLayer({ id: 'focus-mask', type: 'fill', source: 'focus-mask', paint: { 'fill-color': '#f7f9fc', 'fill-opacity': 0.55 } }, 'sido-fill');
+    map.addLayer({ id: 'focus-shadow', type: 'fill', source: 'focus-sel', paint: { 'fill-color': '#14202e', 'fill-opacity': 0.25, 'fill-translate': [8, 12], 'fill-translate-anchor': 'viewport' } }, 'sido-fill');
+    map.addLayer({ id: 'focus-ring-casing', type: 'line', source: 'focus-sel', paint: { 'line-color': '#fff', 'line-width': 5 } }, 'sgg-label');
+    map.addLayer({ id: 'focus-ring', type: 'line', source: 'focus-sel', paint: { 'line-color': '#0f4a9e', 'line-width': 2 } }, 'sgg-label');
+  }
+  const fs = focusFeatures();
+  if (!fs.length) { map.getSource('focus-mask').setData(EMPTYFC); map.getSource('focus-sel').setData(EMPTYFC); return; }
+  map.getSource('focus-sel').setData({ type: 'FeatureCollection', features: fs.map(f => ({ type: 'Feature', geometry: f.geometry, properties: {} })) });
+  // 마스크 = 큰 사각에서 선택 폴리곤 outer ring들을 구멍으로 (earcut은 순서만 보므로 winding 무관)
+  const holes = [];
+  for (const f of fs) { const g = f.geometry; for (const p of (g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates])) holes.push(p[0]); }
+  map.getSource('focus-mask').setData({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [FOCUS_BOX, ...holes] }, properties: {} });
+}
 function setLevelFilters() {
   if (!map || !map.getLayer('sgg-fill')) return;
   const NONE = ['==', ['get', 'code'], '__none__']; // valid "match nothing" (['==',1,0] is rejected by MapLibre)
@@ -319,6 +356,7 @@ function setLevelFilters() {
   if (prev && (!want || prev.src !== want.src || prev.id !== want.id)) { try { map.setFeatureState({ source: prev.src, id: prev.id }, { sel: false }); } catch (e) { /* source may be reloading */ } }
   if (want) { try { map.setFeatureState({ source: want.src, id: want.id }, { sel: true }); } catch (e) { /* ignore */ } }
   state._sel = want;
+  applyFocus();
 }
 function fitTo(features) {
   if (!features.length) return;
@@ -494,7 +532,8 @@ function saveShelterKinds() {
 function syncShelterLayers() {
   if (!map || !state.shelters.avail.length) return;
   const kinds = activeShelterKinds();
-  setShelters(kinds, state.sido);
+  // 시군구/동을 골랐으면 그 안의 시설만 지도에 — 아이콘 산재 방지
+  setShelters(kinds, state.sido, focusClip());
   renderLegend(kinds);
 }
 /* 지도 범례: 켜진 시설 색 + (격자 표시 중이면) 격자 범례 */

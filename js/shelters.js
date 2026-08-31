@@ -163,9 +163,10 @@ function spiderfy(lngLat, leaves, clusterId) {
       .setLngLat(lngLat).addTo(map);
   });
 }
-let _lastSig = null; // renderAll마다 불리므로 종류·시도가 그대로면 수만 피처 재조립을 건너뛴다
-export async function setActive(kinds, sido) {
-  const sig = [...kinds].sort().join(',') + '|' + (sido || '');
+let _lastSig = null; // renderAll마다 불리므로 종류·시도·클립이 그대로면 수만 피처 재조립을 건너뛴다
+/** clip = { sig, keep(lon,lat) } — 있으면 keep이 참인 시설만 지도에 올린다 (아이콘 산재 방지) */
+export async function setActive(kinds, sido, clip = null) {
+  const sig = [...kinds].sort().join(',') + '|' + (sido || '') + '|' + (clip ? clip.sig : '');
   if (sig === _lastSig && map.getSource('sh-all')) return;
   _lastSig = sig;
   activeKinds = new Set(kinds); currentSido = sido;
@@ -178,6 +179,8 @@ export async function setActive(kinds, sido) {
     if (!fc) continue;
     const ki = KIND_IDS.indexOf(k.id);
     for (const f of fc.features) {
+      const c = f.geometry.coordinates;
+      if (clip && !clip.keep(c[0], c[1])) continue;
       feats.push({ type: 'Feature', geometry: f.geometry, properties: { ...f.properties, kind: k.id, ki } });
     }
   }

@@ -16,4 +16,5 @@ VAPID_PUB = "BE-Kig3XCsYhyfHMZ-C2Lze1mJLiK31jqwgf4Ahs-ltkUpAJU2rcWN6_qovark19Gxr
 #   LAW_OC         국가법령정보 OPEN API (이메일 ID 앞부분)
 #   KMA_APIHUB_KEY 기상청 API허브 (레이더·위성 이미지)
 #   SERPAPI_KEY    (선택)
+#   DATA_GO_KR_KEY 공공데이터포털 (E-Gen 응급실 실시간 — Actions와 같은 키, 인코딩형 그대로)
 #   VAPID_JWK      웹푸시 서명키(JWK JSON) / PUSH_AUTH  발송 인증 토큰

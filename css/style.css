@@ -640,6 +640,15 @@ html.big .lang-top-t{font-size:1rem;height:42px}
 .wcard b{font-size:1.02rem;color:var(--ink);line-height:1.25}
 .wcard small{color:var(--mute);font-size:.78rem}
 .welcome-sub #welBack{margin-bottom:10px}
+.welcome-loc #welLocBack{margin-bottom:10px}
+.wel-gps{width:100%;margin:2px 0 12px}
+.wel-search{position:relative}
+.wel-search input{width:100%;height:46px;padding:0 14px;border:1px solid var(--line);border-radius:12px;font:inherit;background:#fff;box-sizing:border-box}
+.wel-search input:focus{outline:2px solid rgba(26,95,196,.35)}
+.wel-search ul{list-style:none;margin:6px 0 0;padding:4px;border:1px solid var(--line);border-radius:12px;max-height:220px;overflow:auto;background:#fff}
+.wel-search li{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 10px;border-radius:8px;cursor:pointer}
+.wel-search li:hover{background:var(--bg)}
+.wel-search li small{color:var(--mute)}
 .welcome-skip{display:block;margin:16px auto 0;border:0;background:none;color:var(--mute);cursor:pointer;font-size:.9rem;text-decoration:underline;text-underline-offset:3px}
 .welcome-skip:hover{color:var(--ink)}
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){

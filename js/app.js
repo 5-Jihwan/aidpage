@@ -1,7 +1,7 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831b';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831c';
 import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260829d';
-import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub } from './api.js?v=20260829d';
+import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831c';
 import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260829d';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260829d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
@@ -791,9 +791,27 @@ function renderTip(step = 0, opts = {}) {
   }
   startTipTimer();
 }
-/* 지금 받아주는 응급실 (E-Gen 실시간 가용병상, 하루 3회 갱신) */
+/* 지금 받아주는 응급실 — 기본은 er.json(하루 3회), 지역을 보는 동안 워커 /er로 실시간 갱신.
+   워커에 키가 없거나(no_key)·한도 초과(rate_limited)면 조용히 er.json 값 유지 */
+const ER_FRESH_MS = 120000;
+function refreshER() {
+  const sgg = state.sgg; if (!sgg) return;
+  const s = state.idx.bySgg.get(String(sgg)); if (!s || !s.sido_name || !s.name) return;
+  state._erAt = state._erAt || {};
+  if (state._erAt[sgg] && Date.now() - state._erAt[sgg] < ER_FRESH_MS) return;
+  state._erAt[sgg] = Date.now();
+  getER(sgg, s.sido_name, s.name).then(j => {
+    if (!j || j.status !== 'ok' || !Array.isArray(j.rows) || !j.rows.length) return;
+    if (!state.live.er) state.live.er = { by_sgg: {} };
+    if (!state.live.er.by_sgg) state.live.er.by_sgg = {};
+    state.live.er.by_sgg[sgg] = j.rows;
+    state.live.er.updated = j.updated;
+    if (String(state.sgg) === String(sgg)) renderER();
+  });
+}
 function renderER() {
   const box = $('#erCard'); if (!box) return;
+  refreshER();
   const E = state.live.er; const rows = E && E.by_sgg && state.sgg ? E.by_sgg[state.sgg] : null;
   if (!rows || !rows.length) { box.hidden = true; return; }
   const open = rows.filter(r => (r.beds || 0) > 0).sort((a, b) => (b.beds || 0) - (a.beds || 0));
@@ -1239,7 +1257,7 @@ const SIT_ICON = { house_flood: '🏠', shop_flood: '🏪', evacuating: '🚨', 
 const SIT_KEY = { house_flood: 'sit.house', shop_flood: 'sit.shop', evacuating: 'sit.evac', before_rain: 'sit.before', injury: 'sit.injury', no_news: 'sit.nonews', past: 'sit.past', proxy: 'sit.proxy' };
 const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
 // 상황별로 펼쳐 두는 카드 (나머지는 제목 한 줄로 접힘). null = 상황 없음
-const OPEN = { null: ['wx', 'near', 'grid'], past: ['near', 'ins', 'grid'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], proxy: ['near', 'wx'] };
+const OPEN = { null: ['wx', 'near', 'er', 'grid'], past: ['near', 'ins', 'grid'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], proxy: ['near', 'wx'] };
 function applySituation(sit, navigate) {
   state.sit = sit; if (sit) sessionStorage.setItem('safepic.sit', sit); else sessionStorage.removeItem('safepic.sit');
   state._foldOverride = {}; // 상황이 바뀌면 사용자가 손으로 접고 편 기록은 초기화
@@ -1255,26 +1273,56 @@ function applySituation(sit, navigate) {
 function initCards() {
   $$('#sitCards .card').forEach(b => b.addEventListener('click', () => applySituation(b.dataset.sit, true)));
 }
-/* 첫 진입 오버레이 — 화면에 질문 하나만 남긴다. 4묶음 → (피해만) 세부 상황.
+/* 첫 진입 오버레이 — 한 번에 질문 하나. ①상황(4묶음 → 피해만 세부) ②위치(GPS/검색/지도).
    공유 링크·저장된 우리 집이 있으면 건너뛰고, '처음으로'가 다시 이 화면을 연다. */
 function initWelcome() {
   const w = $('#welcome'); if (!w) return;
+  const groups = $('#welGroups'), sub = $('#welSub'), loc = $('#welLoc'), skip = $('#welSkip');
+  let pendingSit = null, locFrom = 'groups';
+  const show = step => { groups.hidden = step !== 'groups'; sub.hidden = step !== 'sub'; loc.hidden = step !== 'loc'; skip.hidden = step === 'loc';
+    $('#welH1').hidden = $('#welLead').hidden = step === 'loc'; };  // 위치 스텝은 "어디세요?"가 유일한 질문이어야 한다
   const close = () => { w.hidden = true; };
-  const open = () => { w.hidden = false; $('#welSub').hidden = true; $('#welGroups').hidden = false; };
+  const open = () => { w.hidden = false; pendingSit = null; show('groups'); };
   state._welOpen = open;
+  const toLoc = (sit, from) => { pendingSit = sit; locFrom = from; show('loc'); };
+  /* 위치까지 답했거나 건너뜀 → 닫고 기존 동선으로. via: gps|sel(검색 선택)|map(직접 고르기)
+     대피·대비는 위치가 정해지면 안내(검색 포커스)가 필요 없으므로 map일 때만 navigate */
+  const launch = via => {
+    const s = pendingSit; close();
+    if (s === 'evacuating' || s === 'before_rain') applySituation(s, via === 'map');
+    else applySituation(s, true);
+  };
   const GROUP_SIT = { evac: 'evacuating', prep: 'before_rain', proxy: 'proxy' };
   const DAMAGE_SITS = ['house_flood', 'shop_flood', 'injury', 'no_news', 'past'];
   $$('#welGroups .wcard').forEach(b => b.addEventListener('click', () => {
     const g = b.dataset.g;
-    if (GROUP_SIT[g]) { close(); applySituation(GROUP_SIT[g], true); return; }
+    if (GROUP_SIT[g]) { toLoc(GROUP_SIT[g], 'groups'); return; }
     const sc = $('#welSubCards');
     sc.innerHTML = DAMAGE_SITS.map(s => `<button type="button" class="wcard" data-sit="${s}"><span class="card-ic">${SIT_ICON[s]}</span><b>${t(SIT_KEY[s])}</b><small>${t(SIT_KEY[s] + '.s')}</small></button>`).join('');
-    $$('.wcard', sc).forEach(x => x.addEventListener('click', () => { close(); applySituation(x.dataset.sit, true); }));
-    $('#welGroups').hidden = true; $('#welSub').hidden = false;
+    $$('.wcard', sc).forEach(x => x.addEventListener('click', () => toLoc(x.dataset.sit, 'sub')));
+    show('sub');
   }));
-  $('#welBack').addEventListener('click', () => { $('#welSub').hidden = true; $('#welGroups').hidden = false; });
+  $('#welBack').addEventListener('click', () => show('groups'));
+  $('#welLocBack').addEventListener('click', () => show(locFrom));
+  $('#welGps').addEventListener('click', () => { launch('gps'); (state._coreP || Promise.resolve()).then(() => locateMe()); });
+  $('#welLocSkip').addEventListener('click', () => launch('map'));
   $('#welSkip').addEventListener('click', close);
-  addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  /* 오버레이 안 지역 검색 — 본검색(initSearch)과 같은 부분일치, 목록은 카드 아래 정적 배치 */
+  const inp = $('#welSearch'), list = $('#welSearchList'); let items = [];
+  const render = () => { list.innerHTML = items.map((it, i) => `<li data-i="${i}"><span>${it.name}</span><small>${it.path}</small></li>`).join(''); list.hidden = !items.length; };
+  inp.addEventListener('input', () => {
+    const q = inp.value.trim(); if (!q) { items = []; render(); return; }
+    const ql = q.toLowerCase();
+    const sg = state.idx.sgg.filter(s => s.name.includes(q) || (s.name_en || '').toLowerCase().includes(ql)).slice(0, 4).map(s => ({ name: rn(s), path: rn(s, 'sido_name'), go: () => selectSgg(s.code) }));
+    const em = state.idx.emd.filter(e => e.name.includes(q) || (e.name_en || '').toLowerCase().includes(ql)).slice(0, 8).map(e => ({ name: rn(e), path: `${rn(e, 'sido_name')} ${rn(e, 'sgg_name')}`, go: () => selectEmd(e.code) }));
+    items = [...sg, ...em]; render();
+  });
+  list.addEventListener('click', e => {
+    const li = e.target.closest('li'); if (!li) return;
+    const it = items[+li.dataset.i]; items = []; render(); inp.value = '';
+    launch('sel'); it.go();
+  });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !w.hidden) close(); });
   if (!location.hash && !getHome()) open();
 }
 /* 상황 바: 지금 고른 상황을 보여주고 한 번에 바꾼다 */
@@ -1501,7 +1549,7 @@ function renderRulesTable() {
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
   initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
   let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); }, 150); });
-  await loadCore(); renderCrumb(); renderLive();
+  state._coreP = loadCore(); await state._coreP; renderCrumb(); renderLive();
   initMap();
   map.once('idle', () => { if (location.hash) applyShare(location.hash); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => selectEmd(getHome()), 1200); });
   renderHome();

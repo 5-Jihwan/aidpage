@@ -7,9 +7,10 @@
    Every route answers the same envelope as fetch_live.py: { status, updated, items|... }.
    status: "ok" | "no_key" | "error:<code>" | "rate_limited". Missing key never throws. */
 
-const VERSION = '0.1.0';
-const TTL = { news: 3600, law: 86400, radar: 600 };
+const VERSION = '0.2.0';
+const TTL = { news: 3600, law: 86400, radar: 600, er: 180 };
 const RATE = { perMin: 30 };
+const ER_DAILY_MAX = 150;  // E-Gen 일 1,000건 중 Actions 수집(~750건)을 빼고 워커 몫
 
 export default {
   async fetch(req, env, ctx) {
@@ -25,8 +26,9 @@ export default {
 
     try {
       switch (url.pathname) {
-        case '/health': return json({ status: 'ok', version: VERSION, updated: now(), has: { bigkinds: !!env.BIGKINDS_KEY, law: !!env.LAW_OC, kma: !!env.KMA_APIHUB_KEY, serp: !!env.SERPAPI_KEY } }, 200, cors);
+        case '/health': return json({ status: 'ok', version: VERSION, updated: now(), has: { bigkinds: !!env.BIGKINDS_KEY, law: !!env.LAW_OC, kma: !!env.KMA_APIHUB_KEY, serp: !!env.SERPAPI_KEY, egen: !!env.DATA_GO_KR_KEY } }, 200, cors);
         case '/news': return json(await news(url, env), 200, cors);
+        case '/er': return json(await er(url, env), 200, cors);
         case '/law': return json(await law(url, env), 200, cors);
         case '/radar': case '/sat': return image(url.pathname.slice(1), env, cors);
         case '/reports': return json(await reports(url, env), 200, cors);
@@ -83,6 +85,39 @@ async function news(url, env) {
     const docs = (j.return_object && j.return_object.documents) || [];
     // title/provider/date/link only — no body text is stored or re-served (BigKinds terms)
     return { status: 'ok', updated: now(), total: j.return_object && j.return_object.total_hits, items: docs.map(x => ({ title: x.title, at: x.published_at, provider: x.provider, id: x.news_id, url: `https://www.bigkinds.or.kr/v2/news/newsDetailView.do?newsId=${encodeURIComponent(x.news_id)}` })) };
+  });
+}
+
+/* ---------- /er — 응급실 실시간 가용병상 (중앙응급의료센터 E-Gen) ----------
+   fetch_live.py의 fetch_er와 같은 API·같은 행 형태({id,name,tel,beds,or,ct,mri,icu,at}).
+   시군구당 3분 KV 캐시 + 일 상한(ER_DAILY_MAX)으로 E-Gen 일 1,000건 한도를 지킨다.
+   키는 시크릿 DATA_GO_KR_KEY (data.go.kr 인코딩된 형태 그대로 저장). */
+const unxml = s => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+async function er(url, env) {
+  const sgg = url.searchParams.get('sgg') || '';
+  const sido = (url.searchParams.get('sido') || '').slice(0, 20);
+  const name = (url.searchParams.get('name') || '').slice(0, 20);
+  if (!/^\d{5}$/.test(sgg) || !sido || !name) return { status: 'error:400', updated: now(), rows: [] };
+  if (!env.DATA_GO_KR_KEY) return { status: 'no_key', updated: now(), rows: [] };
+  return cached(env, `er:${sgg}`, TTL.er, async () => {
+    const bkey = `erbudget:${Math.floor(Date.now() / 86400000)}`;
+    const n = parseInt(await env.CACHE.get(bkey) || '0', 10) + 1;
+    if (n > ER_DAILY_MAX) return { status: 'rate_limited', updated: now(), rows: [] };
+    await env.CACHE.put(bkey, String(n), { expirationTtl: 172800 });
+    const q = new URLSearchParams({ STAGE1: sido, STAGE2: name, pageNo: '1', numOfRows: '30' });
+    const r = await fetch(`https://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire?${q}&serviceKey=${env.DATA_GO_KR_KEY}`);
+    if (!r.ok) return { status: `error:${r.status}`, updated: now(), rows: [] };
+    const xml = await r.text();
+    const code = (xml.match(/<resultCode>([^<]*)/) || [])[1];
+    if (code && code !== '00') return { status: `error:egen${code}`, updated: now(), rows: [] };
+    const num = v => { const x = parseInt(v, 10); return Number.isFinite(x) ? x : null; };
+    const rows = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map(m => {
+      const g = tag => { const mm = m[1].match(new RegExp(`<${tag}>([^<]*)`)); return mm ? unxml(mm[1].trim()) : ''; };
+      return { id: g('hpid'), name: g('dutyName'), tel: g('dutyTel3') || g('dutyTel1'),
+               beds: num(g('hvec')), or: num(g('hvoc')), ct: g('hvctayn') === 'Y', mri: g('hvmriayn') === 'Y',
+               icu: num(g('hvicc')), at: g('hvidate') };
+    }).filter(x => x.id);
+    return { status: 'ok', updated: now(), rows };
   });
 }
 

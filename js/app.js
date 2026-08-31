@@ -98,17 +98,46 @@ function showGpsDot(lon, lat, acc) {
   }
 }
 
+/* ---------- 지형 3D — AWS 지형 타일(Mapzen terrarium, 키 불필요) + 기울여 보기 ----------
+   토글 한 번에: DEM 지형 + 음영기복 + 55° 피치. 저사양 폰 배려로 기본은 꺼짐(localStorage 기억). */
+function ensureDem() {
+  if (map.getSource('dem')) return;
+  map.addSource('dem', { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+    encoding: 'terrarium', tileSize: 256, maxzoom: 15, attribution: 'Terrain: Mapzen/AWS Open Data' });
+  const before = map.getLayer('focus-mask') ? 'focus-mask' : map.getLayer('sido-fill') ? 'sido-fill' : undefined;
+  map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'dem', layout: { visibility: 'none' },
+    paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#5d6f82', 'hillshade-highlight-color': '#ffffff' } }, before);
+}
+function set3D(on, ease = true) {
+  ensureDem();
+  map.setTerrain(on ? { source: 'dem', exaggeration: 1.4 } : null);
+  map.setLayoutProperty('hillshade', 'visibility', on ? 'visible' : 'none');
+  if (ease) map.easeTo({ pitch: on ? 55 : 0, duration: 800 });
+  localStorage.setItem('safepic.terrain', on ? '1' : '0');
+  const b = $('.ctrl-3d'); if (b) b.classList.toggle('is-on', on);
+}
+class TerrainToggle {
+  onAdd(m) {
+    const d = document.createElement('div'); d.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ctrl-3d';
+    b.textContent = '3D'; b.title = '지형 3D · 기울여 보기 / Terrain 3D'; b.setAttribute('aria-label', b.title);
+    b.addEventListener('click', () => set3D(localStorage.getItem('safepic.terrain') !== '1'));
+    d.appendChild(b); return d;
+  }
+  onRemove() {}
+}
 function initMap() {
   map = new maplibregl.Map({
     container: 'map', style: 'https://tiles.openfreemap.org/styles/positron',
     center: [100, 25], zoom: 1.5, attributionControl: { compact: true }, canvasContextAttributes: { antialias: true },
   });
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'bottom-right');
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+  map.addControl(new TerrainToggle(), 'bottom-right');
   map.on('style.load', () => {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
     localizeLabels(); hideRoadShields(); addAdminLayers(); initShelterUI(); initGrid(map); initGridClick();
     map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 3000, essential: true, curve: 1.3 });
-    map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); });
+    map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); if (localStorage.getItem('safepic.terrain') === '1') set3D(true); });
   });
 }
 /* 지명 표기: 기본 타일의 모든 라벨을 한국어(+영어) 또는 영어만으로 통일. 동해는 영어 줄도 East Sea로.

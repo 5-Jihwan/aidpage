@@ -636,6 +636,9 @@ html.big .lang-top-t{font-size:1rem;height:42px}
   .wcard b{font-size:.95rem}
 }
 html.big .wcard b{font-size:1.1rem} html.big .wcard small{font-size:.9rem}
+/* 지형 3D 토글 (지도 우하단) */
+.ctrl-3d{font-weight:800;font-size:11px;font-family:var(--label);color:var(--mute)}
+.ctrl-3d.is-on{color:#fff;background:var(--accent)!important}
 /* 하단 토스트 (푸시 토글 등 짧은 상태 안내) */
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:.9rem;z-index:120;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:88vw}
 .toast.is-on{opacity:1;transform:translateX(-50%)}

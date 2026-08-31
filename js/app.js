@@ -106,7 +106,9 @@ function ensureDem() {
     encoding: 'terrarium', tileSize: 256, maxzoom: 15, attribution: 'Terrain: Mapzen/AWS Open Data' });
   map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'dem', layout: { visibility: 'none' },
     // 알파 색으로 데이터 레이어 '위'에서도 은은하게 — 아래 깔면 마스크·격자에 묻혀 안 보인다(08-31 사용자 재보고)
-    paint: { 'hillshade-exaggeration': 0.55, 'hillshade-shadow-color': 'rgba(62,79,98,.5)', 'hillshade-highlight-color': 'rgba(255,255,255,.45)' } },
+    // 넓은 줌(전국·시도)에선 변위가 화면상 1px 미만이라 음영이 유일한 지형 신호 — 저줌일수록 진하게
+    paint: { 'hillshade-exaggeration': ['interpolate', ['linear'], ['zoom'], 5, 0.9, 9, 0.7, 12, 0.55],
+             'hillshade-shadow-color': 'rgba(62,79,98,.5)', 'hillshade-highlight-color': 'rgba(255,255,255,.45)' } },
     map.getLayer('sido-fill') ? 'sido-fill' : undefined);
 }
 function set3D(on, ease = true) {
@@ -1682,6 +1684,8 @@ function renderRulesTable() {
   $('#btnStart').addEventListener('click', goStart);
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
   initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPush(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
+  // 지금 도는 앱 버전 — "구버전 캐시인가?"를 사용자가 서랍에서 10초 만에 확인
+  { const v = new URL(import.meta.url).searchParams.get('v'); const el = $('#appVer'); if (el && v) el.textContent = 'app v' + v; }
   let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(activeShelterKinds()); }, 150); });
   state._coreP = loadCore(); await state._coreP; renderCrumb();
   initMap();

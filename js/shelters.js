@@ -37,13 +37,13 @@ async function getJSON(url, big = false) {
 export async function initShelters(m) {
   map = m;
   index = await getJSON('data/shelters/index.json');
-  const avail = [];
-  for (const k of KINDS) {
-    if (index && index[k.id]) { avail.push(k); continue; }
+  // 인덱스에 없는 종류만 HEAD로 존재 확인 — style.load 경로라 직렬 금지, 병렬로
+  const oks = await Promise.all(KINDS.map(async k => {
+    if (index && index[k.id]) return true;
     const r = await fetch(`data/shelters/${k.id}.geojson`, { method: 'HEAD', cache: 'no-cache' }).catch(() => null);
-    if (r && r.ok) avail.push(k);
-  }
-  return avail; // kinds with data
+    return !!(r && r.ok);
+  }));
+  return KINDS.filter((k, i) => oks[i]); // kinds with data, KINDS 순서 유지
 }
 async function load(kind, sido) {
   const key = index && index[kind] ? `${kind}/${sido}` : kind;
@@ -163,7 +163,11 @@ function spiderfy(lngLat, leaves, clusterId) {
       .setLngLat(lngLat).addTo(map);
   });
 }
+let _lastSig = null; // renderAll마다 불리므로 종류·시도가 그대로면 수만 피처 재조립을 건너뛴다
 export async function setActive(kinds, sido) {
+  const sig = [...kinds].sort().join(',') + '|' + (sido || '');
+  if (sig === _lastSig && map.getSource('sh-all')) return;
+  _lastSig = sig;
   activeKinds = new Set(kinds); currentSido = sido;
   unspiderfy();
   ensureAll();
@@ -188,8 +192,12 @@ export async function nearest(lonlat, kinds, sido, n = 3, perKind = false) {
     const fc = await load(kind, sido); if (!fc) continue;
     const k = KINDS.find(x => x.id === kind);
     let best = null;
+    // 5km 원을 포함하는 위경도 상자로 선별 후에만 하버사인 (수만 피처 × 삼각함수 회피)
+    const dLat = 0.045, dLon = 0.045 / Math.max(Math.cos(lonlat[1] * Math.PI / 180), 0.2);
     for (const f of fc.features) {
-      const d = dist(lonlat, f.geometry.coordinates); if (d >= 5000) continue;
+      const c = f.geometry.coordinates;
+      if (Math.abs(c[1] - lonlat[1]) > dLat || Math.abs(c[0] - lonlat[0]) > dLon) continue;
+      const d = dist(lonlat, c); if (d >= 5000) continue;
       const item = { kind, k, d, walk: Math.round(d / 67), p: f.properties, c: f.geometry.coordinates };
       if (perKind) { if (!best || d < best.d) best = item; } else out.push(item);
     }

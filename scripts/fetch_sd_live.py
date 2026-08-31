@@ -1,8 +1,10 @@
 """SD(재난안전데이터공유플랫폼) 전용 로컬 수집기 — 홈 PC 작업 스케줄러용.
 
 플랫폼이 등록 IP에서만 호출을 허용하므로(GitHub Actions 불가), 이 스크립트가
-집 PC에서 SD 섹션(특보·예비특보·재난문자·산사태)만 갱신한다.
-비-SD 섹션(날씨·지진·태풍·응급실 등)은 건드리지 않는다 — Actions(live.yml)가 계속 담당.
+집 PC에서 SD 섹션(특보·예비특보·재난문자·산사태)을 갱신한다.
+복지 목록(data/ref/welfare.json)도 여기가 단독 작성자다(하루 1회, maybe_welfare —
+daily.yml의 해외 러너가 data.go.kr 접속 타임아웃으로 자주 실패해 이관, 08-31).
+그 밖의 비-SD 섹션(날씨·지진·태풍·응급실 등)은 Actions(live.yml)가 계속 담당.
 
 키: repo 루트 .keys.env.parsed (NAME=값, gitignore됨) 를 환경변수로 주입.
 사용: python scripts/fetch_sd_live.py [--push]
@@ -51,6 +53,7 @@ if os.path.exists(_kp):
 
 from fetch_live import (ALERTS_PATH, SD_KEY, now_kst, log,  # noqa: E402
                         fetch_warnings_sd, fetch_prewarn_sd, fetch_landslide_sd, fetch_messages)
+import fetch_welfare  # noqa: E402 — 경로(OUT)·키(KEYS)는 저쪽이 단일 출처
 
 
 # ── 웹 푸시 트리거 ─────────────────────────────────────────────
@@ -126,22 +129,41 @@ def push_notify(out):
     json.dump(cur, io.open(PUSH_STATE, "w", encoding="utf-8"))
 
 
-WELFARE_PATH = os.path.join(ROOT, "data", "ref", "welfare.json")
+WELFARE_ATTEMPT = os.path.join(ROOT, ".welfare_attempt")  # 마지막 시도 시각(mtime) — 실패 백오프용
+
+
+def _welfare_fresh():
+    """welfare.json이 담고 있는 updated(KST) 기준 신선도.
+    mtime은 git pull이 새로 찍어버려 며칠 묵은 데이터도 신선해 보인다 — 파일 안 시각만 믿는다."""
+    try:
+        from datetime import datetime
+        doc = json.load(io.open(fetch_welfare.OUT, encoding="utf-8"))
+        upd = datetime.fromisoformat(doc["updated"])
+        now = now_kst()
+        if upd.tzinfo is None:
+            upd = upd.replace(tzinfo=now.tzinfo)
+        return (now - upd).total_seconds() < 20 * 3600
+    except Exception:  # noqa: BLE001 — 없거나 깨진 파일 = 신선하지 않음 (다시 받아 고친다)
+        return False
 
 
 def maybe_welfare():
-    """복지 목록 보강 — daily.yml(해외 러너)이 data.go.kr 접속 타임아웃으로 자주 실패해서
-    (08-30~31 확인) 한국 IP인 여기서 하루 1회만 시도한다. 실패해도 SD 수집은 계속."""
-    if not (os.environ.get("DATA_WELFARE_KEY") or os.environ.get("DATA_GO_KR_KEY")):
+    """복지 목록 보강 — daily.yml(해외 러너)이 data.go.kr 접속 타임아웃으로 자주 실패해
+    (08-30~31 확인) 한국 IP인 이 수집기가 단독 작성자다. 데이터가 20시간 넘게 묵었을 때만
+    시도하고, 실패하면 4시간 백오프(30분 크론이 하루 종일 두드리지 않게). SD 수집을 막지 않는다."""
+    import time
+    if _welfare_fresh():
         return
     try:
-        import time
-        if os.path.exists(WELFARE_PATH) and time.time() - os.path.getmtime(WELFARE_PATH) < 20 * 3600:
+        if os.path.exists(WELFARE_ATTEMPT) and time.time() - os.path.getmtime(WELFARE_ATTEMPT) < 4 * 3600:
             return
+        io.open(WELFARE_ATTEMPT, "w").close()
     except OSError:
         pass
+    if not fetch_welfare.KEYS:
+        flog("welfare: no DATA_WELFARE_KEY/DATA_GO_KR_KEY in .keys.env.parsed — skipped")
+        return
     try:
-        import fetch_welfare
         rc = fetch_welfare.main()
         flog(f"welfare: rc={rc}")
     except Exception as e:  # noqa: BLE001
@@ -149,7 +171,6 @@ def maybe_welfare():
 
 
 def main() -> int:
-    maybe_welfare()
     try:
         prev = json.load(io.open(ALERTS_PATH, encoding="utf-8"))
     except Exception:  # noqa: BLE001
@@ -195,7 +216,9 @@ def main() -> int:
         else:
             log("all sections failed and prev is fresher — no write")
     else:
-        log("no SD keys — nothing to do")  # welfare만 갱신됐을 수 있어 push 단계는 계속 간다
+        log("no SD keys — skipping alerts write")
+
+    maybe_welfare()  # 특보·재난문자(시간 민감)를 먼저 끝낸 뒤에야 복지 목록을 보강한다
 
     if "--push" in sys.argv:
         # ⚠ pythonw(창 없음)라도 자식 git.exe가 콘솔을 새로 열어 30분마다 창이 깜빡임
@@ -216,8 +239,13 @@ def main() -> int:
             git("checkout", "-q", "main")
             log("detached HEAD -> main")
 
-        porcelain = git("status", "--porcelain").stdout
-        paths = [p for p in ("data/live/alerts.json", "data/ref/welfare.json") if p in porcelain]
+        # 경로는 부분문자열이 아니라 정확 일치로, 삭제(D)는 절대 스테이징하지 않는다
+        # (수집기는 파일을 지우지 않는다 — 실수로 지워진 파일을 배포에서 없애는 사고 방지)
+        dirty = set()
+        for ln in git("status", "--porcelain").stdout.splitlines():
+            if len(ln) > 3 and "D" not in ln[:2]:
+                dirty.add(ln[3:].strip().strip('"').replace("\\", "/"))
+        paths = [p for p in ("data/live/alerts.json", "data/ref/welfare.json") if p in dirty]
         if not paths:
             log("no git change")
             return 0

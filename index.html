@@ -28,13 +28,14 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260831c">
+<link rel="stylesheet" href="css/style.css?v=20260831d">
 </head>
 <body>
 
 <!-- 첫 진입: 질문 하나만. 나머지(지도·검색·카드)는 답한 뒤에 나온다 -->
 <div class="welcome" id="welcome" hidden>
   <div class="welcome-card" role="dialog" aria-modal="true" aria-labelledby="welH1">
+    <div class="welcome-lang" id="welLang" role="group" aria-label="언어 / Language"><button type="button" data-lang="ko">한국어</button><button type="button" data-lang="en">English</button></div>
     <div class="welcome-brand"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name"><b>A</b>id<b>P</b>age</span></div>
     <h1 class="h1" id="welH1" data-i18n="landing.h1">지금 어떤 상황이세요?</h1>
     <p class="wel-lead" id="welLead" data-i18n="wel.lead">하나만 골라주세요. 상황에 맞는 것부터 보여드립니다. 입력은 서버로 가지 않습니다.</p>
@@ -295,6 +296,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260831c"></script>
+<script type="module" src="js/app.js?v=20260831d"></script>
 </body>
 </html>

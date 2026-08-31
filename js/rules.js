@@ -31,12 +31,12 @@ export async function loadRules(base = 'rules/', loader = null) {
     return res.json();
   });
   const out = { all: [] };
-  for (const name of RULE_FILES) {
-    const doc = await read(name);
-    out[name] = doc;
-    for (const r of doc.rules || []) out.all.push(r);
-  }
-  for (const name of AUX_FILES) out[name] = await read(name);
+  // 7파일 직렬 왕복이 부팅을 막던 문제 — 병렬로 받고 배열 순서로 합쳐 all의 순서는 그대로 유지
+  const [ruleDocs, auxDocs] = await Promise.all([
+    Promise.all(RULE_FILES.map(read)), Promise.all(AUX_FILES.map(read)),
+  ]);
+  RULE_FILES.forEach((name, i) => { out[name] = ruleDocs[i]; for (const r of ruleDocs[i].rules || []) out.all.push(r); });
+  AUX_FILES.forEach((name, i) => { out[name] = auxDocs[i]; });
   validateRules(out.all);
   return out;
 }

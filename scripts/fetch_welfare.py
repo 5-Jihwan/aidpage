@@ -4,7 +4,9 @@
 - 목록 API를 전 페이지 순회해 data/ref/welfare.json 으로 저장한다.
 - 응답은 XML이며, 스키마 확정 전이므로 servList의 자식 태그를 전부 dict로 보존한다
   (프런트가 쓰는 필드만 나중에 슬림화). 실패 시 기존 파일을 덮어쓰지 않는다.
-- 일 1회(daily.yml)로 충분한 데이터: 복지 서비스 목록은 분 단위로 변하지 않는다.
+- 일 1회로 충분한 데이터: 복지 서비스 목록은 분 단위로 변하지 않는다.
+- 실행 주체는 로컬 수집기(fetch_sd_live.maybe_welfare, 한국 IP)가 단독 —
+  daily.yml의 해외 러너는 data.go.kr 접속이 자주 매달려 08-31에 이관했다.
 """
 from __future__ import annotations
 
@@ -111,7 +113,11 @@ def main() -> int:
         "items": items,
     }
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    json.dump(doc, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+    # 원자적 쓰기 — 중간에 죽으면 깨진 JSON이 자동 커밋·배포될 수 있다 (수집기 --push 경로)
+    tmp = OUT + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False, separators=(",", ":"))
+    os.replace(tmp, OUT)
     log(f"wrote {OUT} items={len(items)} keys(sample)={sorted(items[0])[:12]}")
     return 0
 

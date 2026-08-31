@@ -1,24 +1,23 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831c';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260829d';
-import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831c';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260829d';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831d';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260831d';
+import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831d';
+import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260831d';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260829d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const KOREA_CENTER = [127.8, 36.3];
 const MQ_MOBILE = '(max-width:900px), (max-width:1200px) and (orientation:portrait)'; // must match css/style.css
-const WX_KEYS = ['t', 'feels', 'rain', 'reh', 'wind', 'pm10', 'pm25'];
 
 const state = {
   level: 'nation', sido: null, sgg: null, emd: null,
   geo: { sido: null, sgg: null, emd: null },
-  idx: { emd: [], sgg: [], byEmd: new Map(), bySgg: new Map() },
+  idx: { emd: [], sgg: [], byEmd: new Map(), bySgg: new Map(), emdBySgg: new Map(), sggBySido: new Map(), emdCountBySido: new Map() },
   live: { weather: null, alerts: null, air: null },
   rules: null, meta: null, tab: 'now',
-  wxsel: new Set(WX_KEYS), wxmap: localStorage.getItem('safepic.wxmap') || '',
+  wxmap: localStorage.getItem('safepic.wxmap') || '',
   lastResult: null,
   shelters: { avail: [], active: new Set(JSON.parse(localStorage.getItem('safepic.shelters') || 'null') || seasonalKinds()) },
 };
@@ -36,14 +35,21 @@ async function loadCore() {
   ]);
   Object.assign(state.geo, { sido, sgg }); state.meta = meta;
   state.idx.emd = emdIdx; state.idx.sgg = sggIdx;
-  emdIdx.forEach(e => state.idx.byEmd.set(String(e.code), e));
-  sggIdx.forEach(s => state.idx.bySgg.set(String(s.code), s));
+  emdIdx.forEach(e => {
+    state.idx.byEmd.set(String(e.code), e);
+    const k = String(e.sgg); const arr = state.idx.emdBySgg.get(k); if (arr) arr.push(e); else state.idx.emdBySgg.set(k, [e]);
+    state.idx.emdCountBySido.set(String(e.sido), (state.idx.emdCountBySido.get(String(e.sido)) || 0) + 1);
+  });
+  sggIdx.forEach(s => {
+    state.idx.bySgg.set(String(s.code), s);
+    const k = String(s.sido); const arr = state.idx.sggBySido.get(k); if (arr) arr.push(s); else state.idx.sggBySido.set(k, [s]);
+  });
   Object.assign(state.live, { weather, alerts, air, er });
   state.sit = sessionStorage.getItem('safepic.sit') || null;
   getJSON('data/ref/psych_centers.json').then(j => { state.psych = j; });
   getJSON('data/ref/tips.json').then(j => { state.tips = j; renderTip(); });
   if (meta) { $('#aboutAdmin').textContent = `${meta.source || ''} ${meta.version || ''}`.trim(); $('#buildDate').textContent = meta.built || ''; }
-  if (loadRules) { try { state.rules = await loadRules('rules/'); state.rulesEn = await getJSON('rules/en.json'); setRulesLang(getLang()); applyRulesLang(); if (state.tab === 'about') renderRulesTable(); } catch (e) { console.warn('rules load failed', e); } }
+  if (loadRules) { try { [state.rules, state.rulesEn] = await Promise.all([loadRules('rules/'), getJSON('rules/en.json')]); setRulesLang(getLang()); applyRulesLang(); if (state.tab === 'about') renderRulesTable(); } catch (e) { console.warn('rules load failed', e); } }
 }
 async function ensureEmd() {
   if (state.geo.emd) return state.geo.emd;
@@ -172,13 +178,19 @@ function clampPad(pad) {
   const [top, bottom] = fit(pad.top, pad.bottom, el.clientHeight);
   return { left, right, top, bottom };
 }
+const panelW = () => parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460;
+/* blob 저장 앵커 공통 루틴 (이미지 공유 폴백·.ics) */
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
 function visiblePadding() {
   const mobile = matchMedia(MQ_MOBILE).matches, p = $('#panel');
   if (mobile) {
     const sheet = p.classList.contains('is-collapsed') ? 72 : p.classList.contains('is-tall') ? innerHeight * 0.9 : innerHeight * 0.5;
     return clampPad({ top: 120, bottom: Math.round(sheet) + 12, left: 12, right: 12 });
   }
-  const pw = p.classList.contains('is-collapsed') ? 0 : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 32;
+  const pw = p.classList.contains('is-collapsed') ? 0 : panelW() + 32;
   return clampPad({ top: 70, bottom: 40, left: pw, right: 170 });
 }
 /* 🔊 읽어주기 (Web Speech, 키 불필요) */
@@ -215,7 +227,7 @@ async function shareImage(res, inp) {
   const blob = await new Promise(r => c.toBlob(r, 'image/png'));
   const file = new File([blob], 'safepic.png', { type: 'image/png' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'AidPage', text: place }); return; } catch (e) { /* cancelled */ } }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'safepic.png'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  downloadBlob(blob, 'safepic.png');
 }
 /* 데이터 출처·기준일 배지 (시설·격자·날씨 공통 형식) */
 const SRC_NAME = { 'osm+molit': ['OpenStreetMap + 국토부 지하차도 현황', 'OpenStreetMap + MOLIT underpass list'], safekorea: ['국민안전24', 'SafeKorea'], osm: ['OpenStreetMap', 'OpenStreetMap'], localdata: ['지방행정인허가데이터', 'LocalData'], datago_std: ['공공데이터포털 표준데이터', 'data.go.kr standard data'] };
@@ -230,7 +242,7 @@ function downloadICS(title, dateISO, desc) {
   const d = dateISO.replace(/-/g, ''), next = new Date(Date.UTC(+dateISO.slice(0, 4), +dateISO.slice(5, 7) - 1, +dateISO.slice(8, 10) + 1)).toISOString().slice(0, 10).replace(/-/g, '');
   const esc = s => String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//AidPage//KO', 'BEGIN:VEVENT', `UID:safepic-${d}-${Math.random().toString(36).slice(2)}`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`, `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${next}`, `SUMMARY:${esc(title)}`, `DESCRIPTION:${esc(desc)}`, 'BEGIN:VALARM', 'TRIGGER:-P2D', 'ACTION:DISPLAY', `DESCRIPTION:${esc(title)}`, 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' })); a.download = `safepic-${d}.ics`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  downloadBlob(new Blob([ics], { type: 'text/calendar' }), `safepic-${d}.ics`);
 }
 /* open a popup and make sure it is not hidden behind the panel/controls */
 let _curPop = null; // 팝업 싱글턴 — 새로 열면 이전 것을 자동으로 닫는다 (마커 클릭은 지도 클릭이 아니라 자동 닫힘을 안 타므로)
@@ -312,7 +324,7 @@ function fitTo(features) {
   if (!features.length) return;
   const b = bboxOf(features), mobile = matchMedia(MQ_MOBILE).matches;
   const pad = mobile ? { top: 150, bottom: innerHeight * 0.52, left: 24, right: 24 }
-    : { top: 90, bottom: 60, left: ($('#panel').classList.contains('is-collapsed') ? 0 : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w')) || 460) + 60, right: 80 };
+    : { top: 90, bottom: 60, left: ($('#panel').classList.contains('is-collapsed') ? 0 : panelW()) + 60, right: 80 };
   // 카메라 계산이 실패해도 호출한 쪽(GPS·검색·드릴다운)이 중단되면 안 된다.
   try { map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: clampPad(pad), duration: 900 }); }
   catch (err) { console.warn('fitTo', err); try { map.flyTo({ center: [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], duration: 600 }); } catch (e2) { /* 지도 없음 */ } }
@@ -333,7 +345,6 @@ async function selectEmd(code) {
   Object.assign(state, { level: 'emd', emd: String(code), sgg: String(e.sgg), sido: String(e.sido) });
   await ensureEmd(); setLevelFilters();
   const fs = featuresWhere(state.geo.emd, 'code', code); if (fs.length) fitTo(fs); else map.flyTo({ center: [e.lon, e.lat], zoom: 13 });
-  if (map.getSource('emd')) { state.geo.emd.features.forEach(f => map.setFeatureState({ source: 'emd', id: f.properties.code }, { sel: false })); map.setFeatureState({ source: 'emd', id: String(code) }, { sel: true }); }
   pushRecent(String(code)); if (state.wxmap === 'wind') applyWindArrows(true);
   renderAll(); syncWizardLoc();
   if (matchMedia(MQ_MOBILE).matches) { $('#panel').classList.remove('is-collapsed'); }
@@ -351,7 +362,7 @@ function resetNation() {
   Object.assign(state, { level: 'nation', sido: null, sgg: null, emd: null });
   setLevelFilters(); map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 900 }); renderAll();
 }
-function renderAll() { renderCrumb(); renderRegion(); renderLive(); syncShelterLayers(); syncGrid(); renderHome(); }
+function renderAll() { renderCrumb(); renderRegion(); syncShelterLayers(); syncGrid(); renderHome(); }
 /* ---------- saved home (localStorage only) ---------- */
 const getHome = () => localStorage.getItem('safepic.home');
 function renderHome() {
@@ -371,7 +382,7 @@ let gridAttr = localStorage.getItem('safepic.gridAttr') || 'slope_mean';
 async function syncGrid() {
   const box = $('#gridBox'), where = $('#whereGrid');
   const mapOn = localStorage.getItem('safepic.gridOn') !== '0';  // 지도 위 격자 겹침 표시 (설정)
-  if (!state.sgg || !(await hasGrid(state.sgg))) { state._gridAvail = false; hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(x => x.id === k)) : []); return; }
+  if (!state.sgg || !(await hasGrid(state.sgg))) { state._gridAvail = false; hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; renderLegend(activeShelterKinds()); return; }
   state._gridAvail = true;  // 꺼져 있어도 범례에 '켜기' 줄을 남기려면 자료 유무를 알아야 한다
   const attrs = gridAttrs(state.sgg); if (!attrs.some(a => a.id === gridAttr)) gridAttr = attrs[0] && attrs[0].id;
   // 지도 표시를 꺼도 renderPrepare()의 수치는 캐시된 셀에서 계산하므로 그대로 나온다.
@@ -382,7 +393,7 @@ async function syncGrid() {
     ? `<span><i style="background:${leg.colors[0]}"></i>${gridFmt(leg.attr, leg.only)}</span>`  // 값이 전부 같은 속성
     : leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('');
   state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: legSpans } : null;
-  renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []);
+  renderLegend(activeShelterKinds());
   const html = `<div class="grid-attrs">${attrs.map(a => `<button type="button" class="chip ${a.id === gridAttr ? 'is-on' : ''}" data-a="${a.id}">${getLang() === 'en' ? a.en : a.ko}</button>`).join('')}</div>` +
     (leg ? `<div class="legend">${legSpans}<span><i style="background:#d9dee7"></i>${t('grid.nodata')}</span></div>` : '') +
     `<div class="fine">${t('grid.note')}</div>`;
@@ -472,9 +483,17 @@ async function initShelterUI() {
   document.addEventListener('click', e => { if (!e.target.closest('#shsel')) box.classList.remove('is-open'); });
   syncShelterLayers();
 }
+/* 지도에 실제로 올릴 시설 종류 = 켜져 있고(active) 자료도 있는(avail) 것, 시도 선택 전엔 없음 */
+const activeShelterKinds = () => state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : [];
+/* active 변경 후 공통 뒷정리: 저장 → 체크박스 동기화 → 레이어 반영 */
+function saveShelterKinds() {
+  localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active]));
+  $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value));
+  syncShelterLayers();
+}
 function syncShelterLayers() {
   if (!map || !state.shelters.avail.length) return;
-  const kinds = state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : [];
+  const kinds = activeShelterKinds();
   setShelters(kinds, state.sido);
   renderLegend(kinds);
 }
@@ -564,15 +583,20 @@ async function renderNearest() {
 }
 
 /* ---------- names / live lookups ---------- */
+let _nameMemo = null; // 렌더 한 번에 8~10회 불리므로 선택·언어 키로 메모이즈
 function nameOf() {
+  const key = `${state.sido}|${state.sgg}|${state.emd}|${getLang()}`;
+  if (_nameMemo && _nameMemo.key === key) return _nameMemo.val;
   const e = state.emd && state.idx.byEmd.get(state.emd), s = state.sgg && state.idx.bySgg.get(state.sgg);
   const sidoProps = state.sido && (featuresWhere(state.geo.sido, 'code', state.sido)[0] || { properties: {} }).properties;
   const sidoName = rn(e, 'sido_name') || rn(s, 'sido_name') || rn(sidoProps) || '';
-  return { sidoName, sggName: rn(e, 'sgg_name') || rn(s) || '', emdName: e ? rn(e) : '' };
+  const val = { sidoName, sggName: rn(e, 'sgg_name') || rn(s) || '', emdName: e ? rn(e) : '' };
+  _nameMemo = { key, val };
+  return val;
 }
 /* 지역명 표시: EN 모드면 빌드 시 생성한 로마자(name_en 등), 없으면 한글 폴백 */
 const rn = (o, k = 'name') => o ? ((getLang() === 'en' && o[k + '_en']) || o[k] || '') : '';
-const emdDisp = ko => { if (getLang() !== 'en' || !ko) return ko; const e = state.idx.emd.find(x => String(x.sgg) === String(state.sgg) && x.name === ko); return (e && e.name_en) || ko; };
+const emdDisp = ko => { if (getLang() !== 'en' || !ko) return ko; const e = (state.idx.emdBySgg.get(String(state.sgg)) || []).find(x => x.name === ko); return (e && e.name_en) || ko; };
 const weatherFor = sgg => {
   const W = state.live.weather; if (!W) return null;
   const w = W.by_sgg && W.by_sgg[String(sgg)]; if (w) return w;
@@ -594,7 +618,7 @@ function quakeAsWarning() { const q = recentQuake(); const T = state.live.alerts
 const pmGrade = (v, pm25) => v == null ? '' : pm25 ? (v <= 15 ? 'g-good' : v <= 35 ? 'g-mod' : v <= 75 ? 'g-bad' : 'g-vbad') : (v <= 30 ? 'g-good' : v <= 80 ? 'g-mod' : v <= 150 ? 'g-bad' : 'g-vbad');
 function wxItems(sgg) {
   const w = weatherFor(sgg), a = airFor(sgg), out = [];
-  const push = (k, v, unit, cls = '') => { if (state.wxsel.has(k) && v != null) out.push({ k, label: t('wx.' + k), v, unit, cls }); };
+  const push = (k, v, unit, cls = '') => { if (v != null) out.push({ k, label: t('wx.' + k), v, unit, cls }); };
   if (w) { push('t', w.t != null ? w.t.toFixed(1) : null, '℃'); push('feels', w.feels != null ? w.feels.toFixed(1) : null, '℃'); push('rain', w.rn1 != null ? w.rn1 : null, 'mm'); push('reh', w.reh, '%'); push('wind', w.wsd, 'm/s'); }
   if (a) { push('pm10', a.pm10, '㎍/㎥', pmGrade(a.pm10)); push('pm25', a.pm25, '㎍/㎥', pmGrade(a.pm25, true)); }
   return out;
@@ -680,7 +704,7 @@ function renderTodo() {
   const SRC = { kma: t('src.kma'), mois: t('src.mois'), safepic: t('src.safepic') }; // 출처는 '특보 기준' 표기 — 문구 자체는 AidPage 안내
   box.innerHTML = `<h3>${t('todo.title')} <small class="muted">${place}</small> <button type="button" class="speak-mini" id="todoSpeak" title="${t('tts.title')}">🔊</button></h3><ol class="todo-list">${items.map((x, i) => `<li><span>${x.src ? `<b class="todo-src">[${SRC[x.src] || x.src}]</b> ` : ''}${x.text}</span>${x.kind && state.shelters.avail.some(a => a.id === x.kind) ? `<button type="button" class="btn btn-ghost btn-sm" data-kind="${x.kind}">${t('todo.show')}</button>` : ''}</li>`).join('')}</ol>`;
   $('#todoSpeak').addEventListener('click', () => speak(items.map((x, i) => `${i + 1}. ${x.text}`).join('. '), $('#todoSpeak')));
-  $$('button[data-kind]', box).forEach(b => b.addEventListener('click', () => { state.shelters.active.add(b.dataset.kind); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); renderNearest(); }));
+  $$('button[data-kind]', box).forEach(b => b.addEventListener('click', () => { state.shelters.active.add(b.dataset.kind); saveShelterKinds(); renderNearest(); }));
 }
 /* ---------- 풍수해보험 안내 (사전 대비) — 보험료표는 공개 자료가 없어 지원율·창구·동네 이력만 ---------- */
 function renderInsurance() {
@@ -836,7 +860,7 @@ function renderRegion() {
     const items = wxItems(state.sgg);
     if (items.length) {
       const wf = weatherFor(state.sgg);
-      const srcs = [wf && wf._sido ? t('wx.basis.stn', { name: wf.stn_name }) : state.emd && t('wx.basis', { name: nameOf().sggName }), wf && (wf._sido ? t('wx.src.asos') : t('wx.src')), airFor(state.sgg) && t('air.src')].filter(Boolean).join(' · ');
+      const srcs = [wf && wf._sido ? t('wx.basis.stn', { name: wf.stn_name }) : state.emd && t('wx.basis', { name: n.sggName }), wf && (wf._sido ? t('wx.src.asos') : t('wx.src')), airFor(state.sgg) && t('air.src')].filter(Boolean).join(' · ');
       wx.innerHTML = items.map(i => `<div class="wx-item ${i.cls}"><div class="k">${i.label}</div><div class="v">${i.v}<small>${i.unit}</small></div></div>`).join('') + fcstHTML(wf) + `<div class="wx-src">${srcs} · ${fmtTime((state.live.weather || {}).updated || (state.live.air || {}).updated)}</div>`;
     } else {
       const st = state.live.weather && state.live.weather.status;
@@ -847,25 +871,25 @@ function renderRegion() {
   const ws = warningsFor(state.sgg, state.sido);
   applyAlertFx(ws);
   $('#warnCard').innerHTML = ws.map(w => `<div class="warn-item"><span class="warn-level ${/주의보/.test(w.level) ? 'adv' : ''}">${warnName(w.type, w.level)}</span><div><div>${(w.areas || []).slice(0, 4).join(', ')}</div><small class="muted">${fmtTime(w.since)}</small></div></div>`).join('');
-  // kv
+  // kv — 인덱스는 loadCore에서 만든 Map으로 조회 (renderRegion은 핫패스: 전수 filter 금지)
   const e = state.emd && state.idx.byEmd.get(state.emd), kv = [], P = t('kv.places');
-  if (state.level === 'sido') kv.push([t('kv.sggCount'), state.idx.sgg.filter(x => String(x.sido) === state.sido).length + P], [t('kv.emdCount'), state.idx.emd.filter(x => String(x.sido) === state.sido).length + P]);
-  if (state.level === 'sgg') kv.push([t('kv.emdCount'), state.idx.emd.filter(x => String(x.sgg) === state.sgg).length + P], [t('kv.sido'), n.sidoName]);
+  const sggOfSido = state.idx.sggBySido.get(String(state.sido)) || [], emdOfSgg = state.idx.emdBySgg.get(String(state.sgg)) || [];
+  if (state.level === 'sido') kv.push([t('kv.sggCount'), sggOfSido.length + P], [t('kv.emdCount'), (state.idx.emdCountBySido.get(String(state.sido)) || 0) + P]);
+  if (state.level === 'sgg') kv.push([t('kv.emdCount'), emdOfSgg.length + P], [t('kv.sido'), n.sidoName]);
   if (e) kv.push([t('kv.sgg'), n.sggName], [t('kv.code'), e.code], [t('kv.grid'), `${e.nx}, ${e.ny}`]);
   $('#regionKv').innerHTML = kv.map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('');
-  $('#regionKv').style.display = kv.length ? '' : 'none';
+  $('#regionKv').hidden = !kv.length;
   $('#regionNote').innerHTML = state.level === 'emd'
     ? (ws.length ? `<b>${t('note.warn', { w: ws.map(w => warnName(w.type, w.level)).join(', ') })}</b>` : `<small class="muted">${t('note.calm')}</small>`)
     : `<small class="muted">${state.level === 'sido' ? t('note.pickSgg') : t('note.pickEmd')}</small>`;
   const ch = $('#regionChildren'); ch.innerHTML = '';
   let kids = [];
-  if (state.level === 'sido') kids = state.idx.sgg.filter(s => String(s.sido) === state.sido).map(s => ({ name: rn(s), go: () => selectSgg(s.code) }));
-  if (state.level === 'sgg') kids = state.idx.emd.filter(x => String(x.sgg) === state.sgg).map(x => ({ name: rn(x), go: () => selectEmd(x.code) }));
+  if (state.level === 'sido') kids = sggOfSido.map(s => ({ name: rn(s), go: () => selectSgg(s.code) }));
+  if (state.level === 'sgg') kids = emdOfSgg.map(x => ({ name: rn(x), go: () => selectEmd(x.code) }));
   kids.sort((a, b) => a.name.localeCompare(b.name, 'ko')).forEach(k => { const b = document.createElement('button'); b.textContent = k.name; b.onclick = k.go; ch.appendChild(b); });
   $('#btnFindHere').hidden = !state.sgg;
   renderNearest();
 }
-function renderLive() { /* live strip retired; weather lives in the region card */ }
 function fmtTime(iso) { if (!iso) return ''; const d = new Date(iso); if (isNaN(d)) return String(iso); const p = x => String(x).padStart(2, '0'); return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 
 /* ---------- weather selector ---------- */
@@ -899,7 +923,7 @@ function applyWxLayer() {
   if (!cfg) {
     ['sgg-fill', 'sido-fill', 'emd-fill'].forEach(l => { map.setPaintProperty(l, 'fill-opacity', base); });
     map.setPaintProperty('sgg-fill', 'fill-color', '#9a7328'); map.setPaintProperty('sido-fill', 'fill-color', '#1a5fc4');
-    setLevelFilters(); applyWindArrows(false); state._wxLegend = null; renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); return;
+    setLevelFilters(); applyWindArrows(false); state._wxLegend = null; renderLegend(activeShelterKinds()); return;
   }
   // push values into feature-state
   const W = state.live.weather || {};
@@ -920,7 +944,7 @@ function applyWxLayer() {
   map.setPaintProperty('emd-fill', 'fill-opacity', base);
   applyWindArrows(m === 'wind');
   state._wxLegend = { title: t('wx.' + m) + (m === 'wind' ? ` · ${t('wx.wind.note')}` : '') + (W.by_sgg && Object.keys(W.by_sgg).length ? '' : ` · ${t('wx.legend.sido')}`), html: cfg.legend.map((v, i) => `<span><i style="background:${colorAt(cfg.stops, v)}"></i>${i === 0 ? '≤' : ''}${v}${cfg.unit}</span>`).join('') };
-  renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []);
+  renderLegend(activeShelterKinds());
 }
 /* 바람 화살표: 화살표는 바람이 '가는' 방향(풍향 vec는 불어오는 방향이므로 +180°), 길이·굵기는 풍속 */
 function ensureArrowImage() {
@@ -1031,16 +1055,21 @@ function applyAlertFx(ws) {
 function colorAt(stops, v) { for (let i = 0; i < stops.length - 2; i += 2) { if (v <= stops[i]) return stops[i + 1]; if (v < stops[i + 2]) return stops[i + 1]; } return stops[stops.length - 1]; }
 
 /* ---------- search ---------- */
+/* 지역 자동완성 — 본검색·첫 진입 오버레이 공용. 키 입력마다 도니 상한에서 즉시 끊는다 */
+function suggest(q, nSgg, nEmd) {
+  const ql = q.toLowerCase(), hit = o => o.name.includes(q) || (o.name_en || '').toLowerCase().includes(ql);
+  const sg = [], em = [];
+  for (const s of state.idx.sgg) { if (hit(s)) { sg.push({ name: rn(s), path: rn(s, 'sido_name'), go: () => selectSgg(s.code) }); if (sg.length >= nSgg) break; } }
+  for (const e of state.idx.emd) { if (hit(e)) { em.push({ name: rn(e), path: `${rn(e, 'sido_name')} ${rn(e, 'sgg_name')}`, go: () => selectEmd(e.code) }); if (em.length >= nEmd) break; } }
+  return [...sg, ...em];
+}
 function initSearch() {
   $('#btnLocate').addEventListener('click', locateMe);
   const inp = $('#searchInput'), list = $('#searchList'); let hot = -1, items = [];
   const render = () => { list.innerHTML = items.map((it, i) => `<li class="${i === hot ? 'is-hot' : ''}" data-i="${i}"><span>${it.name}</span><small>${it.path}</small></li>`).join(''); list.hidden = !items.length; };
   inp.addEventListener('input', () => {
-    const q = inp.value.trim(); hot = -1; if (!q) { items = []; render(); return; }
-    const ql = q.toLowerCase();
-    const sg = state.idx.sgg.filter(s => s.name.includes(q) || (s.name_en || '').toLowerCase().includes(ql)).slice(0, 6).map(s => ({ name: rn(s), path: rn(s, 'sido_name'), go: () => selectSgg(s.code) }));
-    const em = state.idx.emd.filter(e => e.name.includes(q) || (e.name_en || '').toLowerCase().includes(ql)).slice(0, 12).map(e => ({ name: rn(e), path: `${rn(e, 'sido_name')} ${rn(e, 'sgg_name')}`, go: () => selectEmd(e.code) }));
-    items = [...sg, ...em]; render();
+    const q = inp.value.trim(); hot = -1;
+    items = q ? suggest(q, 6, 12) : []; render();
   });
   inp.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown') { hot = Math.min(hot + 1, items.length - 1); render(); e.preventDefault(); }
@@ -1066,7 +1095,7 @@ function initPanel() {
   const saved = +localStorage.getItem('safepic.panelW'); if (saved >= 320) document.documentElement.style.setProperty('--panel-w', saved + 'px');
   const rz = $('#panelResize'); let dragging = false;
   const onMove = e => { if (!dragging) return; const x = (e.touches ? e.touches[0].clientX : e.clientX); const w = Math.min(Math.max(x, 320), Math.min(innerWidth - 360, 820)); document.documentElement.style.setProperty('--panel-w', w + 'px'); };
-  const onUp = () => { if (!dragging) return; dragging = false; document.body.classList.remove('is-resizing'); localStorage.setItem('safepic.panelW', parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-w'))); map && map.resize(); };
+  const onUp = () => { if (!dragging) return; dragging = false; document.body.classList.remove('is-resizing'); localStorage.setItem('safepic.panelW', panelW()); map && map.resize(); };
   rz.addEventListener('mousedown', e => { dragging = true; document.body.classList.add('is-resizing'); e.preventDefault(); });
   rz.addEventListener('touchstart', () => { dragging = true; }, { passive: true });
   addEventListener('mousemove', onMove); addEventListener('touchmove', onMove, { passive: true }); addEventListener('mouseup', onUp); addEventListener('touchend', onUp);
@@ -1103,7 +1132,7 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260829d').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260831d').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1121,14 +1150,14 @@ function initProfile() {
   const save = () => { const o = { floor: f.value || null }; for (const k in boxes) o[k] = boxes[k].checked; localStorage.setItem('safepic.profile', JSON.stringify(o)); renderRegion(); };
   f.addEventListener('change', save); Object.values(boxes).forEach(b => b.addEventListener('change', save));
 }
-function initSize() {
-  const root = document.documentElement, KEY = 'safepic.size';
-  const apply = v => { root.classList.toggle('big', v === 'big'); $$('.size-btn').forEach(b => b.classList.toggle('is-on', b.dataset.size === v)); setTimeout(() => map && map.resize(), 50); };
-  const set = v => { localStorage.setItem(KEY, v); apply(v); };
-  const saved = localStorage.getItem(KEY);
-  apply(saved || 'normal');
-  $$('.size-btn[data-size]').forEach(b => b.addEventListener('click', () => set(b.dataset.size)));
-
+/* 하단 토스트 — 푸시 토글 등 짧은 상태 안내. (기존 코드가 부르던 toast()가 미정의라
+   알림 토글이 조용히 ReferenceError로 죽던 버그의 수리이기도 하다) */
+let _toastEl = null, _toastT = 0;
+function toast(msg) {
+  if (!_toastEl) { _toastEl = document.createElement('div'); _toastEl.className = 'toast'; document.body.appendChild(_toastEl); }
+  _toastEl.textContent = msg; _toastEl.classList.add('is-on');
+  clearTimeout(_toastT); _toastT = setTimeout(() => _toastEl.classList.remove('is-on'), 2600);
+}
 /* ── 재난 알림(웹 푸시) 구독. 페이로드 없는 push라 서버로 가는 개인정보가 없고,
    지역 판정용 {sgg,sido,이름}만 Worker와 이 기기(IndexedDB)에 저장한다. ── */
 function pushIDB(val) {
@@ -1176,8 +1205,13 @@ function initPush() {
     finally { cb.disabled = false; }
   });
 }
-
-  initPush();
+function initSize() {
+  const root = document.documentElement, KEY = 'safepic.size';
+  const apply = v => { root.classList.toggle('big', v === 'big'); $$('.size-btn').forEach(b => b.classList.toggle('is-on', b.dataset.size === v)); setTimeout(() => map && map.resize(), 50); };
+  const set = v => { localStorage.setItem(KEY, v); apply(v); };
+  const saved = localStorage.getItem(KEY);
+  apply(saved || 'normal');
+  $$('.size-btn[data-size]').forEach(b => b.addEventListener('click', () => set(b.dataset.size)));
   const cb = $('#btnContrast'), CK = 'safepic.contrast';
   const applyC = on => { root.classList.toggle('contrast', on); cb.checked = on; };
   applyC(localStorage.getItem(CK) === '1');
@@ -1237,7 +1271,6 @@ function initLang() {
   $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, () => {
     document.title = getLang() === 'en' ? 'AidPage · Your situation, your safety — on one page' : 'AidPage · 내 상황에 맞는 안전, 한 장으로';
     paint(); setRulesLang(getLang()); applyRulesLang(); renderAll(); renderTip(); if (state.meta) { $('#aboutAdmin').textContent = `${state.meta.source || ''} ${state.meta.version || ''}`.trim(); $('#buildDate').textContent = state.meta.built || ''; } syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
-    if (map && map.getLayer('eastsea-label')) map.setLayoutProperty('eastsea-label', 'text-field', getLang() === 'en' ? 'East Sea' : '동해\nEast Sea');
     if (map) { localizeLabels(); ['sgg-label', 'emd-label'].forEach(id => map.getLayer(id) && map.setLayoutProperty(id, 'text-field', adminNameField())); if (map.getLayer('landmark-label')) map.setLayoutProperty('landmark-label', 'text-field', landmarkNameField()); applyWxLayer(); }
     if (state.lastResult && evaluate) { state.lastResult.res = evaluate(state.rules, state.lastResult.inp, getLang()); renderResult(state.lastResult.res, state.lastResult.inp); }
     if (state.tab === 'about') renderRulesTable();
@@ -1262,7 +1295,7 @@ function applySituation(sit, navigate) {
   state.sit = sit; if (sit) sessionStorage.setItem('safepic.sit', sit); else sessionStorage.removeItem('safepic.sit');
   state._foldOverride = {}; // 상황이 바뀌면 사용자가 손으로 접고 편 기록은 초기화
   const PP = getProfile();
-  if (AUTO[sit]) { const extra = [...(PP.senior ? ['heat', 'cold'] : []), ...(PP.mob ? ['temp_housing'] : []), ...(PP.child || PP.senior ? ['er'] : [])]; [...AUTO[sit], ...extra].forEach(k => state.shelters.active.add(k)); localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); $$('#shsel input').forEach(i => i.checked = state.shelters.active.has(i.value)); syncShelterLayers(); }
+  if (AUTO[sit]) { const extra = [...(PP.senior ? ['heat', 'cold'] : []), ...(PP.mob ? ['temp_housing'] : []), ...(PP.child || PP.senior ? ['er'] : [])]; [...AUTO[sit], ...extra].forEach(k => state.shelters.active.add(k)); saveShelterKinds(); }
   if (!navigate) { renderRegion(); return; }
   if (sit === 'proxy') { $('#wizard').reset(); $('#qProxy').checked = true; setTab('find'); syncWizardLoc(); return; }
   if (sit === 'past') { $('#wizard').reset(); $('#pastHint').hidden = false; setTab('find'); syncWizardLoc(); setTimeout(() => $('#qEnd').focus(), 200); return; }
@@ -1302,21 +1335,22 @@ function initWelcome() {
     $$('.wcard', sc).forEach(x => x.addEventListener('click', () => toLoc(x.dataset.sit, 'sub')));
     show('sub');
   }));
+  /* 카드 안 언어 스위치 — 서랍의 .lang-btn 핸들러(전체 리렌더 포함)에 위임 */
+  const paintWelLang = () => $$('#welLang button').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
+  paintWelLang();
+  $$('#welLang button').forEach(b => b.addEventListener('click', () => {
+    const lb = $$('.lang-btn').find(x => x.dataset.lang === b.dataset.lang); if (lb) lb.click();
+    setTimeout(paintWelLang, 0);
+  }));
   $('#welBack').addEventListener('click', () => show('groups'));
   $('#welLocBack').addEventListener('click', () => show(locFrom));
   $('#welGps').addEventListener('click', () => { launch('gps'); (state._coreP || Promise.resolve()).then(() => locateMe()); });
   $('#welLocSkip').addEventListener('click', () => launch('map'));
   $('#welSkip').addEventListener('click', close);
-  /* 오버레이 안 지역 검색 — 본검색(initSearch)과 같은 부분일치, 목록은 카드 아래 정적 배치 */
+  /* 오버레이 안 지역 검색 — 본검색과 같은 suggest(), 목록은 카드 아래 정적 배치 */
   const inp = $('#welSearch'), list = $('#welSearchList'); let items = [];
   const render = () => { list.innerHTML = items.map((it, i) => `<li data-i="${i}"><span>${it.name}</span><small>${it.path}</small></li>`).join(''); list.hidden = !items.length; };
-  inp.addEventListener('input', () => {
-    const q = inp.value.trim(); if (!q) { items = []; render(); return; }
-    const ql = q.toLowerCase();
-    const sg = state.idx.sgg.filter(s => s.name.includes(q) || (s.name_en || '').toLowerCase().includes(ql)).slice(0, 4).map(s => ({ name: rn(s), path: rn(s, 'sido_name'), go: () => selectSgg(s.code) }));
-    const em = state.idx.emd.filter(e => e.name.includes(q) || (e.name_en || '').toLowerCase().includes(ql)).slice(0, 8).map(e => ({ name: rn(e), path: `${rn(e, 'sido_name')} ${rn(e, 'sgg_name')}`, go: () => selectEmd(e.code) }));
-    items = [...sg, ...em]; render();
-  });
+  inp.addEventListener('input', () => { const q = inp.value.trim(); items = q ? suggest(q, 4, 8) : []; render(); });
   list.addEventListener('click', e => {
     const li = e.target.closest('li'); if (!li) return;
     const it = items[+li.dataset.i]; items = []; render(); inp.value = '';
@@ -1334,7 +1368,12 @@ function renderSitBar() {
 }
 /* 카드 접기: 상황별 기본 + 사용자 수동 토글(상황 바뀔 때까지 유지) */
 const SEC_LABEL = { er: 'sec.er', near: 'sec.near', wx: 'sec.wx', ins: 'sec.ins', rep: 'sec.rep', kv: 'sec.kv', grid: 'sec.grid' };
+let _foldQ = 0; // renderAll 한 번에 서너 곳에서 불리므로 프레임당 1회로 합친다 (DOM 직렬화 비용)
 function applyFolds() {
+  if (_foldQ) return;
+  _foldQ = requestAnimationFrame(() => { _foldQ = 0; applyFoldsNow(); });
+}
+function applyFoldsNow() {
   const open = new Set(OPEN[state.sit || 'null'] || OPEN.null), ov = state._foldOverride || {};
   $$('.sec').forEach(sec => {
     const id = sec.dataset.sec;
@@ -1534,7 +1573,7 @@ function renderRulesTable() {
   const box = $('#rulesTable'); if (!state.rules) return;
   if (box.dataset.done === getLang()) return;
   const all = state.rules.all || []; box.hidden = false; box.dataset.done = getLang();
-  const conf = c => ({ verified: t('conf.verified'), reported: t('conf.reported'), estimated: t('conf.estimated'), pending: t('conf.pending') }[c] || c || '');
+  const conf = c => ({ verified: t('conf.verified'), reported: t('conf.reported'), estimate: t('conf.estimated') }[c] || c || '');  // 값 어휘는 rules.js validateRules와 동일해야 한다
   box.innerHTML = `<div class="table-wrap" style="max-height:60vh;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th>${t('rules.h.label')}</th><th>${t('rules.h.amount')}</th><th>${t('rules.h.basis')}</th><th>${t('rules.h.asof')}</th><th>${t('rules.h.conf')}</th></tr></thead><tbody>${all.map(r => `<tr><td><b>${r.label}</b><br><small>${r.summary || ''}</small></td><td class="mono">${r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '-')}</td><td>${r.basis || ''}${r.basis_url ? ` <a href="${r.basis_url}" target="_blank" rel="noopener">↗</a>` : ''}</td><td class="mono">${r.rate_asof || r.effective_from || ''}</td><td><span class="conf conf-${r.confidence || 'na'}">${conf(r.confidence)}</span></td></tr>`).join('')}</tbody></table></div><p class="fine">${t('rules.total', { n: all.length })} <a href="https://github.com/5-Jihwan/aidpage/issues" target="_blank" rel="noopener">Issue</a></p>`;
 }
 
@@ -1547,9 +1586,9 @@ function renderRulesTable() {
   $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });
   $('#btnStart').addEventListener('click', goStart);
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
-  initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
-  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(state.sido ? [...state.shelters.active].filter(k => state.shelters.avail.some(a => a.id === k)) : []); }, 150); });
-  state._coreP = loadCore(); await state._coreP; renderCrumb(); renderLive();
+  initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPush(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
+  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(activeShelterKinds()); }, 150); });
+  state._coreP = loadCore(); await state._coreP; renderCrumb();
   initMap();
   map.once('idle', () => { if (location.hash) applyShare(location.hash); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => selectEmd(getHome()), 1200); });
   renderHome();

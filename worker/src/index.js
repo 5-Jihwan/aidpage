@@ -197,7 +197,8 @@ async function flag(req, env, ip) {
   await env.CACHE.put(fkey, '1', { expirationTtl: REPORT.ttl });
   return { status: 'ok', flags: it.flags, hidden: it.flags >= REPORT.hideAt };
 }
-async function hashIp(ip) { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip + '|safepic')); return [...new Uint8Array(d)].slice(0, 6).map(x => x.toString(16).padStart(2, '0')).join(''); }
+async function sha256hex(s) { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(d)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+const hashIp = async ip => (await sha256hex(ip + '|safepic')).slice(0, 12);
 
 /* ---------- /push — 웹 푸시 (특보·재난문자 알림) ----------
    페이로드 없는 push(RFC8030)만 보낸다 → RFC8291 암호화가 필요 없고,
@@ -207,10 +208,7 @@ async function hashIp(ip) { const d = await crypto.subtle.digest('SHA-256', new 
    재구독 시 갱신). keys(p256dh/auth)는 향후 페이로드 push 대비로만 보관. */
 const PUSH_TTL = 180 * 86400;
 
-async function subKey(endpoint) {
-  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(endpoint));
-  return 'psub:' + [...new Uint8Array(d)].map(x => x.toString(16).padStart(2, '0')).join('');
-}
+async function subKey(endpoint) { return 'psub:' + await sha256hex(endpoint); }
 
 async function pushSub(req, env) {
   if (req.method !== 'POST') return { status: 'error:405' };

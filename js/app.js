@@ -145,7 +145,7 @@ class TerrainToggle {
     const d = document.createElement('div'); d.className = 'maplibregl-ctrl maplibregl-ctrl-group';
     const b = document.createElement('button'); b.type = 'button'; b.className = 'ctrl-3d';
     b.textContent = '3D'; b.title = '지형 3D · 기울여 보기 / Terrain 3D'; b.setAttribute('aria-label', b.title);
-    b.addEventListener('click', () => set3D(localStorage.getItem('safepic.terrain') !== '1'));
+    b.addEventListener('click', () => set3D(localStorage.getItem('safepic.terrain') === '0'));
     d.appendChild(b); return d;
   }
   onRemove() {}
@@ -163,7 +163,8 @@ function initMap() {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
     localizeLabels(); hideRoadShields(); addAdminLayers(); initShelterUI(); initGrid(map); initGridClick();
     map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 3000, essential: true, curve: 1.3 });
-    map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); if (localStorage.getItem('safepic.terrain') === '1') set3D(true); });
+    // 기본 = 3D 켬 (평면 시작이 "지형 미적용"으로 보인다는 재보고 3회) — 끄면('0') 그 선택을 기억
+    map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); if (localStorage.getItem('safepic.terrain') !== '0') set3D(true); });
   });
 }
 /* 지명 표기: 기본 타일의 모든 라벨을 한국어(+영어) 또는 영어만으로 통일. 동해는 영어 줄도 East Sea로.

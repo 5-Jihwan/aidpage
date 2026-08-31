@@ -67,6 +67,22 @@ function ensureIcon(k) {
   map.addImage(name, x.getImageData(0, 0, 60, 60), { pixelRatio: 2 });
   return name;
 }
+/* 개수 배지: 숫자를 원 이미지에 구워 한 장으로 렌더 — 원(circle)과 숫자(text)를 별개 레이어로
+   그리면 피치·기기 DPR에 따라 좌표계가 어긋나 숫자가 원 밖으로 이탈한다(08-31 실기기 2회 보고) */
+function ensureBadge(label) {
+  const name = 'sh-bdg-' + label;
+  if (map.hasImage(name)) return name;
+  const c = document.createElement('canvas'); c.width = c.height = 40; const x = c.getContext('2d');
+  x.beginPath(); x.arc(20, 20, 17, 0, Math.PI * 2);
+  x.fillStyle = '#c8432b'; x.fill();
+  x.lineWidth = 3; x.strokeStyle = '#fff'; x.stroke();
+  x.fillStyle = '#fff'; x.font = '700 19px "Noto Sans KR","Malgun Gothic",sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(label, 20, 21);
+  map.addImage(name, x.getImageData(0, 0, 40, 40), { pixelRatio: 2 });
+  return name;
+}
+const BADGE_LABELS = ['2', '3', '4', '5', '6', '7', '8', '9', '9+'];
 /* ── 통합 클러스터 소스: 같은 자리에 시설이 겹치면 대표 아이콘 + 우상단 개수 배지,
       누르면 그 자리의 시설 목록 (사용자 피드백: 겹친 아이콘 구분 불가) ── */
 const KIND_IDS = KINDS.map(k => k.id);
@@ -95,13 +111,11 @@ function ensureAll() {
     layout: { 'icon-image': ['concat', 'sh-ic-', ['get', 'kind']], 'icon-size': iconSize, 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
   map.addLayer({ id: 'sh-cluster', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
     layout: { 'icon-image': ['concat', 'sh-ic-', ['at', ['get', 'ki'], ['literal', KIND_IDS]]], 'icon-size': iconSize, 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
-  map.addLayer({ id: 'sh-cluster-badge', type: 'circle', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
-    // ⚠ 3D 피치에서 translate 기본 앵커(map)는 지도 평면을 따라 기울어 숫자(화면 기준)와 어긋난다
-    //   → 원도 화면 고정(viewport)으로 통일해야 숫자가 원 안에 남는다 (08-31 사용자 보고)
-    paint: { 'circle-radius': 8, 'circle-color': '#c8432b', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5,
-             'circle-translate': [11, -11], 'circle-translate-anchor': 'viewport', 'circle-pitch-scale': 'viewport', 'circle-pitch-alignment': 'viewport' } });
-  map.addLayer({ id: 'sh-cluster-count', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
-    layout: { 'text-field': ['case', ['>', ['get', 'point_count'], 9], '9+', ['to-string', ['get', 'point_count']]], 'text-size': 10, 'text-font': ['Noto Sans Regular'], 'text-offset': [1.1, -1.1], 'text-allow-overlap': true }, paint: { 'text-color': '#fff' } });
+  BADGE_LABELS.forEach(ensureBadge);
+  map.addLayer({ id: 'sh-cluster-badge', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
+    layout: { 'icon-image': ['concat', 'sh-bdg-', ['case', ['>', ['get', 'point_count'], 9], '9+', ['to-string', ['get', 'point_count']]]],
+              'icon-size': 0.9, 'icon-offset': [24, -24], 'icon-allow-overlap': true, 'icon-padding': 0 },
+    paint: { 'icon-opacity': 1 } });
   map.addLayer({ id: 'sh-label', type: 'symbol', source: 'sh-all', minzoom: 13.5, filter: ['!', ['has', 'point_count']],
     layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-font': ['Noto Sans Regular'], 'text-offset': [0, 0.9], 'text-anchor': 'top', 'text-optional': true }, paint: { 'text-color': '#14202e', 'text-halo-color': '#fff', 'text-halo-width': 1.2 } });
   map.on('mouseenter', 'sh-pt', () => map.getCanvas().style.cursor = 'pointer');

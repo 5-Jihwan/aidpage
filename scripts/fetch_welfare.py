@@ -38,11 +38,15 @@ def log(msg: str) -> None:
 def _open(url: str) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": "aidpage-daily"})
     try:
-        with urllib.request.urlopen(req, timeout=40) as r:
+        with urllib.request.urlopen(req, timeout=20) as r:
             return r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:  # 게이트웨이 오류도 본문에 사유가 있다 — 보이게 한다
         detail = e.read().decode("utf-8", "replace")[:300] if e.fp else ""
         raise RuntimeError(f"HTTP {e.code}: {detail}") from None
+    except (urllib.error.URLError, OSError, TimeoutError) as e:
+        # 해외 러너에서 data.go.kr 접속이 통째로 매달리는 이력(08-30) — RuntimeError로 감싸야
+        # fetch_page의 키 변형·폴백 키 루프가 살아서 다음 시도로 넘어간다
+        raise RuntimeError(f"net: {getattr(e, 'reason', e)}") from None
 
 
 def fetch_page(page: int) -> ET.Element:

@@ -104,9 +104,10 @@ function ensureDem() {
   if (map.getSource('dem')) return;
   map.addSource('dem', { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
     encoding: 'terrarium', tileSize: 256, maxzoom: 15, attribution: 'Terrain: Mapzen/AWS Open Data' });
-  const before = map.getLayer('focus-mask') ? 'focus-mask' : map.getLayer('sido-fill') ? 'sido-fill' : undefined;
   map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'dem', layout: { visibility: 'none' },
-    paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#5d6f82', 'hillshade-highlight-color': '#ffffff' } }, before);
+    // 알파 색으로 데이터 레이어 '위'에서도 은은하게 — 아래 깔면 마스크·격자에 묻혀 안 보인다(08-31 사용자 재보고)
+    paint: { 'hillshade-exaggeration': 0.55, 'hillshade-shadow-color': 'rgba(62,79,98,.5)', 'hillshade-highlight-color': 'rgba(255,255,255,.45)' } },
+    map.getLayer('sido-fill') ? 'sido-fill' : undefined);
 }
 function set3D(on, ease = true) {
   ensureDem();
@@ -114,6 +115,10 @@ function set3D(on, ease = true) {
   try { map.setProjection({ type: on ? 'mercator' : 'globe' }); } catch (e) { /* 미지원 브라우저 */ }
   map.setTerrain(on ? { source: 'dem', exaggeration: 1.7 } : null);
   map.setLayoutProperty('hillshade', 'visibility', on ? 'visible' : 'none');
+  if (on) { // 격자·행정면 위, 시설 아이콘·라벨 아래로 올려 실제로 보이게
+    const anchor = ['sh-pt', 'emd-label', 'sgg-label'].find(l => map.getLayer(l));
+    try { map.moveLayer('hillshade', anchor); } catch (e) { /* anchor 미생성 시 그대로 */ }
+  }
   if (ease) map.easeTo({ pitch: on ? 55 : 0, duration: 800 });
   localStorage.setItem('safepic.terrain', on ? '1' : '0');
   const b = $('.ctrl-3d'); if (b) b.classList.toggle('is-on', on);

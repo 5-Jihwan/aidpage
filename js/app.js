@@ -110,11 +110,30 @@ function ensureDem() {
 }
 function set3D(on, ease = true) {
   ensureDem();
-  map.setTerrain(on ? { source: 'dem', exaggeration: 1.4 } : null);
+  // ⚠ globe 투영에서는 지형 변위가 적용되지 않는다 — 3D 동안은 mercator로 전환 (08-31 사용자 확인)
+  try { map.setProjection({ type: on ? 'mercator' : 'globe' }); } catch (e) { /* 미지원 브라우저 */ }
+  map.setTerrain(on ? { source: 'dem', exaggeration: 1.7 } : null);
   map.setLayoutProperty('hillshade', 'visibility', on ? 'visible' : 'none');
   if (ease) map.easeTo({ pitch: on ? 55 : 0, duration: 800 });
   localStorage.setItem('safepic.terrain', on ? '1' : '0');
   const b = $('.ctrl-3d'); if (b) b.classList.toggle('is-on', on);
+}
+/* 데스크톱: 휠 버튼(가운데) 드래그 = 기울기·회전 (우클릭 드래그와 동일 조작을 더 쉬운 버튼으로) */
+function initMiddleDrag() {
+  const cv = map.getCanvas();
+  let on = false, x0 = 0, y0 = 0, p0 = 0, b0 = 0;
+  cv.addEventListener('mousedown', e => {
+    if (e.button !== 1) return;
+    e.preventDefault(); // 브라우저 자동 스크롤 차단
+    on = true; x0 = e.clientX; y0 = e.clientY; p0 = map.getPitch(); b0 = map.getBearing();
+  });
+  addEventListener('mousemove', e => {
+    if (!on) return;
+    map.setPitch(Math.max(0, Math.min(70, p0 - (e.clientY - y0) * 0.4)));
+    map.setBearing(b0 + (e.clientX - x0) * 0.25);
+  });
+  addEventListener('mouseup', e => { if (e.button === 1) on = false; });
+  addEventListener('blur', () => { on = false; });
 }
 class TerrainToggle {
   onAdd(m) {
@@ -133,6 +152,8 @@ function initMap() {
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
   map.addControl(new TerrainToggle(), 'bottom-right');
+  initMiddleDrag();
+  window.__map = map; // E2E에서 queryTerrainElevation 등 확인용
   map.on('style.load', () => {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
     localizeLabels(); hideRoadShields(); addAdminLayers(); initShelterUI(); initGrid(map); initGridClick();

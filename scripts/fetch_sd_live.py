@@ -126,7 +126,30 @@ def push_notify(out):
     json.dump(cur, io.open(PUSH_STATE, "w", encoding="utf-8"))
 
 
+WELFARE_PATH = os.path.join(ROOT, "data", "ref", "welfare.json")
+
+
+def maybe_welfare():
+    """복지 목록 보강 — daily.yml(해외 러너)이 data.go.kr 접속 타임아웃으로 자주 실패해서
+    (08-30~31 확인) 한국 IP인 여기서 하루 1회만 시도한다. 실패해도 SD 수집은 계속."""
+    if not (os.environ.get("DATA_WELFARE_KEY") or os.environ.get("DATA_GO_KR_KEY")):
+        return
+    try:
+        import time
+        if os.path.exists(WELFARE_PATH) and time.time() - os.path.getmtime(WELFARE_PATH) < 20 * 3600:
+            return
+    except OSError:
+        pass
+    try:
+        import fetch_welfare
+        rc = fetch_welfare.main()
+        flog(f"welfare: rc={rc}")
+    except Exception as e:  # noqa: BLE001
+        flog(f"welfare failed: {e}")
+
+
 def main() -> int:
+    maybe_welfare()
     try:
         prev = json.load(io.open(ALERTS_PATH, encoding="utf-8"))
     except Exception:  # noqa: BLE001
@@ -153,26 +176,26 @@ def main() -> int:
     ok = {k: v.get("status") for k, v in changed.items()}
     log(f"sd sections: {ok}")
     flog(f"sections: {ok}")
-    if not changed:
-        log("no SD keys — nothing to do")
-        return 0
-    # 실패(error:*)만 있고 기존이 ok였던 섹션은 덮지 않는다 (신선한 데이터 보호)
-    out = dict(prev)
-    wrote = []
-    for k, v in changed.items():
-        st = str(v.get("status") or "")
-        if st.startswith("error") and str((prev.get(k) or {}).get("status")) == "ok":
-            continue
-        out[k] = v
-        wrote.append(k)
-    if not wrote:
-        log("all sections failed and prev is fresher — no write")
-        return 0
-    out["updated"] = now_kst().isoformat(timespec="seconds")
-    json.dump(out, io.open(ALERTS_PATH, "w", encoding="utf-8"), ensure_ascii=False,
-              separators=(",", ":"))
-    log(f"wrote {ALERTS_PATH} sections={wrote}")
-    push_notify(out)
+    if changed:
+        # 실패(error:*)만 있고 기존이 ok였던 섹션은 덮지 않는다 (신선한 데이터 보호)
+        out = dict(prev)
+        wrote = []
+        for k, v in changed.items():
+            st = str(v.get("status") or "")
+            if st.startswith("error") and str((prev.get(k) or {}).get("status")) == "ok":
+                continue
+            out[k] = v
+            wrote.append(k)
+        if wrote:
+            out["updated"] = now_kst().isoformat(timespec="seconds")
+            json.dump(out, io.open(ALERTS_PATH, "w", encoding="utf-8"), ensure_ascii=False,
+                      separators=(",", ":"))
+            log(f"wrote {ALERTS_PATH} sections={wrote}")
+            push_notify(out)
+        else:
+            log("all sections failed and prev is fresher — no write")
+    else:
+        log("no SD keys — nothing to do")  # welfare만 갱신됐을 수 있어 push 단계는 계속 간다
 
     if "--push" in sys.argv:
         # ⚠ pythonw(창 없음)라도 자식 git.exe가 콘솔을 새로 열어 30분마다 창이 깜빡임
@@ -193,11 +216,13 @@ def main() -> int:
             git("checkout", "-q", "main")
             log("detached HEAD -> main")
 
-        if "data/live/alerts.json" not in git("status", "--porcelain").stdout:
+        porcelain = git("status", "--porcelain").stdout
+        paths = [p for p in ("data/live/alerts.json", "data/ref/welfare.json") if p in porcelain]
+        if not paths:
             log("no git change")
             return 0
         # 커밋을 먼저 한다 — stash/pop 실패로 변경분이 유실되던 경로를 없앱다.
-        git("add", "data/live/alerts.json")
+        git("add", *paths)
         c = git("commit", "-q", "-m", f"live(sd-local) {now_kst().strftime('%Y-%m-%dT%H:%M')}")
         if c.returncode != 0:
             msg = f"commit failed: {c.stderr[:200]}"

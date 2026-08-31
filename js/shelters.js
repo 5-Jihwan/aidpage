@@ -96,7 +96,10 @@ function ensureAll() {
   map.addLayer({ id: 'sh-cluster', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
     layout: { 'icon-image': ['concat', 'sh-ic-', ['at', ['get', 'ki'], ['literal', KIND_IDS]]], 'icon-size': iconSize, 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
   map.addLayer({ id: 'sh-cluster-badge', type: 'circle', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
-    paint: { 'circle-radius': 8, 'circle-color': '#c8432b', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5, 'circle-translate': [11, -11] } });
+    // ⚠ 3D 피치에서 translate 기본 앵커(map)는 지도 평면을 따라 기울어 숫자(화면 기준)와 어긋난다
+    //   → 원도 화면 고정(viewport)으로 통일해야 숫자가 원 안에 남는다 (08-31 사용자 보고)
+    paint: { 'circle-radius': 8, 'circle-color': '#c8432b', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5,
+             'circle-translate': [11, -11], 'circle-translate-anchor': 'viewport', 'circle-pitch-scale': 'viewport', 'circle-pitch-alignment': 'viewport' } });
   map.addLayer({ id: 'sh-cluster-count', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['has', 'point_count'],
     layout: { 'text-field': ['case', ['>', ['get', 'point_count'], 9], '9+', ['to-string', ['get', 'point_count']]], 'text-size': 10, 'text-font': ['Noto Sans Regular'], 'text-offset': [1.1, -1.1], 'text-allow-overlap': true }, paint: { 'text-color': '#fff' } });
   map.addLayer({ id: 'sh-label', type: 'symbol', source: 'sh-all', minzoom: 13.5, filter: ['!', ['has', 'point_count']],

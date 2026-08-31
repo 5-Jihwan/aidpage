@@ -610,9 +610,6 @@ html.no-fxbanner .fx-banner{display:none}
 .lang-top-t{height:36px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:.85rem;color:var(--ink);white-space:nowrap;cursor:pointer}
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){
   .lang-top-t{height:32px;padding:0 9px;font-size:.78rem}
-  /* 모바일 .top은 overflow:hidden — 헤더 안 absolute 메뉴가 잘려 탭이 안 됐다. fixed로 클리핑 탈출 */
-  .lang-menu{position:fixed;top:calc(var(--top-h) + 6px);right:8px}
-  .lang-menu button{padding:12px 14px;font-size:.95rem}
 }
 .lang-top-t:hover{background:var(--bg)}
 .lang-top-t::after{content:' ▾';color:var(--mute);font-weight:400}
@@ -622,6 +619,12 @@ html.no-fxbanner .fx-banner{display:none}
 .lang-menu button:hover{background:var(--bg)}
 .lang-menu button.is-on{background:var(--bg);color:var(--ink);font-weight:700}
 .lang-menu button.is-on::after{content:' ✓';color:var(--accent)}
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){
+  /* 모바일 .top은 overflow:hidden — 헤더 안 absolute 메뉴가 잘려 탭이 안 됐다. fixed로 클리핑 탈출.
+     ⚠ 반드시 위의 기본 .lang-menu{position:absolute} 뒤에 두어야 함 (같은 특이도 → 순서로 승부) */
+  .lang-menu{position:fixed;top:calc(var(--top-h) + 6px);right:8px}
+  .lang-menu button{padding:12px 14px;font-size:.95rem}
+}
 html.big .lang-top-t{font-size:1rem;height:42px}
 /* 탭③ 우리 동네 대비 */
 .prep-row{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin-bottom:8px}

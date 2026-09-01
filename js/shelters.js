@@ -118,6 +118,10 @@ function ensureAll() {
     clusterProperties: { ki: ['min', ['get', 'ki']] } });
   // 히트맵 전용 비클러스터 소스 — 클러스터 소스는 저줌에서 점이 뭉쳐 밀도가 왜곡된다
   map.addSource('sh-heat', { type: 'geojson', data: EMPTY_FC });
+  // 삽입 위치 = "격자 위, 지명 라벨 아래". 첫 심볼 레이어 아래(1차 시도)는 격자(grid-fill,
+  // sgg-line 아래 삽입)까지 히트맵 위로 올라와 색면이 묻혔다 — 앱 라벨(sgg/emd-label) 바로 아래가 정답.
+  const firstSymbol = ['sgg-label', 'emd-label'].find(l => map.getLayer(l))
+    || (map.getStyle().layers.find(l => l.type === 'symbol') || {}).id;
   map.addLayer({ id: 'sh-heatmap', type: 'heatmap', source: 'sh-heat',
     layout: { visibility: 'none' },
     paint: {
@@ -128,8 +132,8 @@ function ensureAll() {
       'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
         0, 'rgba(135,171,220,0)', 0.15, 'rgba(135,171,220,.6)', 0.3, 'rgba(103,149,211,.72)',
         0.5, 'rgba(74,128,201,.82)', 0.7, 'rgba(45,106,188,.88)', 0.85, 'rgba(20,80,159,.92)', 1, 'rgba(13,61,133,.95)'],
-      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.9, 16, 0.6],
-    } });
+      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.85, 16, 0.55],
+    } }, firstSymbol);
   const iconSize = ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05];
   map.addLayer({ id: 'sh-pt', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['!', ['has', 'point_count']],
     layout: { 'icon-image': ['concat', 'sh-ic-', ['get', 'kind']], 'icon-size': iconSize, 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });

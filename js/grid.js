@@ -30,8 +30,15 @@ function ensure() {
   map.addSource('grid', { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, promoteId: 'h3' });
   map.addLayer({ id: 'grid-fill', type: 'fill', source: 'grid', paint: { 'fill-color': '#ccc', 'fill-opacity': 0.55 } }, 'sgg-line');
   map.addLayer({ id: 'grid-line', type: 'line', source: 'grid', paint: { 'line-color': '#fff', 'line-width': 0.6, 'line-opacity': 0.8 } }, 'sgg-line');
+  // 입체 압출(3D 모드 전용 옵션) — 값이 높은 셀이 솟아오르는 헥사 기둥. 기본 숨김.
+  map.addLayer({ id: 'grid-3d', type: 'fill-extrusion', source: 'grid', layout: { visibility: 'none' },
+    paint: { 'fill-extrusion-color': '#ccc', 'fill-extrusion-height': 0, 'fill-extrusion-opacity': 0.78 } }, 'sgg-line');
   map.on('mouseenter', 'grid-fill', () => map.getCanvas().style.cursor = 'pointer');
   map.on('mouseleave', 'grid-fill', () => map.getCanvas().style.cursor = '');
+}
+/** 3D 모드에서 격자 기둥 표시 토글 — 색·높이는 show()가 속성마다 갱신 */
+export function setExtrude(on) {
+  if (map && map.getLayer('grid-3d')) map.setLayoutProperty('grid-3d', 'visibility', on ? 'visible' : 'none');
 }
 /* 색 경계값. step 표현식은 입력이 '엄격히 오름차순'이어야 한다 — 분위수가 겹치면
    (침수·산사태 이력처럼 값이 0에 몰린 속성) MapLibre가 표현식을 통째로 거부해
@@ -57,7 +64,13 @@ export function show(sgg, attrId) {
   const colors = Array.from({ length: n }, (_, i) => mix(a.ramp[0], a.ramp[1], n === 1 ? 1 : i / (n - 1)));
   // 경계가 없으면(값이 전부 같음) step을 쓸 수 없다 — 단색으로 칠한다.
   const paint = breaks.length ? ['step', ['to-number', ['get', attrId]], colors[0], ...breaks.flatMap((q, i) => [q, colors[i + 1]])] : colors[0];
-  map.setPaintProperty('grid-fill', 'fill-color', ['case', ['==', ['get', attrId], null], '#d9dee7', paint]);
+  const colorExpr = ['case', ['==', ['get', attrId], null], '#d9dee7', paint];
+  map.setPaintProperty('grid-fill', 'fill-color', colorExpr);
+  // 압출 높이 = 값/최대값 × 2200m (셀 폭 ~350m 대비 읽히는 비율). null 셀은 0.
+  const vmax = Math.max(...fc.features.map(f => f.properties[attrId]).filter(x => x != null), 0);
+  map.setPaintProperty('grid-3d', 'fill-extrusion-color', colorExpr);
+  map.setPaintProperty('grid-3d', 'fill-extrusion-height',
+    vmax > 0 ? ['case', ['==', ['get', attrId], null], 0, ['*', ['/', ['to-number', ['get', attrId]], vmax], 2200]] : 0);
   const only = breaks.length ? null : (fc.features.map(f => f.properties[attrId]).find(x => x != null) ?? null);
   return { attr: a, breaks, colors, only };
 }

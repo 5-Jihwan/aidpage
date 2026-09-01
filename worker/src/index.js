@@ -34,6 +34,7 @@ export default {
         case '/reports': return json(await reports(url, env), 200, cors);
         case '/report': return json(await report(req, env, ip), 200, cors);
         case '/report/flag': return json(await flag(req, env, ip), 200, cors);
+        case '/stat': return json(await stat(req, env), 200, cors);
         case '/push/vapid': return json({ status: 'ok', key: env.VAPID_PUB || '' }, 200, cors);
         case '/push/sub': return json(await pushSub(req, env), 200, cors);
         case '/push/unsub': return json(await pushUnsub(req, env), 200, cors);
@@ -281,4 +282,19 @@ async function pushSend(req, env, cors) {
     }));
   }
   return json({ status: 'ok', matched: targets.length, sent, gone, failed }, 200, cors);
+}
+
+/* ── 익명 사용 계측 — 이벤트 이름별 일 단위 카운터. 페이로드는 {ev}뿐(지역·입력·식별자 없음).
+   KV 증분은 동시 요청에서 일부 유실될 수 있으나(비원자적) 추세 파악용으론 충분하다.
+   조회는 wrangler kv key list/get (stat:YYYY-MM-DD:이벤트). 400일 보존. ── */
+const STAT_EVS = new Set(['wizard_submit', 'nearmiss_shown', 'welfare_shown', 'print', 'share_copy']);
+async function stat(req, env) {
+  if (req.method !== 'POST') return { status: 'method' };
+  let ev = '';
+  try { ev = String((await req.json()).ev || ''); } catch (e) { /* not json */ }
+  if (!STAT_EVS.has(ev)) return { status: 'bad' };
+  const key = `stat:${new Date().toISOString().slice(0, 10)}:${ev}`;
+  const n = parseInt(await env.CACHE.get(key) || '0', 10) + 1;
+  await env.CACHE.put(key, String(n), { expirationTtl: 400 * 86400 });
+  return { status: 'ok' };
 }

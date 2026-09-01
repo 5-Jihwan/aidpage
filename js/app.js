@@ -1,8 +1,8 @@
 // AidPage — app.js (ES module, no build step)
 import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831d';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260831d';
-import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831d';
-import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901o';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260901p';
+import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
+import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
@@ -134,6 +134,11 @@ function set3D(on, ease = true) {
   if (ease) map.easeTo({ pitch: on ? 55 : 0, duration: 800 });
   localStorage.setItem('safepic.terrain', on ? '1' : '0');
   const b = $('.ctrl-3d'); if (b) b.classList.toggle('is-on', on);
+  syncGrid3D();
+}
+/* 격자 기둥은 3D 모드 + 서랍 옵션이 둘 다 켜졌을 때만 */
+function syncGrid3D() {
+  setGridExtrude(localStorage.getItem('safepic.terrain') !== '0' && localStorage.getItem('safepic.grid3d') === '1');
 }
 /* 데스크톱: 휠 버튼(가운데) 드래그 = 기울기·회전 (우클릭 드래그와 동일 조작을 더 쉬운 버튼으로) */
 function initMiddleDrag() {
@@ -639,6 +644,15 @@ function ensureShHeatLayers() {
   const anchor = ['sgg-label', 'emd-label'].find(l => map.getLayer(l)); // 격자 위·지명 라벨 아래 (3원칙)
   map.addLayer({ id: 'shheat-sgg', type: 'fill', source: 'sgg', paint: { 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 0 } }, anchor);
   map.addLayer({ id: 'shheat-emd', type: 'fill', source: 'emd', paint: { 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 0 } }, anchor);
+  // 색만 보이면 "몇 곳인지"를 알 수 없다 — 구역을 누르면 이름+실개수 팝업 (드릴다운과 공존)
+  [['shheat-sgg', 'sgg'], ['shheat-emd', 'emd']].forEach(([layer, src]) => map.on('click', layer, e => {
+    if (shMode() !== 'area' || !e.features || !e.features.length) return;
+    const f = e.features[0];
+    const st = map.getFeatureState({ source: src, id: String(f.properties.code) });
+    if (!st || st.shn == null) return;
+    const icons = [...state.shelters.active].map(k => (state.shelters.avail.find(a => a.id === k) || {}).icon || '').join('');
+    openPopup(e.lngLat, `<b>${f.properties.name || ''}</b><br><small>${t('shheat.pop', { list: icons, n: st.shn })}</small>`);
+  }));
 }
 function clearShHeat() {
   for (const src of ['sgg', 'emd']) { _shHeatIds[src].forEach(id => map.setFeatureState({ source: src, id }, { shn: null })); _shHeatIds[src].clear(); }
@@ -907,6 +921,16 @@ async function renderRiskLine() {
     if (wx.rn1 != null) seg.push(t('risk.rain.h', { n: wx.rn1 }));
     if (wx.rn_day != null) seg.push(t('risk.rain.d', { n: Math.round(wx.rn_day) }));
     parts.push(`<span${cls ? ` class="${cls}"` : ''}>☔ ${seg.join(' · ')}${wx._sido && wx.stn_name ? t('risk.rain.stn', { s: wx.stn_name }) : ''}</span>`);
+  }
+  // 하천 수위(HRFCO — 키 등록 전엔 items가 비어 조용히 잠듦): 선택 시군구 안 관측소가
+  // 주의보 수위 이상일 때만 최악 1곳을 표시. 단계 = 심각>경보>주의보 순 판정.
+  const rv = state.live.alerts && state.live.alerts.river;
+  if (rv && rv.items && rv.items.length) {
+    const sf = featuresWhere(state.geo.sgg, 'code', state.sgg)[0];
+    const inSgg = sf ? rv.items.filter(it => it.lon != null && pipFeature(it.lon, it.lat, sf)) : [];
+    const grade = it => it.severe != null && it.level_m >= it.severe ? 3 : it.alarm != null && it.level_m >= it.alarm ? 2 : it.attn != null && it.level_m >= it.attn ? 1 : 0;
+    const worst = inSgg.map(it => ({ it, g: grade(it) })).filter(x => x.g > 0).sort((a, b) => b.g - a.g)[0];
+    if (worst) parts.push(`<span class="${worst.g >= 2 ? 'rl-bad' : 'rl-warn'}">🌊 ${t('risk.river', { s: worst.it.station, lv: t('risk.river.g' + worst.g), m: worst.it.level_m })}</span>`);
   }
   const e = state.emd && state.idx.byEmd.get(state.emd);
   if (e) {
@@ -1390,7 +1414,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901o').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901p').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1481,6 +1505,9 @@ function initSize() {
   const gb = $('#btnGridOn'), GK = 'safepic.gridOn';
   gb.checked = localStorage.getItem(GK) !== '0';
   gb.addEventListener('change', () => { localStorage.setItem(GK, gb.checked ? '1' : '0'); syncGrid(); });
+  const g3 = $('#btnGrid3d');
+  if (g3) { g3.checked = localStorage.getItem('safepic.grid3d') === '1';
+    g3.addEventListener('change', () => { localStorage.setItem('safepic.grid3d', g3.checked ? '1' : '0'); syncGrid3D(); }); }
   fb.addEventListener('change', () => {
     localStorage.setItem(FK, fb.checked ? '1' : '0'); applyFB(fb.checked);
     // 다시 켜면 ×로 닫아둔 것도 함께 되살린다 (발효 중인 특보가 있을 때만)
@@ -1717,6 +1744,7 @@ function runResult() {
   if (!inp.housing && !inp.damage.length) { alert(t('wiz.need')); return; }
   if (!state.rules || !evaluate) { $('#result').hidden = false; $('#result').innerHTML = `<p>${t('ui.nodata')}</p>`; return; }
   const res = evaluate(state.rules, inp, getLang()); state.lastResult = { res, inp };
+  stat('wizard_submit');
   renderResult(res, inp); history.replaceState(null, '', encodeShare(inp));
 }
 /* ⑪ "왜 해당되나": matchRule의 why 토큰 → 사람이 읽는 문구 */
@@ -1834,6 +1862,7 @@ async function renderWelfare(inp) {
   const tel = s => { s = String(s || ''); return s.length > 90 ? s.slice(0, 90) + '…' : s; };
   const item = it => `<div class="item"><div class="item-row"><b>${escapeHTML(it['서비스명'] || '')}</b><span class="item-amt">${escapeHTML(it['소관부처명'] || '')}</span></div>${it['서비스요약'] ? `<div class="item-sum">${escapeHTML(it['서비스요약'])}</div>` : ''}<div class="item-basis">${it['대표문의'] ? `${escapeHTML(tel(it['대표문의']))} · ` : ''}${it['서비스URL'] ? `<a href="${escapeHTML(it['서비스URL'])}" target="_blank" rel="noopener">${t('res.welfare.link')} ↗</a>` : ''}</div></div>`;
   const top = picked.slice(0, 6), rest = picked.slice(6);
+  stat('welfare_shown');
   box.hidden = false;
   box.innerHTML = `<h3>${t('res.welfare')}</h3><small class="muted">${t('res.welfare.s')}</small>${inp.foreign ? `<small class="muted">${t('res.welfare.fr')}</small>` : ''}${top.map(item).join('')}${rest.length ? `<details class="wf-more"><summary>${t('res.welfare.more', { n: picked.length })}</summary>${rest.map(item).join('')}</details>` : ''}<small class="muted">${t('res.welfare.src', { d: (doc.updated || '').slice(0, 10) })}</small>`;
 }
@@ -1866,7 +1895,7 @@ function renderResult(res, inp) {
     ${sec(t('res.apply'), res.apply)}
     ${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}
     ${docsHTML(res)}
-    ${(() => { const nm = nearMisses(inp); return nm.length ? `<div class="result-block miss ${inp.household_unknown ? 'is-unknown' : ''}"><h3>${inp.household_unknown ? t('res.maybe') : t('res.miss')}</h3>${inp.household_unknown ? `<small class="muted">${t('res.maybe.s')}</small>` : ''}${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : ''; })()}
+    ${(() => { const nm = nearMisses(inp); if (nm.length) stat('nearmiss_shown'); return nm.length ? `<div class="result-block miss ${inp.household_unknown ? 'is-unknown' : ''}"><h3>${inp.household_unknown ? t('res.maybe') : t('res.miss')}</h3>${inp.household_unknown ? `<small class="muted">${t('res.maybe.s')}</small>` : ''}${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : ''; })()}
     ${psychHTML}
     <div class="result-block welfare" id="welfareBox" hidden></div>
     <div class="result-block"><h3>${t('res.proc')}</h3><ol class="timeline">${(res.timeline || []).map(s => `<li><b>${s.label}</b>${s.due ? ` <span class="badge">${t('badge.due', { d: s.due })}${s.days_left != null ? (s.days_left < 0 ? ' · ' + t('badge.over') : ` · D-${s.days_left}`) : ''}</span>` : ''}<small>${[s.summary, s.where, s.docs && s.docs.length && s.docs.join(', '), s.typical_days].filter(Boolean).join(' · ')}</small></li>`).join('')}</ol></div>
@@ -1880,7 +1909,8 @@ function renderResult(res, inp) {
   // print-only: nearest community center (피해신고 접수처)
   if (state.emd && state.shelters.avail.some(a => a.id === 'townhall')) { const e = state.idx.byEmd.get(state.emd); nearestShelters([e.lon, e.lat], ['townhall'], state.sido, 1, true).then(l => { if (l[0] && !el.hidden) { const d = document.createElement('div'); d.className = 'result-block print-only'; d.innerHTML = `<h3>${t('res.print.townhall')}</h3><b>${l[0].p.name}</b><br>${l[0].p.addr || ''}${l[0].p.tel ? ` · ${l[0].p.tel}` : ''} · ${t('sh.walk', { n: l[0].walk })}`; el.querySelector('.share-row').before(d); } }); }
   $$('input[data-doc]', el).forEach(c => c.addEventListener('change', () => { const on = $$('input[data-doc]', el).filter(x => x.checked).map(x => x.nextElementSibling.textContent); sessionStorage.setItem('safepic.docs', JSON.stringify(on)); }));
-  $('#btnCopy').onclick = async () => { try { await navigator.clipboard.writeText(location.href); $('#copied').textContent = t('res.copied'); setTimeout(() => $('#copied').textContent = '', 2000); } catch { prompt('URL', location.href); } };
+  addEventListener('beforeprint', () => stat('print'), { once: true });
+  $('#btnCopy').onclick = async () => { stat('share_copy'); try { await navigator.clipboard.writeText(location.href); $('#copied').textContent = t('res.copied'); setTimeout(() => $('#copied').textContent = '', 2000); } catch { prompt('URL', location.href); } };
   $('#panelScroll').scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
 }
 

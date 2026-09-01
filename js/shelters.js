@@ -102,8 +102,9 @@ function openPopup(lngLat, html) {
   return pop;
 }
 let heatOn = false; // 표시 모드: false=아이콘·클러스터, true=밀도 히트맵 (kfood-atlas 방식, 팔레트는 AidPage)
-// 히트맵 램프(범례 공용) — dataviz 검증기 ordinal 전부 PASS (단일 색상·단조 밝기·간격·표면 대비)
-export const HEAT_RAMP = ['#87abdc', '#6795d3', '#4a80c9', '#2d6abc', '#14509f', '#0d3d85'];
+// 히트맵 램프(범례 공용) — 통상 열 색상(파랑→청록→라임→노랑→주황→빨강): 단일 파랑 농담은
+// 구분이 어렵다는 피드백(09-01)으로 교체. "빨강=밀집"의 관례적 의미론이 즉독성을 준다.
+export const HEAT_RAMP = ['#3b82f6', '#06b6d4', '#a3e635', '#facc15', '#f97316', '#dc2626'];
 const ICON_LAYERS = ['sh-pt', 'sh-cluster', 'sh-cluster-badge', 'sh-label'];
 export function setHeatmap(on) {
   heatOn = !!on;
@@ -128,10 +129,10 @@ function ensureAll() {
       'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.6, 10, 0.9, 14, 1.6],
       // 반경을 키워 점별 얼룩 대신 면으로 읽히게
       'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 6, 12, 9, 22, 12, 36, 15, 52],
-      // 단일 색상(브랜드 파랑) 밝음→어두움 단조 램프 — HEAT_RAMP와 반드시 일치(범례가 이 값을 그린다)
+      // 통상 열 색상 램프 — HEAT_RAMP와 반드시 일치(범례가 이 값을 그린다)
       'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
-        0, 'rgba(135,171,220,0)', 0.15, 'rgba(135,171,220,.6)', 0.3, 'rgba(103,149,211,.72)',
-        0.5, 'rgba(74,128,201,.82)', 0.7, 'rgba(45,106,188,.88)', 0.85, 'rgba(20,80,159,.92)', 1, 'rgba(13,61,133,.95)'],
+        0, 'rgba(59,130,246,0)', 0.15, 'rgba(59,130,246,.5)', 0.35, 'rgba(6,182,212,.65)',
+        0.55, 'rgba(163,230,53,.75)', 0.7, 'rgba(250,204,21,.8)', 0.85, 'rgba(249,115,22,.85)', 1, 'rgba(220,38,38,.92)'],
       'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.85, 16, 0.55],
     } }, firstSymbol);
   const iconSize = ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05];

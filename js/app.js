@@ -2,7 +2,7 @@
 import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831d';
 import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260831d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831d';
-import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, HEAT_RAMP, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901k';
+import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, HEAT_RAMP, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901l';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
@@ -423,7 +423,15 @@ function fitTo(features) {
   const pad = mobile ? { top: 150, bottom: innerHeight * 0.52, left: 24, right: 24 }
     : { top: 90, bottom: 60, left: ($('#panel').classList.contains('is-collapsed') ? 0 : panelW()) + 60, right: 80 };
   // 카메라 계산이 실패해도 호출한 쪽(GPS·검색·드릴다운)이 중단되면 안 된다.
-  try { map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: clampPad(pad), duration: 900 }); }
+  try {
+    // 사용자가 이미 그 지역 안을 더 깊이 보고 있으면 카메라를 밖으로 빼지 않는다 —
+    // 줌인해 두고 지역을 눌렀는데 fit이 줌을 되돌리던 문제("다시 확대해야") 방지
+    const cam = map.cameraForBounds([[b[0], b[1]], [b[2], b[3]]], { padding: clampPad(pad) });
+    const c = map.getCenter();
+    const inside = c.lng >= b[0] && c.lng <= b[2] && c.lat >= b[1] && c.lat <= b[3];
+    if (cam && inside && map.getZoom() > cam.zoom + 0.3) return;
+    map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: clampPad(pad), duration: 900 });
+  }
   catch (err) { console.warn('fitTo', err); try { map.flyTo({ center: [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], duration: 600 }); } catch (e2) { /* 지도 없음 */ } }
 }
 
@@ -1301,7 +1309,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901k').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901l').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

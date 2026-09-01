@@ -101,12 +101,22 @@ function openPopup(lngLat, html) {
   _popFallback = pop;
   return pop;
 }
-let heatOn = false; // 표시 모드: false=아이콘·클러스터, true=구역 히트맵(행정단위 집계 — app.js renderShelterHeat)
+/* 표시 모드 3종(사용자 확정 09-01): 'icons'=아이콘·클러스터, 'heat'=지층 히트맵(커널 등급 밴드
+   — 등고선처럼 층이 쌓인 형태), 'area'=구역별 개수(행정단위 집계 — app.js renderShelterHeat). */
+let dispMode = 'icons';
 const ICON_LAYERS = ['sh-pt', 'sh-cluster', 'sh-cluster-badge', 'sh-label'];
-export function setHeatmap(on) {
-  heatOn = !!on;
+// 지층 히트맵 등급 밴드(범례 공용) — i18n legend.heat.l1~l4 (드묾·보통·많음·밀집)
+export const HEAT_BANDS = [
+  { c: '#3b82f6', key: 'legend.heat.l1' },
+  { c: '#a3e635', key: 'legend.heat.l2' },
+  { c: '#f97316', key: 'legend.heat.l3' },
+  { c: '#dc2626', key: 'legend.heat.l4' },
+];
+export function setHeatmap(mode) {
+  dispMode = mode === true ? 'heat' : mode === false ? 'icons' : (mode || 'icons');
   if (!map) return;
-  ICON_LAYERS.forEach(l => map.getLayer(l) && map.setLayoutProperty(l, 'visibility', heatOn ? 'none' : 'visible'));
+  ICON_LAYERS.forEach(l => map.getLayer(l) && map.setLayoutProperty(l, 'visibility', dispMode === 'icons' ? 'visible' : 'none'));
+  if (map.getLayer('sh-heatmap')) map.setLayoutProperty('sh-heatmap', 'visibility', dispMode === 'heat' ? 'visible' : 'none');
 }
 /** 켜진 종류의 시설 피처 전량(클립 없음) — 구역 집계 히트맵이 개수를 세는 데 쓴다 */
 export async function collect(kinds, sido) {
@@ -123,8 +133,25 @@ function ensureAll() {
   KINDS.forEach(ensureIcon);
   map.addSource('sh-all', { type: 'geojson', data: EMPTY_FC, cluster: true, clusterRadius: 22, clusterMaxZoom: 17,
     clusterProperties: { ki: ['min', ['get', 'ki']] } });
-  // (구 커널 히트맵 소스·레이어는 09-01 구역 집계형으로 대체되며 제거 — 점 커널은 겹침이
-  //  줌에 따라 개별 원으로 갈라져 "융합 안 됨" 피드백을 낳았다. 구역 히트맵은 app.js 소관.)
+  // 지층 히트맵(커널 등급 밴드) — 비클러스터 소스. 삽입 = 격자 위·지명 라벨 아래(3원칙).
+  // 고줌에서 원이 개별로 갈라지지 않게 반경을 줌에 따라 크게(15:64, 17:92) 잡아 층이 융합되게 한다.
+  map.addSource('sh-heat', { type: 'geojson', data: EMPTY_FC });
+  const heatAnchor = ['sgg-label', 'emd-label'].find(l => map.getLayer(l))
+    || (map.getStyle().layers.find(l => l.type === 'symbol') || {}).id;
+  map.addLayer({ id: 'sh-heatmap', type: 'heatmap', source: 'sh-heat',
+    layout: { visibility: 'none' },
+    paint: {
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.6, 10, 0.9, 14, 1.4],
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 6, 12, 9, 22, 12, 38, 15, 64, 17, 92],
+      // 등급 밴드(step) — HEAT_BANDS와 반드시 일치. 계단으로 끊어 지층·등고선처럼 읽힌다.
+      'heatmap-color': ['step', ['heatmap-density'],
+        'rgba(0,0,0,0)',
+        0.12, 'rgba(59,130,246,.55)',
+        0.35, 'rgba(163,230,53,.7)',
+        0.6, 'rgba(249,115,22,.8)',
+        0.82, 'rgba(220,38,38,.9)'],
+      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.85, 16, 0.6],
+    } }, heatAnchor);
   const iconSize = ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05];
   map.addLayer({ id: 'sh-pt', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['!', ['has', 'point_count']],
     layout: { 'icon-image': ['concat', 'sh-ic-', ['get', 'kind']], 'icon-size': iconSize, 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
@@ -221,7 +248,8 @@ export async function setActive(kinds, sido, clip = null) {
     }
   }
   if (map.getSource('sh-all')) map.getSource('sh-all').setData({ type: 'FeatureCollection', features: feats });
-  setHeatmap(heatOn); // 저장된 모드(아이콘 숨김)를 레이어 생성 후에도 유지
+  if (map.getSource('sh-heat')) map.getSource('sh-heat').setData({ type: 'FeatureCollection', features: feats });
+  setHeatmap(dispMode); // 저장된 모드를 레이어 생성 후에도 유지
 }
 const R = 6371000;
 function dist(a, b) { const toR = x => x * Math.PI / 180; const dLat = toR(b[1] - a[1]), dLon = toR(b[0] - a[0]); const s = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[1])) * Math.cos(toR(b[1])) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(s)); }

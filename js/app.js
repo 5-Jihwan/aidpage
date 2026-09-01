@@ -2,7 +2,7 @@
 import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831d';
 import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260831d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831d';
-import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901n';
+import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901o';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
@@ -587,21 +587,21 @@ async function initShelterUI() {
   ];
   const en = getLang() === 'en', K = id => state.shelters.avail.find(a => a.id === id);
   const chip = k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${en ? k.en : k.ko}</span></label>`;
-  const heat = localStorage.getItem('safepic.shHeat') === '1';
+  const mode0 = shMode();
+  const mBtn = (m, ic) => `<button type="button" class="shmode-b ${mode0 === m ? 'is-on' : ''}" data-m="${m}">${ic} ${t('sh.mode.' + m)}</button>`;
   box.innerHTML = `<button type="button" class="wxsel-t" id="shselT">${t('sh.title')}</button>`
-    + `<div class="shmode" role="group" aria-label="${t('sh.mode')}"><button type="button" class="shmode-b ${heat ? '' : 'is-on'}" data-m="icons">📍 ${t('sh.mode.icons')}</button><button type="button" class="shmode-b ${heat ? 'is-on' : ''}" data-m="heat">🌡 ${t('sh.mode.heat')}</button></div>`
+    + `<div class="shmode" role="group" aria-label="${t('sh.mode')}">${mBtn('icons', '📍')}${mBtn('heat', '🌡')}${mBtn('area', '🗺')}</div>`
     + GROUPS.map(g => {
     const ks = g.kinds.map(K).filter(Boolean); if (!ks.length) return '';
     const allOn = ks.every(k => state.shelters.active.has(k.id));
     return `<div class="shgrp"><button type="button" class="shgrp-t ${allOn ? 'is-on' : ''}" data-grp="${g.id}">${g.icon} ${en ? g.en : g.ko}</button><div class="shgrp-k">${ks.map(chip).join('')}</div></div>`;
   }).join('');
-  if (heat) setShelterHeatmap(true);
+  if (mode0 !== 'icons') setShelterHeatmap(mode0);
   $$('.shmode-b', box).forEach(b => b.addEventListener('click', () => {
-    const on = b.dataset.m === 'heat';
-    localStorage.setItem('safepic.shHeat', on ? '1' : '0');
+    localStorage.setItem('safepic.shMode', b.dataset.m);
     $$('.shmode-b', box).forEach(x => x.classList.toggle('is-on', x === b));
-    setShelterHeatmap(on);
-    syncShelterLayers(); // 구역 집계 렌더 + 범례 갱신
+    setShelterHeatmap(b.dataset.m);
+    syncShelterLayers(); // 지층/구역 렌더 + 범례 갱신
   }));
   const save = () => { localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); syncShelterLayers(); renderRegion(); };
   $('#shselT').addEventListener('click', () => box.classList.toggle('is-open'));
@@ -629,6 +629,8 @@ function syncShelterLayers() {
 /* ---------- 시설 구역 히트맵 — 행정단위(시도→시군구별, 시군구·동→읍면동별) 집계 ----------
    점 커널 히트맵은 줌인 시 원이 갈라져 "융합 안 됨"·"기준 없음"으로 읽혔다(09-01 피드백 3회).
    구역별 실개수를 4분위 밴드로 칠하고, 범례에 실제 개수 범위를 쓴다 — 기준이 숫자가 된다. */
+/* 표시 모드: icons | heat(지층) | area(구역별 개수). 구 키 shHeat('1')는 heat로 이관 */
+const shMode = () => localStorage.getItem('safepic.shMode') || (localStorage.getItem('safepic.shHeat') === '1' ? 'heat' : 'icons');
 const SHHEAT_COLORS = ['#3b82f6', '#a3e635', '#f97316', '#dc2626'];
 let _shHeatSig = null;
 const _shHeatIds = { sgg: new Set(), emd: new Set() };
@@ -646,7 +648,7 @@ function clearShHeat() {
 async function renderShelterHeat(kinds) {
   if (!map || !map.getLayer('sgg-fill')) return;
   ensureShHeatLayers();
-  const on = localStorage.getItem('safepic.shHeat') === '1';
+  const on = shMode() === 'area';
   if (!on || !kinds.length || !state.sido) { if (_shHeatSig) { _shHeatSig = null; clearShHeat(); renderLegend(kinds); } return; }
   const perEmd = !!state.sgg; // 시군구(또는 동) 선택 = 읍면동별, 시도만 선택 = 시군구별
   const sig = [...kinds].sort().join(',') + '|' + state.sido + '|' + (perEmd ? 'e' + state.sgg : 's');
@@ -752,14 +754,17 @@ function renderLegend(kinds) {
   box.title = t('legend.drag');
   const onRow = (key, l) => `<div class="lg-row lg-grid is-sw" data-lg="${key}" title="${t('legend.tap.off')}"><b>${l.title}</b>${l.html}</div>`;
   const offRow = (key, title) => `<div class="lg-row lg-grid is-sw is-off" data-lg="${key}" title="${t('legend.tap.on')}"><b>${title}</b><span class="lg-off">${t('legend.off')}</span></div>`;
-  // 히트맵 모드: 구역별 실개수 범례 — 각 색이 "몇 곳"인지 숫자로 말한다
-  const L = state._shLegend;
-  const heatMode = localStorage.getItem('safepic.shHeat') === '1' && sh.length && L;
+  // 시설 행: 모드별 — icons=색점, heat=지층 등급(상대), area=구역별 실개수
+  const L = state._shLegend, m0 = shMode();
+  const areaMode = m0 === 'area' && sh.length && L, kernMode = m0 === 'heat' && sh.length;
+  const heatMode = areaMode || kernMode;
   const binLbl = b => b.lo === b.hi ? t('legend.heat.n1', { n: b.lo }) : b.hi == null ? t('legend.heat.np', { n: b.lo }) : t('legend.heat.n', { lo: b.lo, hi: b.hi });
-  const shRow = !sh.length ? '' : heatMode
+  const shRow = !sh.length ? '' : areaMode
     ? `<div class="lg-row lg-heatrow"><b>${t('legend.heat')} · ${t('legend.heat.u.' + L.u)}</b><span class="lg-bands">${L.bins.map(b => `<span class="lg-band"><i style="background:${b.c}"></i>${binLbl(b)}</span>`).join('')}</span><small class="lg-heat-s">${t('legend.heat.s', { list: sh.map(k => k.icon).join('') })}</small></div>`
+    : kernMode
+    ? `<div class="lg-row lg-heatrow"><b>${t('legend.heatk')}</b><span class="lg-bands">${HEAT_BANDS.map(b => `<span class="lg-band"><i style="background:${b.c}"></i>${t(b.key)}</span>`).join('')}</span><small class="lg-heat-s">${t('legend.heatk.s', { list: sh.map(k => k.icon).join('') })}</small></div>`
     : `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>`;
-  box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${heatMode ? L.bins.map(b => `<i style="background:${b.c}"></i>`).join('') : sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + shRow +
+  box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${areaMode ? L.bins.map(b => `<i style="background:${b.c}"></i>`).join('') : kernMode ? HEAT_BANDS.map(b => `<i style="background:${b.c}"></i>`).join('') : sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + shRow +
     (wxl ? onRow('wx', wxl) : wxOff ? offRow('wx', t('wx.' + state._wxLast)) : '') +
     (g ? onRow('grid', g) : gridOff ? offRow('grid', t('grid.title')) : '') + `<small class="lg-src">${t('legend.src')}</small>`;
   $('#lgToggle').addEventListener('click', () => { state._legendOpen = !state._legendOpen; box.classList.toggle('is-min', mobile && !state._legendOpen); });
@@ -1385,7 +1390,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901n').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901o').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

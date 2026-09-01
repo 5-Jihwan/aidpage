@@ -9,7 +9,7 @@
    캐시를 셸/데이터로 나눈 이유: 예전엔 참조·시설·격자까지 VERSION 캐시에 있어서,
    셸 버전을 올릴 때마다(하루 10여 회) 138MB 격자를 포함한 전부가 삭제·재다운로드됐다.
    버전을 타는 건 셸뿐이고, 데이터는 DATA_CACHE에서 배포와 무관하게 살아남는다. */
-const VERSION = 'safepic-20260902c';   // 앱 셸 전용 — 배포마다 바뀐다
+const VERSION = 'safepic-20260902d';   // 앱 셸 전용 — 배포마다 바뀐다
 const DATA_CACHE = 'safepic-data-1';   // 참조·시설·격자 — 셸 버전을 올려도 살아남는다
 const FONT_CACHE = 'safepic-fonts';
 const KEEP = [VERSION, DATA_CACHE, FONT_CACHE];
@@ -24,10 +24,14 @@ const SHELL_DATA = [  // → DATA_CACHE (배포와 무관하게 유지). cacheFi
 ];
 const precache = (name, urls) => caches.open(name).then(c => Promise.allSettled(urls.map(u => c.add(u).catch(() => null))));
 self.addEventListener('install', e => {
-  e.waitUntil(Promise.all([precache(VERSION, SHELL), precache(DATA_CACHE, SHELL_DATA)]).then(() => self.skipWaiting()));
+  // SHELL_DATA(수 MB 지리 데이터)는 install을 막지 않는다 — 첫 방문에서 페이지 자체 요청과
+  // 프리캐시가 같은 파일을 동시 이중 다운로드하며 첫 화면을 느리게 하던 원인(09-02).
+  e.waitUntil(precache(VERSION, SHELL).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => !KEEP.includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => !KEEP.includes(k)).map(k => caches.delete(k)))).then(() => self.clients.claim())
+    // 데이터 프리캐시(오프라인 대비)는 첫 화면이 자리잡은 뒤 — 이미 cacheFirst가 채운 URL은 add가 덮어써도 무해
+    .then(() => new Promise(r => setTimeout(r, 8000))).then(() => precache(DATA_CACHE, SHELL_DATA)));
 });
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;

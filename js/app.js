@@ -28,10 +28,14 @@ async function getJSON(url, fallback = null) {
   try { const r = await fetch(url, { cache: 'no-cache' }); if (!r.ok) throw 0; return await r.json(); } catch { return fallback; }
 }
 async function loadCore() {
-  const [sido, sgg, emdIdx, sggIdx, meta, weather, alerts, air, er] = await Promise.all([
+  // 실시간(날씨·특보·응급실)은 부팅을 막지 않는다 — 도착하는 대로 화면에 반영.
+  // 이걸 부팅 필수 3MB와 한 Promise.all에 묶었던 것이 "버벅임"의 절반이었다(09-02).
+  Promise.all([getJSON('data/live/weather.json'), getJSON('data/live/alerts.json'), getJSON('data/live/air.json'), getJSON('data/live/er.json')])
+    .then(([weather, alerts, air, er]) => { Object.assign(state.live, { weather, alerts, air, er }); state._coreP.then(() => { if (map) renderAll(); }); });
+  const [sido, sgg, emdIdx, sggIdx, meta] = await Promise.all([
     getJSON('data/admin/kr_sido.geojson'), getJSON('data/admin/kr_sgg.geojson'),
     getJSON('data/admin/emd_index.json', []), getJSON('data/admin/sgg_index.json', []),
-    getJSON('data/admin/meta.json'), getJSON('data/live/weather.json'), getJSON('data/live/alerts.json'), getJSON('data/live/air.json'), getJSON('data/live/er.json'),
+    getJSON('data/admin/meta.json'),
   ]);
   Object.assign(state.geo, { sido, sgg }); state.meta = meta;
   state.idx.emd = emdIdx; state.idx.sgg = sggIdx;
@@ -44,7 +48,6 @@ async function loadCore() {
     state.idx.bySgg.set(String(s.code), s);
     const k = String(s.sido); const arr = state.idx.sggBySido.get(k); if (arr) arr.push(s); else state.idx.sggBySido.set(k, [s]);
   });
-  Object.assign(state.live, { weather, alerts, air, er });
   state.sit = sessionStorage.getItem('safepic.sit') || null;
   getJSON('data/ref/psych_centers.json').then(j => { state.psych = j; });
   getJSON('data/ref/tips.json').then(j => { state.tips = j; renderTip(); });
@@ -194,10 +197,13 @@ function initMap() {
   initMiddleDrag();
   map.on('zoomend', syncTerrainEx);
   window.__map = map; // E2E에서 queryTerrainElevation 등 확인용
-  map.on('style.load', () => {
+  map.on('style.load', async () => {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
-    localizeLabels(); hideRoadShields(); addAdminLayers(); initShelterUI(); initGrid(map); initGridClick();
+    localizeLabels(); hideRoadShields();
+    // 인트로 비행은 즉시 — 데이터 로딩을 연출이 가려준다
     map.flyTo({ center: KOREA_CENTER, zoom: 5.6, duration: 3000, essential: true, curve: 1.3 });
+    await state._coreP; // 행정 경계·인덱스가 있어야 하는 초기화만 대기
+    addAdminLayers(); initShelterUI(); initGrid(map); initGridClick();
     // 기본 = 3D 켬 (평면 시작이 "지형 미적용"으로 보인다는 재보고 3회) — 끄면('0') 그 선택을 기억
     map.once('moveend', () => { $('#mapHint').textContent = t('hint.drill'); if (localStorage.getItem('safepic.terrain') !== '0') set3D(true); });
   });
@@ -1430,7 +1436,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260902c').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260902d').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1954,8 +1960,10 @@ function renderRulesTable() {
   // 지금 도는 앱 버전 — "구버전 캐시인가?"를 사용자가 서랍에서 10초 만에 확인
   { const v = new URL(import.meta.url).searchParams.get('v'); const el = $('#appVer'); if (el && v) el.textContent = 'app v' + v; }
   let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(activeShelterKinds()); }, 150); });
-  state._coreP = loadCore(); await state._coreP; renderCrumb();
+  // 지도와 core 데이터를 병렬로 — 예전엔 3MB JSON을 다 받은 뒤에야 지도가 시작됐다(09-02 개선)
+  state._coreP = loadCore();
   initMap();
-  map.once('idle', () => { if (location.hash) applyShare(location.hash); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => selectEmd(getHome()), 1200); });
+  await state._coreP; renderCrumb();
+  map.once('idle', async () => { await state._coreP; if (location.hash) applyShare(location.hash); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => selectEmd(getHome()), 1200); });
   renderHome();
 })();

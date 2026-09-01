@@ -175,7 +175,8 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
   .top{gap:6px;padding:0 8px;overflow:hidden}
   .icon-btn{width:34px;height:34px;flex:none}
   .brand-sub{display:none} .brand-name{font-size:1.05rem} .crumb{display:none}
-  .tabs{margin-left:auto;overflow-x:auto;scrollbar-width:none;flex:0 1 auto;min-width:0} .tabs::-webkit-scrollbar{display:none}
+  /* 스크롤 절단면에서 글자가 반 토막으로 보이던 것("지원 ㅊ") → 가장자리 페이드로 "더 있음"으로 읽히게 */
+  .tabs{margin-left:auto;overflow-x:auto;scrollbar-width:none;flex:0 1 auto;min-width:0;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent)} .tabs::-webkit-scrollbar{display:none}
   .tab{padding:6px 9px;font-size:.8rem;flex:none} .tab i{display:none} .tab-about{display:none} .tab-start span{display:none} .tab-start{padding:6px 8px}
   .stage{inset:var(--top-h) 0 0 0}
   .mapwrap{position:absolute;inset:0}

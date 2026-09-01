@@ -1183,6 +1183,7 @@ function initSearch() {
 function setTab(tab) {
   state.tab = tab;
   $$('.tab').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tab));
+  const at = $('.tab.is-active'); if (at && at.scrollIntoView) at.scrollIntoView({ block: 'nearest', inline: 'nearest' }); // 폰: 활성 탭이 절단면에 걸치지 않게
   $$('.view').forEach(v => v.classList.toggle('is-active', v.dataset.view === tab));
   $('#panel').classList.remove('is-collapsed'); $('#panelScroll').scrollTop = 0;
   if (tab === 'about') renderRulesTable();

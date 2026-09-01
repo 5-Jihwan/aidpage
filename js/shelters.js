@@ -102,9 +102,15 @@ function openPopup(lngLat, html) {
   return pop;
 }
 let heatOn = false; // 표시 모드: false=아이콘·클러스터, true=밀도 히트맵 (kfood-atlas 방식, 팔레트는 AidPage)
-// 히트맵 램프(범례 공용) — 통상 열 색상(파랑→청록→라임→노랑→주황→빨강): 단일 파랑 농담은
-// 구분이 어렵다는 피드백(09-01)으로 교체. "빨강=밀집"의 관례적 의미론이 즉독성을 준다.
-export const HEAT_RAMP = ['#3b82f6', '#06b6d4', '#a3e635', '#facc15', '#f97316', '#dc2626'];
+// 히트맵 4단계 등급 밴드(범례 공용) — 연속 그라데이션은 "어디부터 많음인지" 경계가 없어
+// "그냥 색칠"로 읽힌다는 피드백(09-01). 색을 등급으로 끊고 각 색에 이름을 붙인다.
+// 키는 i18n legend.heat.l1~l4 (드묾·보통·많음·밀집 / sparse·moderate·high·dense).
+export const HEAT_BANDS = [
+  { c: '#3b82f6', key: 'legend.heat.l1' },
+  { c: '#a3e635', key: 'legend.heat.l2' },
+  { c: '#f97316', key: 'legend.heat.l3' },
+  { c: '#dc2626', key: 'legend.heat.l4' },
+];
 const ICON_LAYERS = ['sh-pt', 'sh-cluster', 'sh-cluster-badge', 'sh-label'];
 export function setHeatmap(on) {
   heatOn = !!on;
@@ -129,10 +135,14 @@ function ensureAll() {
       'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.6, 10, 0.9, 14, 1.6],
       // 반경을 키워 점별 얼룩 대신 면으로 읽히게
       'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 6, 12, 9, 22, 12, 36, 15, 52],
-      // 통상 열 색상 램프 — HEAT_RAMP와 반드시 일치(범례가 이 값을 그린다)
-      'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
-        0, 'rgba(59,130,246,0)', 0.15, 'rgba(59,130,246,.5)', 0.35, 'rgba(6,182,212,.65)',
-        0.55, 'rgba(163,230,53,.75)', 0.7, 'rgba(250,204,21,.8)', 0.85, 'rgba(249,115,22,.85)', 1, 'rgba(220,38,38,.92)'],
+      // 등급 밴드(step) — HEAT_BANDS와 반드시 일치(범례가 이 값·이름을 그린다).
+      // 연속 보간 대신 계단으로 끊어 기상도 등고선처럼 "여기부터 다음 등급"이 보이게 한다.
+      'heatmap-color': ['step', ['heatmap-density'],
+        'rgba(0,0,0,0)',
+        0.12, 'rgba(59,130,246,.55)',
+        0.35, 'rgba(163,230,53,.7)',
+        0.6, 'rgba(249,115,22,.8)',
+        0.82, 'rgba(220,38,38,.9)'],
       'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.85, 16, 0.55],
     } }, firstSymbol);
   const iconSize = ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05];

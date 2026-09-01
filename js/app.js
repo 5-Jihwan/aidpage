@@ -967,7 +967,7 @@ function renderInsurance() {
   const flood = mine.length ? mine.filter(p => p.flood_hist_n > 0).length : null;
   const hist = flood == null ? '' : `<div class="ins-hist">${t('ins.hist', { n: flood, total: mine.length })}</div>`;
   box.hidden = false;
-  box.innerHTML = `<h3>${t('ins.title')}</h3>${hist}<div class="ins-rate"><b>${gen ? gen.amount_text : ''}</b><small class="muted"> · ${full ? full.amount_text : ''} (${t('ins.full.who')})</small></div><div class="fine">${t('ins.where')} · <a href="https://www.mois.go.kr/frt/sub/a06/b08/pungsuhaeIns/screen.do" target="_blank" rel="noopener">${t('ins.link')}</a> · ${t('badge.asof')} ${(state.rules.insurance && state.rules.insurance.meta && state.rules.insurance.meta.asof) || '2026-08'}</div>`;
+  box.innerHTML = `<h3>${t('ins.title')}</h3>${hist}<div class="ins-rate"><b>${gen ? gen.amount_text : ''}</b><small class="muted"> · ${full ? full.amount_text : ''} (${t('ins.full.who')})</small></div><div class="fine">${t('ins.where')} · <a href="https://www.mois.go.kr/frt/sub/a06/b08/pungsuhaeIns/screen.do" data-stat="ins_click" target="_blank" rel="noopener">${t('ins.link')}</a> · ${t('badge.asof')} ${(state.rules.insurance && state.rules.insurance.meta && state.rules.insurance.meta.asof) || '2026-08'}</div>`;
 }
 /* ---------- 주민 제보 (Worker KV, 텍스트만, 7일) ---------- */
 const REPORT_KINDS = ['shelter_closed', 'drain', 'road', 'water', 'other'];
@@ -1414,7 +1414,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901p').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260902a').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1831,7 +1831,7 @@ function itemHTML(r) {
   const amt = r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '');
   const conf = r.confidence === 'verified' ? '' : `<span class="badge est">${r.confidence === 'reported' ? t('badge.reported') : t('badge.est')}</span>`;
   const sz = r.conditions && r.conditions.special_zone === true ? `<span class="badge sz">${t('res.sz')}</span>` : '';
-  return `<div class="item"><div class="item-row"><b>${r.label}${sz}${conf}</b><span class="item-amt">${amt}</span></div>${r.summary ? `<div class="item-sum">${r.summary}</div>` : ''}${whyHTML(r._why)}<div class="item-basis">${r.where ? `${r.where} · ` : ''}${r.basis || ''}${r.basis_url ? ` · <a href="${r.basis_url}" target="_blank" rel="noopener">${t('item.src')}</a>` : ''}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div>${lawFoldHTML(r)}</div>`;
+  return `<div class="item"><div class="item-row"><b>${r.label}${sz}${conf}</b><span class="item-amt">${amt}</span></div>${r.summary ? `<div class="item-sum">${r.summary}</div>` : ''}${whyHTML(r._why)}<div class="item-basis">${r.where ? `${r.where} · ` : ''}${r.basis || ''}${r.basis_url ? ` · <a href="${r.basis_url}"${r.group === 'insurance' ? ' data-stat="ins_click"' : ''} target="_blank" rel="noopener">${t('item.src')}</a>` : ''}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div>${lawFoldHTML(r)}</div>`;
 }
 /* ---------- 복지서비스 (한국사회보장정보원 스냅샷, fetch_welfare.py가 갱신) ----------
    367건 전량이 아니라: 재난·긴급·위기 키워드 + 위저드에서 고른 가구 조건 키워드에 걸리는
@@ -1860,7 +1860,7 @@ async function renderWelfare(inp) {
   if (!picked.length) return;
   // 대표문의가 기관 전화 나열로 수백 자인 항목(풍수해보험 등)이 있어 한 줄 분량에서 끊는다
   const tel = s => { s = String(s || ''); return s.length > 90 ? s.slice(0, 90) + '…' : s; };
-  const item = it => `<div class="item"><div class="item-row"><b>${escapeHTML(it['서비스명'] || '')}</b><span class="item-amt">${escapeHTML(it['소관부처명'] || '')}</span></div>${it['서비스요약'] ? `<div class="item-sum">${escapeHTML(it['서비스요약'])}</div>` : ''}<div class="item-basis">${it['대표문의'] ? `${escapeHTML(tel(it['대표문의']))} · ` : ''}${it['서비스URL'] ? `<a href="${escapeHTML(it['서비스URL'])}" target="_blank" rel="noopener">${t('res.welfare.link')} ↗</a>` : ''}</div></div>`;
+  const item = it => `<div class="item"><div class="item-row"><b>${escapeHTML(it['서비스명'] || '')}</b><span class="item-amt">${escapeHTML(it['소관부처명'] || '')}</span></div>${it['서비스요약'] ? `<div class="item-sum">${escapeHTML(it['서비스요약'])}</div>` : ''}<div class="item-basis">${it['대표문의'] ? `${escapeHTML(tel(it['대표문의']))} · ` : ''}${it['서비스URL'] ? `<a href="${escapeHTML(it['서비스URL'])}" data-stat="${(it['서비스명'] || '').includes('보험') ? 'ins_click' : 'welfare_click'}" target="_blank" rel="noopener">${t('res.welfare.link')} ↗</a>` : ''}</div></div>`;
   const top = picked.slice(0, 6), rest = picked.slice(6);
   stat('welfare_shown');
   box.hidden = false;
@@ -1909,7 +1909,6 @@ function renderResult(res, inp) {
   // print-only: nearest community center (피해신고 접수처)
   if (state.emd && state.shelters.avail.some(a => a.id === 'townhall')) { const e = state.idx.byEmd.get(state.emd); nearestShelters([e.lon, e.lat], ['townhall'], state.sido, 1, true).then(l => { if (l[0] && !el.hidden) { const d = document.createElement('div'); d.className = 'result-block print-only'; d.innerHTML = `<h3>${t('res.print.townhall')}</h3><b>${l[0].p.name}</b><br>${l[0].p.addr || ''}${l[0].p.tel ? ` · ${l[0].p.tel}` : ''} · ${t('sh.walk', { n: l[0].walk })}`; el.querySelector('.share-row').before(d); } }); }
   $$('input[data-doc]', el).forEach(c => c.addEventListener('change', () => { const on = $$('input[data-doc]', el).filter(x => x.checked).map(x => x.nextElementSibling.textContent); sessionStorage.setItem('safepic.docs', JSON.stringify(on)); }));
-  addEventListener('beforeprint', () => stat('print'), { once: true });
   $('#btnCopy').onclick = async () => { stat('share_copy'); try { await navigator.clipboard.writeText(location.href); $('#copied').textContent = t('res.copied'); setTimeout(() => $('#copied').textContent = '', 2000); } catch { prompt('URL', location.href); } };
   $('#panelScroll').scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
 }
@@ -1932,6 +1931,9 @@ function renderRulesTable() {
   $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });
   $('#btnStart').addEventListener('click', goStart);
   $('#linkRules').addEventListener('click', e => { e.preventDefault(); renderRulesTable(); $('#rulesTable').scrollIntoView({ behavior: 'smooth' }); });
+  // 계측 리스너는 부팅 시 1회만 — renderResult 안에 두면 렌더마다 중복 등록돼 비콘이 다발로 나간다(09-02 자체 검증에서 적발)
+  addEventListener('beforeprint', () => stat('print'), { once: true });
+  document.addEventListener('click', e => { const a = e.target.closest('a[data-stat]'); if (a) stat(a.dataset.stat); }, true);
   initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPush(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
   // 지금 도는 앱 버전 — "구버전 캐시인가?"를 사용자가 서랍에서 10초 만에 확인
   { const v = new URL(import.meta.url).searchParams.get('v'); const el = $('#appVer'); if (el && v) el.textContent = 'app v' + v; }

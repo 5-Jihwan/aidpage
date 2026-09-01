@@ -287,13 +287,13 @@ async function pushSend(req, env, cors) {
 /* ── 익명 사용 계측 — 이벤트 이름별 일 단위 카운터. 페이로드는 {ev}뿐(지역·입력·식별자 없음).
    KV 증분은 동시 요청에서 일부 유실될 수 있으나(비원자적) 추세 파악용으론 충분하다.
    조회는 wrangler kv key list/get (stat:YYYY-MM-DD:이벤트). 400일 보존. ── */
-const STAT_EVS = new Set(['wizard_submit', 'nearmiss_shown', 'welfare_shown', 'print', 'share_copy']);
+const STAT_EVS = new Set(['wizard_submit', 'nearmiss_shown', 'welfare_shown', 'print', 'share_copy', 'ins_click', 'welfare_click']);
 async function stat(req, env) {
   if (req.method !== 'POST') return { status: 'method' };
   let ev = '';
   try { ev = String((await req.json()).ev || ''); } catch (e) { /* not json */ }
   if (!STAT_EVS.has(ev)) return { status: 'bad' };
-  const key = `stat:${new Date().toISOString().slice(0, 10)}:${ev}`;
+  const key = `stat:${new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)}:${ev}`; // KST 일자
   const n = parseInt(await env.CACHE.get(key) || '0', 10) + 1;
   await env.CACHE.put(key, String(n), { expirationTtl: 400 * 86400 });
   return { status: 'ok' };

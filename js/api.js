@@ -20,7 +20,8 @@ export const pushUnsub = body => call('/push/unsub', { method: 'POST', body: JSO
 export function stat(ev) {
   try {
     const body = JSON.stringify({ ev });
-    if (navigator.sendBeacon) navigator.sendBeacon(API + '/stat', new Blob([body], { type: 'application/json' }));
+    // text/plain = CORS 단순 요청 — preflight(OPTIONS) 왕복을 없앤다. 워커 req.json()은 타입 무관 파싱.
+    if (navigator.sendBeacon) navigator.sendBeacon(API + '/stat', new Blob([body], { type: 'text/plain' }));
     else fetch(API + '/stat', { method: 'POST', body, keepalive: true }).catch(() => {});
   } catch (e) { /* no-op */ }
 }

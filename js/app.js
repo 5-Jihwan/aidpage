@@ -781,6 +781,16 @@ async function renderRiskLine() {
   const ws = warningsFor(state.sgg, state.sido), A = state.live.alerts;
   const fresh = A && A.status === 'ok' && A.updated && (Date.now() - Date.parse(A.updated)) < 3 * 3600 * 1000;
   parts.push(ws.length ? `<span class="rl-bad">⚠ ${t('risk.inWarn', { w: ws.map(w => warnName(w.type, w.level)).join(', ') })}</span>` : fresh ? `<span class="rl-ok">${t('risk.noWarn')}</span>` : `<span class="muted">${t('risk.unknown')}</span>`);
+  // 강수 지표: 비가 실제로 올 때만 한 세그먼트. 임계값은 호우특보 기준 근사
+  // (주의보 = 3h 60㎜ 또는 12h 110㎜) — 시간당 20㎜/일 110㎜↑ 위험, 5㎜/50㎜↑ 주의.
+  const wx = weatherFor(state.sgg);
+  if (wx && ((wx.rn1 || 0) >= 1 || (wx.rn_day || 0) >= 10)) {
+    const cls = (wx.rn1 >= 20 || wx.rn_day >= 110) ? 'rl-bad' : (wx.rn1 >= 5 || wx.rn_day >= 50) ? 'rl-warn' : '';
+    const seg = [];
+    if (wx.rn1 != null) seg.push(t('risk.rain.h', { n: wx.rn1 }));
+    if (wx.rn_day != null) seg.push(t('risk.rain.d', { n: Math.round(wx.rn_day) }));
+    parts.push(`<span${cls ? ` class="${cls}"` : ''}>☔ ${seg.join(' · ')}${wx._sido && wx.stn_name ? t('risk.rain.stn', { s: wx.stn_name }) : ''}</span>`);
+  }
   const e = state.emd && state.idx.byEmd.get(state.emd);
   if (e) {
     const cells = gridCells(state.sgg).map(f => f.properties).filter(p => p.emd_name === e.name);
@@ -968,7 +978,16 @@ function renderRegion() {
   // warnings
   const ws = warningsFor(state.sgg, state.sido);
   applyAlertFx(ws);
-  $('#warnCard').innerHTML = ws.map(w => `<div class="warn-item"><span class="warn-level ${/주의보/.test(w.level) ? 'adv' : ''}">${warnName(w.type, w.level)}</span><div><div>${(w.areas || []).slice(0, 4).join(', ')}</div><small class="muted">${fmtTime(w.since)}</small></div></div>`).join('');
+  // 예비특보 — 수집만 되고 안 쓰이던 데이터(alerts.prewarn). 통보문이 시도 약칭('서울','충북')을
+  // 쓰므로 코드→약칭 매핑으로 내 지역 언급이 있을 때만 표시(매핑 불가·전국이면 표시).
+  const SIDO_SHORT = { 11: '서울', 26: '부산', 27: '대구', 28: '인천', 29: '광주', 30: '대전', 31: '울산', 36: '세종', 41: '경기', 43: '충북', 44: '충남', 45: '전북', 52: '전북', 46: '전남', 47: '경북', 48: '경남', 50: '제주', 51: '강원' };
+  const pw = state.live.alerts && state.live.alerts.prewarn;
+  const short = SIDO_SHORT[String(state.sido)];
+  const pwShow = pw && pw.status === 'ok' && !pw.none && pw.text && pw.at
+    && (Date.now() - Date.parse(pw.at)) < 36 * 3600 * 1000
+    && (!short || pw.text.includes(short) || pw.text.includes('전국'));
+  const pwHTML = pwShow ? `<div class="warn-item prewarn"><span class="warn-level pre">${t('warn.pre')}</span><div><div class="pre-text">${escapeHTML(pw.text.trim())}</div><small class="muted">${t('warn.pre.s')} · ${fmtTime(pw.at)}</small></div></div>` : '';
+  $('#warnCard').innerHTML = ws.map(w => `<div class="warn-item"><span class="warn-level ${/주의보/.test(w.level) ? 'adv' : ''}">${warnName(w.type, w.level)}</span><div><div>${(w.areas || []).slice(0, 4).join(', ')}</div><small class="muted">${fmtTime(w.since)}</small></div></div>`).join('') + pwHTML;
   // kv — 인덱스는 loadCore에서 만든 Map으로 조회 (renderRegion은 핫패스: 전수 filter 금지)
   const e = state.emd && state.idx.byEmd.get(state.emd), kv = [], P = t('kv.places');
   const sggOfSido = state.idx.sggBySido.get(String(state.sido)) || [], emdOfSgg = state.idx.emdBySgg.get(String(state.sgg)) || [];
@@ -1223,12 +1242,23 @@ function initPanel() {
     else if (dy < -STEP) target = cur === 'is-collapsed' ? '' : 'is-tall';  // up: collapsed→half→tall
     if (Math.abs(dy) > innerHeight * 0.45) target = dy > 0 ? 'is-collapsed' : 'is-tall'; // long pull jumps to the end
     snapTo(target); };
-  g.addEventListener('touchstart', shStart, { passive: true }); g.addEventListener('touchmove', shMove, { passive: true }); g.addEventListener('touchend', shEnd);
+  // 알림창 쓸어내리기·뒤로가기 제스처·전화 수신 등은 touchend 없이 touchcancel로 끊긴다 —
+  // 핸들러가 없으면 inline height + transition:none이 남아 시트가 그 높이에 굳고,
+  // sheetDrag=true 잔류로 이후 콘텐츠 스크롤이 시트를 끌고 다닌다. 최근접 상태로 스냅해 복구.
+  const shCancel = () => {
+    if (!sheetDrag && !p.style.height) { p.style.transition = ''; return; }
+    sheetDrag = false; p.style.transition = '';
+    const h = p.getBoundingClientRect().height;
+    snapTo(h < innerHeight * 0.3 ? 'is-collapsed' : h > innerHeight * 0.72 ? 'is-tall' : '');
+  };
+  g.addEventListener('touchstart', shStart, { passive: true }); g.addEventListener('touchmove', shMove, { passive: true }); g.addEventListener('touchend', shEnd); g.addEventListener('touchcancel', shCancel);
   // also allow sheetDrag from the sheet header area when the list is scrolled to the top
   const ps = $('#panelScroll');
   ps.addEventListener('touchstart', e => { if (ps.scrollTop <= 0 && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; y0 = e.touches[0].clientY; } }, { passive: true });
   ps.addEventListener('touchmove', e => { if (!sheetDrag && ps.scrollTop <= 0 && e.touches[0].clientY - y0 > 12 && !p.classList.contains('is-collapsed')) { sheetDrag = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = e.touches[0].clientY; p.style.transition = 'none'; } if (sheetDrag) shMove(e); }, { passive: true });
-  ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); });
+  // 드래그가 시작되지 않은 채 끝나면 touchstart가 걸어둔 transition:none을 되돌린다
+  ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); else if (p.style.transition) p.style.transition = ''; });
+  ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260831d').catch(() => {});
@@ -1622,6 +1652,38 @@ function itemHTML(r) {
   const sz = r.conditions && r.conditions.special_zone === true ? `<span class="badge sz">${t('res.sz')}</span>` : '';
   return `<div class="item"><div class="item-row"><b>${r.label}${sz}${conf}</b><span class="item-amt">${amt}</span></div>${r.summary ? `<div class="item-sum">${r.summary}</div>` : ''}${whyHTML(r._why)}<div class="item-basis">${r.where ? `${r.where} · ` : ''}${r.basis || ''}${r.basis_url ? ` · <a href="${r.basis_url}" target="_blank" rel="noopener">${t('item.src')}</a>` : ''}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div>${lawFoldHTML(r)}</div>`;
 }
+/* ---------- 복지서비스 (한국사회보장정보원 스냅샷, fetch_welfare.py가 갱신) ----------
+   367건 전량이 아니라: 재난·긴급·위기 키워드 + 위저드에서 고른 가구 조건 키워드에 걸리는
+   것만 점수순으로. 267KB라 결과 화면을 열 때 한 번만 lazy-load (SW가 cache-first로 보관). */
+let _welfareP = null;
+const loadWelfare = () => _welfareP || (_welfareP = fetch('data/ref/welfare.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null));
+const WF_BASE = ['재난', '재해', '풍수해', '이재민', '긴급', '위기'];
+const WF_HH = { basic: ['기초생활', '수급', '저소득'], near_poor: ['차상위', '저소득'], single_parent: ['한부모', '조손'], senior: ['노인', '어르신', '고령'], disabled: ['장애'] };
+function welfarePick(items, inp) {
+  const hhKw = [...new Set((inp.household || []).flatMap(h => WF_HH[h] || []))];
+  const scored = [];
+  for (const it of items) {
+    const name = it['서비스명'] || '', sum = it['서비스요약'] || '';
+    let s = 0;
+    for (const k of WF_BASE) { if (name.includes(k)) s += 3; else if (sum.includes(k)) s += 1; }
+    for (const k of hhKw) { if (name.includes(k)) s += 2; else if (sum.includes(k)) s += 1; }
+    if (s > 0) scored.push([s, it]);
+  }
+  return scored.sort((a, b) => b[0] - a[0]).map(x => x[1]);
+}
+async function renderWelfare(inp) {
+  const doc = await loadWelfare();
+  const box = $('#welfareBox'); // fetch 동안 결과가 다시 그려졌으면 새 box에 그린다
+  if (!doc || !doc.items || !box) return;
+  const picked = welfarePick(doc.items, inp);
+  if (!picked.length) return;
+  // 대표문의가 기관 전화 나열로 수백 자인 항목(풍수해보험 등)이 있어 한 줄 분량에서 끊는다
+  const tel = s => { s = String(s || ''); return s.length > 90 ? s.slice(0, 90) + '…' : s; };
+  const item = it => `<div class="item"><div class="item-row"><b>${escapeHTML(it['서비스명'] || '')}</b><span class="item-amt">${escapeHTML(it['소관부처명'] || '')}</span></div>${it['서비스요약'] ? `<div class="item-sum">${escapeHTML(it['서비스요약'])}</div>` : ''}<div class="item-basis">${it['대표문의'] ? `${escapeHTML(tel(it['대표문의']))} · ` : ''}${it['서비스URL'] ? `<a href="${escapeHTML(it['서비스URL'])}" target="_blank" rel="noopener">${t('res.welfare.link')} ↗</a>` : ''}</div></div>`;
+  const top = picked.slice(0, 6), rest = picked.slice(6);
+  box.hidden = false;
+  box.innerHTML = `<h3>${t('res.welfare')}</h3><small class="muted">${t('res.welfare.s')}</small>${inp.foreign ? `<small class="muted">${t('res.welfare.fr')}</small>` : ''}${top.map(item).join('')}${rest.length ? `<details class="wf-more"><summary>${t('res.welfare.more', { n: picked.length })}</summary>${rest.map(item).join('')}</details>` : ''}<small class="muted">${t('res.welfare.src', { d: (doc.updated || '').slice(0, 10) })}</small>`;
+}
 function renderResult(res, inp) {
   const n = nameOf(), el = $('#result'); el.hidden = false;
   const place = state.emd ? `${n.sidoName} ${n.sggName} ${n.emdName}` : t('res.noloc');
@@ -1644,7 +1706,7 @@ function renderResult(res, inp) {
     <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><div class="result-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSpeak" title="${t('tts.title')}">🔊</button><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div></div>
     <div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>
     ${dlHTML}${icsBtn}${lateHTML}
-    ${inp.foreign ? `<div class="result-block foreign"><h3>${t('fr.title')}</h3><p>${t('fr.ok')}</p><p>${t('fr.check')}</p><div class="fr-call">📞 ${t('fr.call')}</div></div>` : ''}
+    ${inp.foreign ? `<div class="result-block foreign"><h3>${t('fr.title')}</h3><p>${t('fr.ok')}</p><p>${t('fr.cash')}</p><p>${t('fr.emergency')}</p><p>${t('fr.check')}</p><div class="fr-call">📞 ${t('fr.call')}</div></div>` : ''}
     <div class="print-head"><div>${place} · ${inp.today}</div><div>${t('res.print.for')}</div></div>
     <div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>
     ${sec(t('res.auto'), res.auto)}
@@ -1653,9 +1715,11 @@ function renderResult(res, inp) {
     ${docsHTML(res)}
     ${(() => { const nm = nearMisses(inp); return nm.length ? `<div class="result-block miss ${inp.household_unknown ? 'is-unknown' : ''}"><h3>${inp.household_unknown ? t('res.maybe') : t('res.miss')}</h3>${inp.household_unknown ? `<small class="muted">${t('res.maybe.s')}</small>` : ''}${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : ''; })()}
     ${psychHTML}
+    <div class="result-block welfare" id="welfareBox" hidden></div>
     <div class="result-block"><h3>${t('res.proc')}</h3><ol class="timeline">${(res.timeline || []).map(s => `<li><b>${s.label}</b>${s.due ? ` <span class="badge">${t('badge.due', { d: s.due })}${s.days_left != null ? (s.days_left < 0 ? ' · ' + t('badge.over') : ` · D-${s.days_left}`) : ''}</span>` : ''}<small>${[s.summary, s.where, s.docs && s.docs.length && s.docs.join(', '), s.typical_days].filter(Boolean).join(' · ')}</small></li>`).join('')}</ol></div>
     <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><button type="button" class="btn btn-ghost" id="btnImg">🖼 ${t('res.img')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
     <div class="disclaimer">${t('res.disc')}</div>`;
+  renderWelfare(inp);
   $('#btnEdit').onclick = () => { el.hidden = true; $('#panelScroll').scrollTop = 0; };
   $('#btnImg').onclick = () => shareImage(res, inp);
   $('#btnSpeak').onclick = () => { const txt = [place, formatKRW(res.total_cash_krw || 0) + ' ' + t('res.cash.s'), dl ? `${dl.label} ${dl.due}` : '', ...(res.todo || []).map(x => x.text || x), ...cashItems.map(r => `${r.label} ${r.amount_text || ''}`)].filter(Boolean).join('. '); speak(txt, $('#btnSpeak')); };

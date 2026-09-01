@@ -98,6 +98,8 @@ h3{font-family:var(--label);font-weight:700;font-size:1.05rem;margin:22px 0 8px;
 .warn-item+.warn-item{border-top:1px dashed var(--line)}
 .warn-level{flex:none;padding:2px 9px;border-radius:999px;font-weight:800;font-size:.8rem;background:var(--danger);color:#fff}
 .warn-level.adv{background:var(--warn);color:#2a2200}
+.warn-level.pre{background:#eef3fb;color:var(--accent);border:1px solid var(--line)}
+.pre-text{white-space:pre-line;font-size:.86rem;line-height:1.5}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;font-size:.92rem}
 .kv div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:4px 0}
 .kv span:last-child{font-weight:600;color:var(--ink);font-family:var(--mono);font-size:.88em}
@@ -184,8 +186,9 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
   .search{left:10px!important;right:10px;top:10px;width:auto!important;transition:none}
   .search input{height:42px}
   .map-hint{bottom:calc(52dvh + 10px);font-size:.8rem;max-width:92%}
-  .maplibregl-ctrl-bottom-right{bottom:calc(50dvh + 10px);right:8px} .maplibregl-ctrl-group{display:flex;flex-direction:row} .maplibregl-ctrl-group button{width:44px;height:44px} .maplibregl-ctrl-group button+button{border-top:0;border-left:1px solid #ddd} .maplibregl-ctrl-compass{display:none!important} .maplibregl-ctrl-attrib{display:none}
-  .maplibregl-ctrl-bottom-right .maplibregl-ctrl{margin:0 8px 14px 0} /* 폰: 컨트롤 행 사이·상단 필과의 간격 */
+  /* 폰: 3D와 +/-를 두 줄 쌓기 대신 한 줄로 — 세로 자리를 아끼고 버튼 사이 여백 확보 */
+  .maplibregl-ctrl-bottom-right{bottom:calc(50dvh + 10px);right:8px;display:flex;flex-direction:row;align-items:center;justify-content:flex-end} .maplibregl-ctrl-group{display:flex;flex-direction:row} .maplibregl-ctrl-group button{width:44px;height:44px} .maplibregl-ctrl-group button+button{border-top:0;border-left:1px solid #ddd} .maplibregl-ctrl-compass{display:none!important} .maplibregl-ctrl-attrib{display:none}
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl{margin:0 0 0 10px}
   /* bottom sheet */
   .panel{left:0;right:0;bottom:0;top:auto;width:100%;height:50dvh;border-radius:18px 18px 0 0;border-left:0;border-right:0;border-bottom:0;box-shadow:0 -8px 30px rgba(20,32,46,.14);transition:height .25s;transform:none!important;opacity:1!important;pointer-events:auto!important}
   .panel.is-collapsed{height:calc(64px + env(safe-area-inset-bottom))} .panel.is-collapsed .panel-scroll{overflow:hidden}
@@ -677,3 +680,9 @@ html.big .wcard b{font-size:1.1rem} html.big .wcard small{font-size:.9rem}
 .msg-more summary{cursor:pointer;color:var(--accent);font-size:.86rem;user-select:none;padding:4px 0}
 .msg-more summary:hover{text-decoration:underline}
 .law-note{display:block;margin-top:5px;color:var(--mute);font-size:.8rem;line-height:1.5}
+/* 복지서비스 블록 (결과 하단, welfare.json lazy-load) */
+.welfare > small.muted{display:block;margin:2px 0 6px;line-height:1.5}
+.welfare > small.muted:last-child{margin-top:8px}
+.wf-more{margin:6px 0 2px}
+.wf-more summary{cursor:pointer;color:var(--accent);font-size:.86rem;user-select:none;padding:4px 0}
+.wf-more summary:hover{text-decoration:underline}

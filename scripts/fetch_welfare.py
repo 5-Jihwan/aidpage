@@ -1,22 +1,24 @@
-"""AidPage — 중앙부처 복지서비스 목록 스냅샷 (한국사회보장정보원, data.go.kr B554287).
+"""AidPage — 중앙부처 복지서비스 목록 스냅샷 (한국사회보장정보원, odcloud 15083323).
 
-- DATA_WELFARE_KEY 없으면 아무 파일도 건드리지 않고 종료한다.
-- 목록 API를 전 페이지 순회해 data/ref/welfare.json 으로 저장한다.
-- 응답은 XML이며, 스키마 확정 전이므로 servList의 자식 태그를 전부 dict로 보존한다
-  (프런트가 쓰는 필드만 나중에 슬림화). 실패 시 기존 파일을 덮어쓰지 않는다.
-- 일 1회로 충분한 데이터: 복지 서비스 목록은 분 단위로 변하지 않는다.
-- 실행 주체는 로컬 수집기(fetch_sd_live.maybe_welfare, 한국 IP)가 단독 —
-  daily.yml의 해외 러너는 data.go.kr 접속이 자주 매달려 08-31에 이관했다.
+- 2026-09-01 전환: 예전 실시간 API(B554287 NationalWelfarelistV001)는 활용신청이
+  안 된 서비스라 코드 30(미등록 키)만 돌려줬다. 실제 승인된 건 odcloud 파일기반
+  API(namespace 15083323)로, 연 1~2회 갱신되는 스냅샷(현재 2025-07-22, 367건).
+- 스냅샷 uddi가 갱신될 때마다 바뀌므로 swagger 문서에서 최신본을 자동 탐색하고,
+  문서 접속 실패 시 마지막으로 확인된 uddi로 폴백한다.
+- DATA_WELFARE_KEY 없으면 아무 파일도 건드리지 않고 종료한다. 키는 로그에 남기지 않는다.
+- 전 페이지 순회해 data/ref/welfare.json 저장. 실패 시 기존 파일을 덮어쓰지 않는다.
+- 실행 주체는 로컬 수집기(fetch_sd_live.maybe_welfare) 단독 — daily.yml의 해외
+  러너는 data.go.kr 접속이 자주 매달려 08-31에 이관했다(odcloud도 동일 계열 인프라).
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
-import urllib.parse
 import urllib.error
+import urllib.parse
 import urllib.request
-import xml.etree.ElementTree as ET
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -25,11 +27,13 @@ except Exception:  # noqa: BLE001
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "ref", "welfare.json")
-# 전용 키가 미등록(코드 30)으로 실패한 이력이 있어 계정 공용 키를 폴백으로 둔다
-# (data.go.kr 인증키는 계정 단위 — 같은 계정으로 활용신청했다면 어느 키든 통한다).
+# 계정 공용 키 폴백 유지 (data.go.kr 인증키는 계정 단위).
 KEYS = [(n, os.environ.get(n, "").strip()) for n in ("DATA_WELFARE_KEY", "DATA_GO_KR_KEY")]
 KEYS = [(n, k) for n, k in KEYS if k]
-API = "https://apis.data.go.kr/B554287/NationalWelfareInformationsV001/NationalWelfarelistV001"
+BASE = "https://api.odcloud.kr/api"
+SWAGGER = "https://infuser.odcloud.kr/oas/docs?namespace=15083323/v1"
+# 2026-09-01 확인 최신(중앙부처 복지서비스_20250722) — swagger 탐색 실패 시 폴백
+FALLBACK_PATH = "/15083323/v1/uddi:3929b807-3420-44d7-a851-cc741fce65a1"
 ROWS = 100
 
 
@@ -42,73 +46,73 @@ def _open(url: str) -> str:
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
             return r.read().decode("utf-8", "replace")
-    except urllib.error.HTTPError as e:  # 게이트웨이 오류도 본문에 사유가 있다 — 보이게 한다
+    except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", "replace")[:300] if e.fp else ""
         raise RuntimeError(f"HTTP {e.code}: {detail}") from None
     except (urllib.error.URLError, OSError, TimeoutError) as e:
-        # 해외 러너에서 data.go.kr 접속이 통째로 매달리는 이력(08-30) — RuntimeError로 감싸야
-        # fetch_page의 키 변형·폴백 키 루프가 살아서 다음 시도로 넘어간다
         raise RuntimeError(f"net: {getattr(e, 'reason', e)}") from None
 
 
-def fetch_page(page: int) -> ET.Element:
-    # data.go.kr 키는 포털이 URL 인코딩된 형태로 주는 경우가 많다 — 이중 인코딩을 피하려고
-    # 키는 그대로 붙이고, 실패 시 unquote 변형도 시도한다. 키 값은 절대 로그에 남기지 않는다.
-    tail = f"&callTp=L&pageNo={page}&numOfRows={ROWS}&srchKeyCode=001"
-    last = None
+def latest_path() -> str:
+    """swagger 문서에서 summary 끝의 _YYYYMMDD가 가장 큰 스냅샷 경로를 고른다."""
+    try:
+        doc = json.loads(_open(SWAGGER))
+        best: tuple[str, str] | None = None
+        for path, ops in doc.get("paths", {}).items():
+            summary = (ops.get("get") or {}).get("summary", "")
+            m = re.search(r"_(\d{8})$", summary)
+            stamp = m.group(1) if m else "00000000"
+            if best is None or stamp > best[0]:
+                best = (stamp, path)
+        if best and best[0] != "00000000":
+            log(f"snapshot {best[0]} selected")
+            return best[1]
+    except (RuntimeError, ValueError) as e:
+        log(f"swagger lookup failed ({str(e)[:120]}) — using fallback path")
+    return FALLBACK_PATH
+
+
+def fetch_page(path: str, page: int) -> dict:
+    tail = f"?page={page}&perPage={ROWS}"
+    last: RuntimeError | None = None
     for name, raw in KEYS:
+        # 포털이 인코딩된 키를 주는 경우가 있어 변형도 시도. 키 값은 절대 로그에 남기지 않는다.
         for key in dict.fromkeys([raw, urllib.parse.unquote(raw), urllib.parse.quote(raw, safe="")]):
             try:
-                body = _open(f"{API}?serviceKey={key}{tail}")
+                body = _open(f"{BASE}{path}{tail}&serviceKey={key}")
+                doc = json.loads(body)
+                if "data" not in doc:  # 인증은 통과했지만 봉투가 다르면 사유를 남긴다
+                    raise RuntimeError(f"no data field: {body[:160]}")
                 if page == 1:
                     log(f"key {name} accepted")
-                break
-            except RuntimeError as e:
-                last = e
-        else:
-            if page == 1:
-                log(f"key {name} rejected: {str(last)[:200]}")
-            continue
-        break
-    else:
-        raise last
-    if body.lstrip().startswith("{"):
-        raise RuntimeError(f"unexpected JSON response: {body[:160]}")
-    root = ET.fromstring(body)
-    # data.go.kr 공통 오류 봉투(OpenAPI_ServiceResponse)면 코드가 있다
-    err = root.findtext(".//returnAuthMsg") or root.findtext(".//errMsg")
-    code = root.findtext(".//returnReasonCode") or root.findtext(".//resultCode")
-    if err and (code or "00") not in ("00", "0", "INFO-00", "0000"):
-        raise RuntimeError(f"api error {code}: {err}")
-    return root
+                return doc
+            except (RuntimeError, ValueError) as e:
+                last = e if isinstance(e, RuntimeError) else RuntimeError(str(e)[:200])
+        if page == 1:
+            log(f"key {name} rejected: {str(last)[:200]}")
+    raise last or RuntimeError("no usable key")
 
 
 def main() -> int:
     if not KEYS:
         log("DATA_WELFARE_KEY/DATA_GO_KR_KEY not set — skipping (no files touched)")
         return 0
-    root = fetch_page(1)
-    total_t = root.findtext(".//totalCount")
-    if total_t is None:
-        # 스키마 표류 감지용: 최상위 구조를 남긴다
-        tags = sorted({el.tag for el in root.iter()})[:25]
-        raise RuntimeError(f"totalCount missing — schema? tags={tags}")
-    total = int(total_t)
+    path = latest_path()
+    doc1 = fetch_page(path, 1)
+    total = int(doc1.get("totalCount", 0))
     pages = max(1, -(-total // ROWS))
     log(f"total={total} pages={pages}")
 
-    items: list[dict] = []
-    for p in range(1, pages + 1):
-        r = root if p == 1 else fetch_page(p)
-        for sl in r.iter("servList"):
-            items.append({c.tag: (c.text or "").strip() for c in sl})
+    items: list[dict] = list(doc1["data"])
+    for p in range(2, pages + 1):
+        items.extend(fetch_page(path, p)["data"])
     if not items:
-        raise RuntimeError("0 items parsed — schema drift? not overwriting")
+        raise RuntimeError("0 items — not overwriting")
 
     from datetime import datetime, timedelta, timezone
-    doc = {
+    out = {
         "updated": datetime.now(timezone(timedelta(hours=9))).isoformat(timespec="seconds"),
-        "source": "한국사회보장정보원 중앙부처복지서비스 · 공공데이터포털",
+        "source": "한국사회보장정보원 복지서비스정보(중앙부처) · 공공데이터포털",
         "total": total,
         "items": items,
     }
@@ -116,7 +120,7 @@ def main() -> int:
     # 원자적 쓰기 — 중간에 죽으면 깨진 JSON이 자동 커밋·배포될 수 있다 (수집기 --push 경로)
     tmp = OUT + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(doc, f, ensure_ascii=False, separators=(",", ":"))
+        json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     os.replace(tmp, OUT)
     log(f"wrote {OUT} items={len(items)} keys(sample)={sorted(items[0])[:12]}")
     return 0

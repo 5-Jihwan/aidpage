@@ -120,8 +120,24 @@ function syncTerrainEx() {
   const ex = terrainEx(map.getZoom());
   if (ex !== _terrEx) { _terrEx = ex; map.setTerrain({ source: 'dem', exaggeration: ex }); }
 }
+/* 3D 건물 — 베이스맵 벡터타일의 building 레이어(render_height)를 압출. 3D 모드에서만. */
+function ensureBldg() {
+  if (map.getLayer('bldg-3d')) return;
+  const anchor = ['sgg-label', 'emd-label'].find(l => map.getLayer(l));
+  map.addLayer({ id: 'bldg-3d', type: 'fill-extrusion', source: 'openmaptiles', 'source-layer': 'building',
+    minzoom: 14, layout: { visibility: 'none' },
+    paint: {
+      'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 8],
+        0, '#e6eaf1', 40, '#cfd8e3', 120, '#b3c0d1'],
+      // 줌 14→14.7에서 0→실높이로 자라나는 등장 연출(높이 미기재 건물은 8m 기본)
+      'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.7, ['coalesce', ['get', 'render_height'], 8]],
+      'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 14, 0, 14.7, ['coalesce', ['get', 'render_min_height'], 0]],
+      'fill-extrusion-opacity': 0.85,
+    } }, anchor);
+}
 function set3D(on, ease = true) {
-  ensureDem();
+  ensureDem(); ensureBldg();
+  map.setLayoutProperty('bldg-3d', 'visibility', on ? 'visible' : 'none');
   // ⚠ globe 투영에서는 지형 변위가 적용되지 않는다 — 3D 동안은 mercator로 전환 (08-31 사용자 확인)
   try { map.setProjection({ type: on ? 'mercator' : 'globe' }); } catch (e) { /* 미지원 브라우저 */ }
   _terrEx = on ? terrainEx(map.getZoom()) : 1.7;
@@ -1414,7 +1430,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260902b').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260902c').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

@@ -700,3 +700,5 @@ html.big .wcard b{font-size:1.1rem} html.big .wcard small{font-size:.9rem}
 .wf-more{margin:6px 0 2px}
 .wf-more summary{cursor:pointer;color:var(--accent);font-size:.86rem;user-select:none;padding:4px 0}
 .wf-more summary:hover{text-decoration:underline}
+/* 보험 카드 CTA — 수요 계측의 신호 품질을 올리는 명시적 행동 버튼 */
+.ins-cta{display:inline-block;margin:8px 0 6px;text-decoration:none}

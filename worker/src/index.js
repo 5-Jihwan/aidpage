@@ -35,6 +35,7 @@ export default {
         case '/report': return json(await report(req, env, ip), 200, cors);
         case '/report/flag': return json(await flag(req, env, ip), 200, cors);
         case '/stat': return json(await stat(req, env), 200, cors);
+        case '/stat/summary': return json(await statSummary(env), 200, cors);
         case '/push/vapid': return json({ status: 'ok', key: env.VAPID_PUB || '' }, 200, cors);
         case '/push/sub': return json(await pushSub(req, env), 200, cors);
         case '/push/unsub': return json(await pushUnsub(req, env), 200, cors);
@@ -288,6 +289,21 @@ async function pushSend(req, env, cors) {
    KV 증분은 동시 요청에서 일부 유실될 수 있으나(비원자적) 추세 파악용으론 충분하다.
    조회는 wrangler kv key list/get (stat:YYYY-MM-DD:이벤트). 400일 보존. ── */
 const STAT_EVS = new Set(['wizard_submit', 'nearmiss_shown', 'welfare_shown', 'print', 'share_copy', 'ins_click', 'welfare_click']);
+/* 최근 14일 이벤트별 카운트 — 익명 집계라 공개 조회 무해. 사업 지표 대시보드용. */
+async function statSummary(env) {
+  const days = [];
+  for (let i = 0; i < 14; i++) days.push(new Date(Date.now() + 9 * 3600e3 - i * 86400e3).toISOString().slice(0, 10));
+  const out = {};
+  for (const d of days) {
+    const row = {};
+    for (const ev of STAT_EVS) {
+      const v = await env.CACHE.get(`stat:${d}:${ev}`);
+      if (v) row[ev] = +v;
+    }
+    if (Object.keys(row).length) out[d] = row;
+  }
+  return { status: 'ok', days: out };
+}
 async function stat(req, env) {
   if (req.method !== 'POST') return { status: 'method' };
   let ev = '';

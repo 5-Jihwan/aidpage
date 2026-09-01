@@ -967,7 +967,7 @@ function renderInsurance() {
   const flood = mine.length ? mine.filter(p => p.flood_hist_n > 0).length : null;
   const hist = flood == null ? '' : `<div class="ins-hist">${t('ins.hist', { n: flood, total: mine.length })}</div>`;
   box.hidden = false;
-  box.innerHTML = `<h3>${t('ins.title')}</h3>${hist}<div class="ins-rate"><b>${gen ? gen.amount_text : ''}</b><small class="muted"> · ${full ? full.amount_text : ''} (${t('ins.full.who')})</small></div><div class="fine">${t('ins.where')} · <a href="https://www.mois.go.kr/frt/sub/a06/b08/pungsuhaeIns/screen.do" data-stat="ins_click" target="_blank" rel="noopener">${t('ins.link')}</a> · ${t('badge.asof')} ${(state.rules.insurance && state.rules.insurance.meta && state.rules.insurance.meta.asof) || '2026-08'}</div>`;
+  box.innerHTML = `<h3>${t('ins.title')}</h3>${hist}<div class="ins-rate"><b>${gen ? gen.amount_text : ''}</b><small class="muted"> · ${full ? full.amount_text : ''} (${t('ins.full.who')})</small></div><a class="btn btn-primary btn-sm ins-cta" href="https://www.mois.go.kr/frt/sub/a06/b08/pungsuhaeIns/screen.do" data-stat="ins_click" target="_blank" rel="noopener">☂ ${t('ins.cta')}</a><div class="fine">${t('ins.where')} · ${t('badge.asof')} ${(state.rules.insurance && state.rules.insurance.meta && state.rules.insurance.meta.asof) || '2026-08'}</div>`;
 }
 /* ---------- 주민 제보 (Worker KV, 텍스트만, 7일) ---------- */
 const REPORT_KINDS = ['shelter_closed', 'drain', 'road', 'water', 'other'];
@@ -1414,7 +1414,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260902a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260902b').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

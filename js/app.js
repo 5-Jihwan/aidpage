@@ -1266,16 +1266,26 @@ function initPanel() {
   g.addEventListener('touchstart', shStart, { passive: true }); g.addEventListener('touchmove', shMove, { passive: true }); g.addEventListener('touchend', shEnd); g.addEventListener('touchcancel', shCancel);
   // also allow sheetDrag from the sheet header area when the list is scrolled to the top
   const ps = $('#panelScroll');
-  ps.addEventListener('touchstart', e => { if (ps.scrollTop <= 0 && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; y0 = e.touches[0].clientY; } }, { passive: true });
-  // ⚠passive:false 필수 — 드래그가 걸린 뒤 preventDefault로 네이티브 스크롤·오버스크롤을 끊지
-  // 않으면 실기기에서 브라우저가 제스처를 가져가며 touchcancel을 쏘고, 시트가 끌다 만 채 되튄다.
-  ps.addEventListener('touchmove', e => { if (!sheetDrag && ps.scrollTop <= 0 && e.touches[0].clientY - y0 > 12 && !p.classList.contains('is-collapsed')) { sheetDrag = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = e.touches[0].clientY; p.style.transition = 'none'; } if (sheetDrag) { if (e.cancelable) e.preventDefault(); shMove(e); } }, { passive: false });
+  // y0는 매 터치마다 갱신 — scrollTop>0에서 시작한 제스처가 이전 y0로 오판하지 않게
+  ps.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; if (ps.scrollTop <= 0 && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; } }, { passive: true });
+  // ⚠passive:false + "첫 touchmove부터" preventDefault가 핵심 — 안드로이드 크롬은 네이티브
+  // 스크롤이 일단 시작되면 이후 touchmove의 cancelable이 false가 되어 preventDefault가 무력화된다.
+  // 12px 문턱을 기다렸다 막으면 이미 늦는다(그 사이 브라우저가 제스처를 가져가 touchcancel).
+  // 맨 위에서 아래로 당기는 순간(콘텐츠가 더 스크롤될 게 없는 방향)은 첫 이벤트부터 막는다.
+  ps.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - y0;
+    // dy>4: 손가락 잔떨림(위로 스크롤 의도)은 통과시키되, 브라우저 터치 슬롭(~8px)보다 먼저 개입
+    const pullAtTop = ps.scrollTop <= 0 && dy > 4 && !p.classList.contains('is-collapsed') && matchMedia(MQ_MOBILE).matches;
+    if (!sheetDrag && pullAtTop && dy > 12) { sheetDrag = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = e.touches[0].clientY; p.style.transition = 'none'; }
+    if ((sheetDrag || pullAtTop) && e.cancelable) e.preventDefault();
+    if (sheetDrag) shMove(e);
+  }, { passive: false });
   // 드래그가 시작되지 않은 채 끝나면 touchstart가 걸어둔 transition:none을 되돌린다
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); else if (p.style.transition) p.style.transition = ''; });
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901f').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901g').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

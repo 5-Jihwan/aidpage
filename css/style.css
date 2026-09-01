@@ -196,7 +196,9 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
   .panel-grip{display:block;width:100%;height:22px;margin:0;flex:none;position:relative;cursor:grab;touch-action:none}
   .panel-grip::before{content:"";position:absolute;left:50%;top:9px;width:44px;height:5px;margin-left:-22px;border-radius:3px;background:#c9d2e0}
   .panel-resize{display:none}
-  .panel-scroll{padding:4px 14px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  /* overscroll none(≠contain): 맨 위 당김에 대한 브라우저 자체 동작(글로우·새로고침)을 완전 제거 —
+     시트 드래그 JS가 제스처를 온전히 가진다(contain은 글로우가 남아 터치를 뺏길 수 있음) */
+  .panel-scroll{padding:4px 14px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;overscroll-behavior:none}
   .h1{font-size:1.25rem;margin-bottom:10px} .h2{font-size:1.5rem}
   .cards{gap:8px} .card{min-height:84px;padding:12px 12px 10px} .card-ic{font-size:1.35rem} .card b{font-size:.95rem} .card small{display:none}
   .region-head{flex-direction:column;align-items:stretch;gap:8px} .region-head .btn{width:100%;text-align:center}

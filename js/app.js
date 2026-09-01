@@ -708,9 +708,20 @@ function recentQuake() {
   return it || null;
 }
 function warningsFor(sgg, sido) {
-  const a = state.live.alerts; if (!a || !a.warnings || !a.warnings.items) return quakeAsWarning();
+  const a = state.live.alerts; if (!a || !a.warnings || !a.warnings.items) return [...quakeAsWarning(), ...landslideAsWarning()];
   const n = nameOf(); // 항목·필드마다 재계산하지 않도록 1회만
-  return [...a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(sgg) || c === String(sido)) || (w.areas || []).some(x => (n.sggName && x.includes(n.sggName)) || (n.sidoName && x === n.sidoName))), ...quakeAsWarning()];
+  return [...a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(sgg) || c === String(sido)) || (w.areas || []).some(x => (n.sggName && x.includes(n.sggName)) || (n.sidoName && x === n.sidoName))), ...quakeAsWarning(), ...landslideAsWarning()];
+}
+/* 산사태 예보(산림청, alerts.landslide) → 특보와 같은 봉투로 합류 — riskLine·특보카드·할일이 공짜로 받는다.
+   region이 "전북특별자치도 정읍시" 전체명이라 시도+시군구 동시 포함으로 매칭(중구·고성군 같은 중복명 방어).
+   해제 통보가 없는 데이터라 발효 24시간 창으로 자연 만료시킨다. */
+function landslideAsWarning() {
+  const L = state.live.alerts && state.live.alerts.landslide; if (!L || !L.items || !L.items.length) return [];
+  const n = nameOf(); if (!n.sggName) return [];
+  return L.items
+    .filter(it => it.at && Date.now() - Date.parse(it.at) < 24 * 3600 * 1000
+      && it.region && it.region.includes(n.sggName) && (!n.sidoName || it.region.includes(n.sidoName)))
+    .map(it => ({ type: '산사태', level: it.level, areas: [it.region], since: it.at }));
 }
 function quakeAsWarning() { const q = recentQuake(); const T = state.live.alerts && state.live.alerts.typhoon; const out = q ? [{ type: '지진', level: '속보', areas: [`${q.loc} · M${q.mag}`], since: q.announced }] : []; for (const t of (T && T.items) || []) { const a = t.analysis || (t.forecast || [])[0]; if (a) out.push({ type: '태풍', level: '정보', areas: [`${t.year} ${t.no}호 · ${a.wind || '?'}m/s · ${a.pressure || '?'}hPa`], since: a.tm }); } return out; }
 const pmGrade = (v, pm25) => v == null ? '' : pm25 ? (v <= 15 ? 'g-good' : v <= 35 ? 'g-mod' : v <= 75 ? 'g-bad' : 'g-vbad') : (v <= 30 ? 'g-good' : v <= 80 ? 'g-mod' : v <= 150 ? 'g-bad' : 'g-vbad');
@@ -742,12 +753,13 @@ function renderCrumb() {
   if (state.emd) { sep(); add(n.emdName, () => {}, true); }
 }
 /* ---------- today's to-do (3 lines): warnings > situation > season ---------- */
-const WARN_EN = { '폭염': 'Heat', '호우': 'Heavy rain', '대설': 'Heavy snow', '강풍': 'Strong wind', '한파': 'Cold wave', '건조': 'Dry', '태풍': 'Typhoon', '지진': 'Earthquake', '풍랑': 'High seas', '황사': 'Yellow dust', '주의보': ' advisory', '경보': ' warning', '속보': ' bulletin', '정보': ' info' };
+const WARN_EN = { '폭염': 'Heat', '호우': 'Heavy rain', '대설': 'Heavy snow', '강풍': 'Strong wind', '한파': 'Cold wave', '건조': 'Dry', '태풍': 'Typhoon', '지진': 'Earthquake', '풍랑': 'High seas', '황사': 'Yellow dust', '산사태': 'Landslide', '주의보': ' advisory', '경보': ' warning', '속보': ' bulletin', '정보': ' info' };
 const warnName = (type, level) => getLang() === 'en' ? (WARN_EN[type] || type) + (WARN_EN[level] || ' ' + level) : type + level;
 const ALERT_MAP = { // 특보 종류·단계 → 행동 문구 키 + 자동 시설
   '폭염': { key: 'heat', kinds: ['heat'] }, '호우': { key: 'rain', kinds: ['temp_housing', 'civil_defense', 'underpass'] }, '대설': { key: 'snow', kinds: ['cold'] },
   '강풍': { key: 'wind', kinds: [] }, '한파': { key: 'cold', kinds: ['cold'] }, '건조': { key: 'dry', kinds: [] }, '태풍': { key: 'typhoon', kinds: ['temp_housing', 'civil_defense'] },
   '지진': { key: 'quake', kinds: ['quake'] }, '풍랑': { key: 'sea', kinds: [] }, '황사': { key: 'dust', kinds: ['dust'] },
+  '산사태': { key: 'lslide', kinds: ['temp_housing'] },
 };
 function todoItems() {
   const ws = warningsFor(state.sgg, state.sido), m = new Date().getMonth() + 1, out = [], seen = new Set();
@@ -1255,13 +1267,15 @@ function initPanel() {
   // also allow sheetDrag from the sheet header area when the list is scrolled to the top
   const ps = $('#panelScroll');
   ps.addEventListener('touchstart', e => { if (ps.scrollTop <= 0 && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; y0 = e.touches[0].clientY; } }, { passive: true });
-  ps.addEventListener('touchmove', e => { if (!sheetDrag && ps.scrollTop <= 0 && e.touches[0].clientY - y0 > 12 && !p.classList.contains('is-collapsed')) { sheetDrag = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = e.touches[0].clientY; p.style.transition = 'none'; } if (sheetDrag) shMove(e); }, { passive: true });
+  // ⚠passive:false 필수 — 드래그가 걸린 뒤 preventDefault로 네이티브 스크롤·오버스크롤을 끊지
+  // 않으면 실기기에서 브라우저가 제스처를 가져가며 touchcancel을 쏘고, 시트가 끌다 만 채 되튄다.
+  ps.addEventListener('touchmove', e => { if (!sheetDrag && ps.scrollTop <= 0 && e.touches[0].clientY - y0 > 12 && !p.classList.contains('is-collapsed')) { sheetDrag = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = e.touches[0].clientY; p.style.transition = 'none'; } if (sheetDrag) { if (e.cancelable) e.preventDefault(); shMove(e); } }, { passive: false });
   // 드래그가 시작되지 않은 채 끝나면 touchstart가 걸어둔 transition:none을 되돌린다
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); else if (p.style.transition) p.style.transition = ''; });
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260831d').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901f').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

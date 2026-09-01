@@ -2,7 +2,7 @@
 import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831d';
 import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260831d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831d';
-import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901h';
+import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, HEAT_RAMP, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901j';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
@@ -582,6 +582,7 @@ async function initShelterUI() {
     localStorage.setItem('safepic.shHeat', on ? '1' : '0');
     $$('.shmode-b', box).forEach(x => x.classList.toggle('is-on', x === b));
     setShelterHeatmap(on);
+    renderLegend(activeShelterKinds()); // 모드에 따라 범례가 색점 ↔ 밀도 램프로 바뀐다
   }));
   const save = () => { localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); syncShelterLayers(); renderRegion(); };
   $('#shselT').addEventListener('click', () => box.classList.toggle('is-open'));
@@ -669,7 +670,12 @@ function renderLegend(kinds) {
   box.title = t('legend.drag');
   const onRow = (key, l) => `<div class="lg-row lg-grid is-sw" data-lg="${key}" title="${t('legend.tap.off')}"><b>${l.title}</b>${l.html}</div>`;
   const offRow = (key, title) => `<div class="lg-row lg-grid is-sw is-off" data-lg="${key}" title="${t('legend.tap.on')}"><b>${title}</b><span class="lg-off">${t('legend.off')}</span></div>`;
-  box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + (sh.length ? `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>` : '') +
+  // 히트맵 모드: 시설 색점 대신 밀도 램프 + 읽는 법 한 줄 (사용자 피드백 "색 기준 설명 필요")
+  const heatMode = localStorage.getItem('safepic.shHeat') === '1' && sh.length;
+  const shRow = !sh.length ? '' : heatMode
+    ? `<div class="lg-row lg-heatrow"><b>${t('legend.heat')}</b><span class="lg-ramp" style="background:linear-gradient(90deg,${HEAT_RAMP.join(',')})"></span><span class="lg-ends"><small>${t('legend.heat.lo')}</small><small>${t('legend.heat.hi')}</small></span><small class="lg-heat-s">${t('legend.heat.s', { list: sh.map(k => k.icon).join('') })}</small></div>`
+    : `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>`;
+  box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${heatMode ? HEAT_RAMP.map(c => `<i style="background:${c}"></i>`).join('') : sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + shRow +
     (wxl ? onRow('wx', wxl) : wxOff ? offRow('wx', t('wx.' + state._wxLast)) : '') +
     (g ? onRow('grid', g) : gridOff ? offRow('grid', t('grid.title')) : '') + `<small class="lg-src">${t('legend.src')}</small>`;
   $('#lgToggle').addEventListener('click', () => { state._legendOpen = !state._legendOpen; box.classList.toggle('is-min', mobile && !state._legendOpen); });
@@ -1295,7 +1301,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901i').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901j').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

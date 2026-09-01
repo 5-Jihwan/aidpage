@@ -314,6 +314,11 @@ html.big .locate{width:42px;height:42px}
 .shmode{display:flex;gap:2px;border:1px solid var(--line);border-radius:999px;padding:2px;background:#fff;margin:2px 0;width:max-content}
 .shmode-b{border:0;background:none;border-radius:999px;padding:3px 10px;font-size:.8rem;color:var(--mute);cursor:pointer}
 .shmode-b.is-on{background:var(--bg);color:var(--ink);font-weight:700}
+/* 범례: 히트맵 밀도 램프 */
+.lg-heatrow{display:block;max-width:240px}
+.lg-ramp{display:block;height:10px;border-radius:5px;margin:4px 0 2px;border:1px solid var(--line)}
+.lg-ends{display:flex;justify-content:space-between;color:var(--mute)}
+.lg-heat-s{display:block;margin-top:4px;color:var(--mute);line-height:1.45;max-width:230px}
 .shgrp-t{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font-size:.82rem;font-weight:700;color:var(--mute);flex:none}
 .shgrp-t.is-on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .shgrp-k{display:flex;flex-wrap:wrap;gap:2px;flex:1;min-width:0}

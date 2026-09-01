@@ -102,6 +102,8 @@ function openPopup(lngLat, html) {
   return pop;
 }
 let heatOn = false; // 표시 모드: false=아이콘·클러스터, true=밀도 히트맵 (kfood-atlas 방식, 팔레트는 AidPage)
+// 히트맵 램프(범례 공용) — dataviz 검증기 ordinal 전부 PASS (단일 색상·단조 밝기·간격·표면 대비)
+export const HEAT_RAMP = ['#87abdc', '#6795d3', '#4a80c9', '#2d6abc', '#14509f', '#0d3d85'];
 const ICON_LAYERS = ['sh-pt', 'sh-cluster', 'sh-cluster-badge', 'sh-label'];
 export function setHeatmap(on) {
   heatOn = !!on;
@@ -119,12 +121,14 @@ function ensureAll() {
   map.addLayer({ id: 'sh-heatmap', type: 'heatmap', source: 'sh-heat',
     layout: { visibility: 'none' },
     paint: {
-      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.7, 10, 1, 14, 2],
-      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 6, 10, 9, 18, 12, 30, 15, 46],
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.6, 10, 0.9, 14, 1.6],
+      // 반경을 키워 점별 얼룩 대신 면으로 읽히게
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 6, 12, 9, 22, 12, 36, 15, 52],
+      // 단일 색상(브랜드 파랑) 밝음→어두움 단조 램프 — HEAT_RAMP와 반드시 일치(범례가 이 값을 그린다)
       'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
-        0, 'rgba(26,95,196,0)', 0.15, 'rgba(190,227,248,.55)', 0.4, 'rgba(99,179,237,.75)',
-        0.65, 'rgba(26,95,196,.8)', 0.85, 'rgba(15,74,158,.85)', 1, 'rgba(154,115,40,.92)'],
-      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.85, 16, 0.55],
+        0, 'rgba(135,171,220,0)', 0.15, 'rgba(135,171,220,.6)', 0.3, 'rgba(103,149,211,.72)',
+        0.5, 'rgba(74,128,201,.82)', 0.7, 'rgba(45,106,188,.88)', 0.85, 'rgba(20,80,159,.92)', 1, 'rgba(13,61,133,.95)'],
+      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.9, 16, 0.6],
     } });
   const iconSize = ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05];
   map.addLayer({ id: 'sh-pt', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['!', ['has', 'point_count']],

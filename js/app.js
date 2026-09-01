@@ -1285,7 +1285,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901g').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901h').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1510,6 +1510,30 @@ function initWelcome() {
     launch('sel'); it.go();
   });
   addEventListener('keydown', e => { if (e.key === 'Escape' && !w.hidden) close(); });
+  /* 폰: 카드가 하단 고정·상단 라운드라 영락없는 바텀시트 모양 — 사용자는 끌어내려 닫기를
+     기대하는데 지금까진 모달이라 무반응이었다(“스크롤바가 내려가지 않는다” 보고의 실체).
+     맨 위에서 아래로 당기면 카드가 손가락을 따라오고, 110px 이상 내리면 닫힌다.
+     panel 시트와 같은 이유로 passive:false + 첫 move부터 preventDefault(안드로이드 크롬은
+     네이티브 스크롤이 시작되면 이후 move가 cancelable=false). */
+  const card = w.querySelector('.welcome-card');
+  let wy0 = 0, wDrag = false;
+  const wBack = () => { wDrag = false; card.style.transition = 'transform .2s ease'; card.style.transform = ''; setTimeout(() => { card.style.transition = ''; }, 220); };
+  card.addEventListener('touchstart', e => { if (!matchMedia(MQ_MOBILE).matches) return; wy0 = e.touches[0].clientY; wDrag = false; }, { passive: true });
+  card.addEventListener('touchmove', e => {
+    if (!matchMedia(MQ_MOBILE).matches) return;
+    const dy = e.touches[0].clientY - wy0;
+    if (!wDrag && card.scrollTop <= 0 && dy > 4) { wDrag = true; card.style.transition = 'none'; }
+    if (wDrag && e.cancelable) e.preventDefault();
+    if (wDrag) card.style.transform = `translateY(${Math.max(0, dy)}px)`;
+  }, { passive: false });
+  card.addEventListener('touchend', e => {
+    if (!wDrag) return;
+    const dy = e.changedTouches[0].clientY - wy0;
+    if (dy > 110) { card.style.transition = 'transform .18s ease'; card.style.transform = 'translateY(110%)'; setTimeout(() => { close(); card.style.transition = ''; card.style.transform = ''; }, 180); wDrag = false; }
+    else wBack();
+  });
+  card.addEventListener('touchcancel', () => { if (wDrag) wBack(); });
+  w.addEventListener('click', e => { if (e.target === w) close(); }); // 배경 탭 = 닫기 (시트 관례)
   if (!location.hash && !getHome()) open();
 }
 /* 상황 바: 지금 고른 상황을 보여주고 한 번에 바꾼다 */

@@ -641,7 +641,9 @@ html.big .lang-top-t{font-size:1rem;height:42px}
 .welcome-skip:hover{color:var(--ink)}
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){
   .welcome{align-items:flex-end;padding:0}
-  .welcome-card{border-radius:20px 20px 0 0;max-width:none;padding:22px 18px 18px}
+  .welcome-card{border-radius:20px 20px 0 0;max-width:none;padding:14px 18px 18px;overscroll-behavior:none;touch-action:pan-y}
+  /* 시트 모양이니 그립도 진짜로 — 끌어내려 닫기 어포던스 */
+  .welcome-card::before{content:"";display:block;width:44px;height:5px;border-radius:3px;background:#c9d2e0;margin:0 auto 12px}
   .wcard{min-height:88px;padding:12px 12px 10px}
   .wcard .card-ic{font-size:1.4rem}
   .wcard b{font-size:.95rem}

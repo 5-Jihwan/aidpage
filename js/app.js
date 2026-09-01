@@ -2,7 +2,7 @@
 import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831d';
 import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260831d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831d';
-import { initShelters, setActive as setShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260831l';
+import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901h';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
@@ -568,11 +568,21 @@ async function initShelterUI() {
   ];
   const en = getLang() === 'en', K = id => state.shelters.avail.find(a => a.id === id);
   const chip = k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${en ? k.en : k.ko}</span></label>`;
-  box.innerHTML = `<button type="button" class="wxsel-t" id="shselT">${t('sh.title')}</button>` + GROUPS.map(g => {
+  const heat = localStorage.getItem('safepic.shHeat') === '1';
+  box.innerHTML = `<button type="button" class="wxsel-t" id="shselT">${t('sh.title')}</button>`
+    + `<div class="shmode" role="group" aria-label="${t('sh.mode')}"><button type="button" class="shmode-b ${heat ? '' : 'is-on'}" data-m="icons">📍 ${t('sh.mode.icons')}</button><button type="button" class="shmode-b ${heat ? 'is-on' : ''}" data-m="heat">🌡 ${t('sh.mode.heat')}</button></div>`
+    + GROUPS.map(g => {
     const ks = g.kinds.map(K).filter(Boolean); if (!ks.length) return '';
     const allOn = ks.every(k => state.shelters.active.has(k.id));
     return `<div class="shgrp"><button type="button" class="shgrp-t ${allOn ? 'is-on' : ''}" data-grp="${g.id}">${g.icon} ${en ? g.en : g.ko}</button><div class="shgrp-k">${ks.map(chip).join('')}</div></div>`;
   }).join('');
+  if (heat) setShelterHeatmap(true);
+  $$('.shmode-b', box).forEach(b => b.addEventListener('click', () => {
+    const on = b.dataset.m === 'heat';
+    localStorage.setItem('safepic.shHeat', on ? '1' : '0');
+    $$('.shmode-b', box).forEach(x => x.classList.toggle('is-on', x === b));
+    setShelterHeatmap(on);
+  }));
   const save = () => { localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); syncShelterLayers(); renderRegion(); };
   $('#shselT').addEventListener('click', () => box.classList.toggle('is-open'));
   $$('input', box).forEach(i => i.addEventListener('change', () => { i.checked ? state.shelters.active.add(i.value) : state.shelters.active.delete(i.value); const g = i.closest('.shgrp'); g.querySelector('.shgrp-t').classList.toggle('is-on', $$('input', g).every(x => x.checked)); save(); }));
@@ -1285,7 +1295,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901h').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901i').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

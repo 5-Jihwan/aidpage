@@ -101,11 +101,31 @@ function openPopup(lngLat, html) {
   _popFallback = pop;
   return pop;
 }
+let heatOn = false; // 표시 모드: false=아이콘·클러스터, true=밀도 히트맵 (kfood-atlas 방식, 팔레트는 AidPage)
+const ICON_LAYERS = ['sh-pt', 'sh-cluster', 'sh-cluster-badge', 'sh-label'];
+export function setHeatmap(on) {
+  heatOn = !!on;
+  if (!map || !map.getLayer('sh-heatmap')) return;
+  map.setLayoutProperty('sh-heatmap', 'visibility', heatOn ? 'visible' : 'none');
+  ICON_LAYERS.forEach(l => map.getLayer(l) && map.setLayoutProperty(l, 'visibility', heatOn ? 'none' : 'visible'));
+}
 function ensureAll() {
   if (map.getSource('sh-all')) return;
   KINDS.forEach(ensureIcon);
   map.addSource('sh-all', { type: 'geojson', data: EMPTY_FC, cluster: true, clusterRadius: 22, clusterMaxZoom: 17,
     clusterProperties: { ki: ['min', ['get', 'ki']] } });
+  // 히트맵 전용 비클러스터 소스 — 클러스터 소스는 저줌에서 점이 뭉쳐 밀도가 왜곡된다
+  map.addSource('sh-heat', { type: 'geojson', data: EMPTY_FC });
+  map.addLayer({ id: 'sh-heatmap', type: 'heatmap', source: 'sh-heat',
+    layout: { visibility: 'none' },
+    paint: {
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.7, 10, 1, 14, 2],
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 6, 10, 9, 18, 12, 30, 15, 46],
+      'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
+        0, 'rgba(26,95,196,0)', 0.15, 'rgba(190,227,248,.55)', 0.4, 'rgba(99,179,237,.75)',
+        0.65, 'rgba(26,95,196,.8)', 0.85, 'rgba(15,74,158,.85)', 1, 'rgba(154,115,40,.92)'],
+      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.85, 16, 0.55],
+    } });
   const iconSize = ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05];
   map.addLayer({ id: 'sh-pt', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['!', ['has', 'point_count']],
     layout: { 'icon-image': ['concat', 'sh-ic-', ['get', 'kind']], 'icon-size': iconSize, 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
@@ -202,6 +222,8 @@ export async function setActive(kinds, sido, clip = null) {
     }
   }
   if (map.getSource('sh-all')) map.getSource('sh-all').setData({ type: 'FeatureCollection', features: feats });
+  if (map.getSource('sh-heat')) map.getSource('sh-heat').setData({ type: 'FeatureCollection', features: feats });
+  setHeatmap(heatOn); // 저장된 모드를 레이어 생성 후에도 유지
 }
 const R = 6371000;
 function dist(a, b) { const toR = x => x * Math.PI / 180; const dLat = toR(b[1] - a[1]), dLon = toR(b[0] - a[0]); const s = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[1])) * Math.cos(toR(b[1])) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(s)); }

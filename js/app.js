@@ -2,7 +2,7 @@
 import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831d';
 import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, ATTRS as GRID_ATTRS } from './grid.js?v=20260831d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER } from './api.js?v=20260831d';
-import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901m';
+import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901n';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
@@ -111,11 +111,21 @@ function ensureDem() {
              'hillshade-shadow-color': 'rgba(62,79,98,.5)', 'hillshade-highlight-color': 'rgba(255,255,255,.45)' } },
     map.getLayer('sido-fill') ? 'sido-fill' : undefined);
 }
+/* 고줌에서 과장 1.7 지형은 카메라가 능선·계곡을 따라 출렁인다(사용자 "위아래 흔들림" 보고, 09-01)
+   — 줌 13부터 과장을 단계적으로 줄여 근접 시 카메라를 안정시킨다. setTerrain은 값이 바뀔 때만. */
+let _terrEx = 1.7;
+const terrainEx = z => z >= 13 ? Math.max(0.5, +(1.7 - (z - 13) * 0.3).toFixed(1)) : 1.7;
+function syncTerrainEx() {
+  if (!map || !map.getTerrain || !map.getTerrain()) return;
+  const ex = terrainEx(map.getZoom());
+  if (ex !== _terrEx) { _terrEx = ex; map.setTerrain({ source: 'dem', exaggeration: ex }); }
+}
 function set3D(on, ease = true) {
   ensureDem();
   // ⚠ globe 투영에서는 지형 변위가 적용되지 않는다 — 3D 동안은 mercator로 전환 (08-31 사용자 확인)
   try { map.setProjection({ type: on ? 'mercator' : 'globe' }); } catch (e) { /* 미지원 브라우저 */ }
-  map.setTerrain(on ? { source: 'dem', exaggeration: 1.7 } : null);
+  _terrEx = on ? terrainEx(map.getZoom()) : 1.7;
+  map.setTerrain(on ? { source: 'dem', exaggeration: _terrEx } : null);
   map.setLayoutProperty('hillshade', 'visibility', on ? 'visible' : 'none');
   if (on) { // 격자·행정면 위, 시설 아이콘·라벨 아래로 올려 실제로 보이게
     const anchor = ['sh-pt', 'emd-label', 'sgg-label'].find(l => map.getLayer(l));
@@ -161,6 +171,7 @@ function initMap() {
   map.addControl(new TerrainToggle(), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
   initMiddleDrag();
+  map.on('zoomend', syncTerrainEx);
   window.__map = map; // E2E에서 queryTerrainElevation 등 확인용
   map.on('style.load', () => {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
@@ -590,7 +601,7 @@ async function initShelterUI() {
     localStorage.setItem('safepic.shHeat', on ? '1' : '0');
     $$('.shmode-b', box).forEach(x => x.classList.toggle('is-on', x === b));
     setShelterHeatmap(on);
-    renderLegend(activeShelterKinds()); // 모드에 따라 범례가 색점 ↔ 밀도 램프로 바뀐다
+    syncShelterLayers(); // 구역 집계 렌더 + 범례 갱신
   }));
   const save = () => { localStorage.setItem('safepic.shelters', JSON.stringify([...state.shelters.active])); syncShelterLayers(); renderRegion(); };
   $('#shselT').addEventListener('click', () => box.classList.toggle('is-open'));
@@ -612,6 +623,69 @@ function syncShelterLayers() {
   const kinds = activeShelterKinds();
   // 시군구/동을 골랐으면 그 안의 시설만 지도에 — 아이콘 산재 방지
   setShelters(kinds, state.sido, focusClip());
+  renderShelterHeat(kinds); // 비동기 — 집계 후 스스로 renderLegend 재호출
+  renderLegend(kinds);
+}
+/* ---------- 시설 구역 히트맵 — 행정단위(시도→시군구별, 시군구·동→읍면동별) 집계 ----------
+   점 커널 히트맵은 줌인 시 원이 갈라져 "융합 안 됨"·"기준 없음"으로 읽혔다(09-01 피드백 3회).
+   구역별 실개수를 4분위 밴드로 칠하고, 범례에 실제 개수 범위를 쓴다 — 기준이 숫자가 된다. */
+const SHHEAT_COLORS = ['#3b82f6', '#a3e635', '#f97316', '#dc2626'];
+let _shHeatSig = null;
+const _shHeatIds = { sgg: new Set(), emd: new Set() };
+function ensureShHeatLayers() {
+  if (map.getLayer('shheat-sgg')) return;
+  const anchor = ['sgg-label', 'emd-label'].find(l => map.getLayer(l)); // 격자 위·지명 라벨 아래 (3원칙)
+  map.addLayer({ id: 'shheat-sgg', type: 'fill', source: 'sgg', paint: { 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 0 } }, anchor);
+  map.addLayer({ id: 'shheat-emd', type: 'fill', source: 'emd', paint: { 'fill-color': 'rgba(0,0,0,0)', 'fill-opacity': 0 } }, anchor);
+}
+function clearShHeat() {
+  for (const src of ['sgg', 'emd']) { _shHeatIds[src].forEach(id => map.setFeatureState({ source: src, id }, { shn: null })); _shHeatIds[src].clear(); }
+  ['shheat-sgg', 'shheat-emd'].forEach(l => map.getLayer(l) && map.setPaintProperty(l, 'fill-opacity', 0));
+  state._shLegend = null;
+}
+async function renderShelterHeat(kinds) {
+  if (!map || !map.getLayer('sgg-fill')) return;
+  ensureShHeatLayers();
+  const on = localStorage.getItem('safepic.shHeat') === '1';
+  if (!on || !kinds.length || !state.sido) { if (_shHeatSig) { _shHeatSig = null; clearShHeat(); renderLegend(kinds); } return; }
+  const perEmd = !!state.sgg; // 시군구(또는 동) 선택 = 읍면동별, 시도만 선택 = 시군구별
+  const sig = [...kinds].sort().join(',') + '|' + state.sido + '|' + (perEmd ? 'e' + state.sgg : 's');
+  if (sig === _shHeatSig) return;
+  const src = perEmd ? 'emd' : 'sgg';
+  let polys;
+  if (perEmd) { await ensureEmd(); polys = featuresWhere(state.geo.emd, 'sgg_code', state.sgg); }
+  else polys = featuresWhere(state.geo.sgg, 'sido_code', state.sido);
+  const feats = await collectShelters(kinds, state.sido);
+  if (!polys.length) return;
+  // 개수 세기: bbox 선별 후에만 point-in-polygon
+  const boxes = polys.map(f => ({ f, b: bboxOf([f]) }));
+  const counts = new Map();
+  for (const ft of feats) {
+    const c = ft.geometry && ft.geometry.coordinates; if (!c) continue;
+    for (const { f, b } of boxes) {
+      if (c[0] < b[0] || c[0] > b[2] || c[1] < b[1] || c[1] > b[3]) continue;
+      if (pipFeature(c[0], c[1], f)) { const id = String(f.properties.code); counts.set(id, (counts.get(id) || 0) + 1); break; }
+    }
+  }
+  _shHeatSig = sig;
+  clearShHeat();
+  const vals = [...counts.values()].sort((a, b) => a - b);
+  if (!vals.length) { renderLegend(kinds); return; }
+  // 브레이크 = 0 제외 4분위, 겹치면 한 칸씩 벌린다 (밴드 경계가 항상 오름차순이도록)
+  const q = p => vals[Math.min(vals.length - 1, Math.round(p * (vals.length - 1)))];
+  let b1 = Math.max(1, q(0.25)), b2 = Math.max(b1 + 1, q(0.5)), b3 = Math.max(b2 + 1, q(0.75));
+  counts.forEach((n, id) => { map.setFeatureState({ source: src, id }, { shn: n }); _shHeatIds[src].add(id); });
+  const color = ['step', ['coalesce', ['feature-state', 'shn'], 0], 'rgba(0,0,0,0)',
+    1, SHHEAT_COLORS[0], b1 + 1, SHHEAT_COLORS[1], b2 + 1, SHHEAT_COLORS[2], b3 + 1, SHHEAT_COLORS[3]];
+  const active = perEmd ? 'shheat-emd' : 'shheat-sgg', idle = perEmd ? 'shheat-sgg' : 'shheat-emd';
+  map.setPaintProperty(active, 'fill-color', color);
+  map.setPaintProperty(active, 'fill-opacity', 0.55);
+  map.setPaintProperty(idle, 'fill-opacity', 0);
+  const max = vals[vals.length - 1];
+  state._shLegend = { u: perEmd ? 'emd' : 'sgg', bins: [
+    { lo: 1, hi: b1, c: SHHEAT_COLORS[0] }, { lo: b1 + 1, hi: b2, c: SHHEAT_COLORS[1] },
+    { lo: b2 + 1, hi: b3, c: SHHEAT_COLORS[2] }, { lo: b3 + 1, hi: max > b3 ? null : b3 + 1, c: SHHEAT_COLORS[3] },
+  ] };
   renderLegend(kinds);
 }
 /* 지도 범례: 켜진 시설 색 + (격자 표시 중이면) 격자 범례 */
@@ -678,12 +752,14 @@ function renderLegend(kinds) {
   box.title = t('legend.drag');
   const onRow = (key, l) => `<div class="lg-row lg-grid is-sw" data-lg="${key}" title="${t('legend.tap.off')}"><b>${l.title}</b>${l.html}</div>`;
   const offRow = (key, title) => `<div class="lg-row lg-grid is-sw is-off" data-lg="${key}" title="${t('legend.tap.on')}"><b>${title}</b><span class="lg-off">${t('legend.off')}</span></div>`;
-  // 히트맵 모드: 시설 색점 대신 밀도 램프 + 읽는 법 한 줄 (사용자 피드백 "색 기준 설명 필요")
-  const heatMode = localStorage.getItem('safepic.shHeat') === '1' && sh.length;
+  // 히트맵 모드: 구역별 실개수 범례 — 각 색이 "몇 곳"인지 숫자로 말한다
+  const L = state._shLegend;
+  const heatMode = localStorage.getItem('safepic.shHeat') === '1' && sh.length && L;
+  const binLbl = b => b.lo === b.hi ? t('legend.heat.n1', { n: b.lo }) : b.hi == null ? t('legend.heat.np', { n: b.lo }) : t('legend.heat.n', { lo: b.lo, hi: b.hi });
   const shRow = !sh.length ? '' : heatMode
-    ? `<div class="lg-row lg-heatrow"><b>${t('legend.heat')}</b><span class="lg-bands">${HEAT_BANDS.map(b => `<span class="lg-band"><i style="background:${b.c}"></i>${t(b.key)}</span>`).join('')}</span><small class="lg-heat-s">${t('legend.heat.s', { list: sh.map(k => k.icon).join('') })}</small></div>`
+    ? `<div class="lg-row lg-heatrow"><b>${t('legend.heat')} · ${t('legend.heat.u.' + L.u)}</b><span class="lg-bands">${L.bins.map(b => `<span class="lg-band"><i style="background:${b.c}"></i>${binLbl(b)}</span>`).join('')}</span><small class="lg-heat-s">${t('legend.heat.s', { list: sh.map(k => k.icon).join('') })}</small></div>`
     : `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>`;
-  box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${heatMode ? HEAT_BANDS.map(b => `<i style="background:${b.c}"></i>`).join('') : sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + shRow +
+  box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${heatMode ? L.bins.map(b => `<i style="background:${b.c}"></i>`).join('') : sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + shRow +
     (wxl ? onRow('wx', wxl) : wxOff ? offRow('wx', t('wx.' + state._wxLast)) : '') +
     (g ? onRow('grid', g) : gridOff ? offRow('grid', t('grid.title')) : '') + `<small class="lg-src">${t('legend.src')}</small>`;
   $('#lgToggle').addEventListener('click', () => { state._legendOpen = !state._legendOpen; box.classList.toggle('is-min', mobile && !state._legendOpen); });
@@ -1309,7 +1385,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901m').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260901n').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

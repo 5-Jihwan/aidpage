@@ -101,50 +101,30 @@ function openPopup(lngLat, html) {
   _popFallback = pop;
   return pop;
 }
-let heatOn = false; // 표시 모드: false=아이콘·클러스터, true=밀도 히트맵 (kfood-atlas 방식, 팔레트는 AidPage)
-// 히트맵 4단계 등급 밴드(범례 공용) — 연속 그라데이션은 "어디부터 많음인지" 경계가 없어
-// "그냥 색칠"로 읽힌다는 피드백(09-01). 색을 등급으로 끊고 각 색에 이름을 붙인다.
-// 키는 i18n legend.heat.l1~l4 (드묾·보통·많음·밀집 / sparse·moderate·high·dense).
-export const HEAT_BANDS = [
-  { c: '#3b82f6', key: 'legend.heat.l1' },
-  { c: '#a3e635', key: 'legend.heat.l2' },
-  { c: '#f97316', key: 'legend.heat.l3' },
-  { c: '#dc2626', key: 'legend.heat.l4' },
-];
+let heatOn = false; // 표시 모드: false=아이콘·클러스터, true=구역 히트맵(행정단위 집계 — app.js renderShelterHeat)
 const ICON_LAYERS = ['sh-pt', 'sh-cluster', 'sh-cluster-badge', 'sh-label'];
 export function setHeatmap(on) {
   heatOn = !!on;
-  if (!map || !map.getLayer('sh-heatmap')) return;
-  map.setLayoutProperty('sh-heatmap', 'visibility', heatOn ? 'visible' : 'none');
+  if (!map) return;
   ICON_LAYERS.forEach(l => map.getLayer(l) && map.setLayoutProperty(l, 'visibility', heatOn ? 'none' : 'visible'));
+}
+/** 켜진 종류의 시설 피처 전량(클립 없음) — 구역 집계 히트맵이 개수를 세는 데 쓴다 */
+export async function collect(kinds, sido) {
+  const out = [];
+  for (const k of KINDS) {
+    if (!kinds.includes(k.id)) continue;
+    const fc = await load(k.id, sido); if (!fc) continue;
+    for (const f of fc.features) out.push(f);
+  }
+  return out;
 }
 function ensureAll() {
   if (map.getSource('sh-all')) return;
   KINDS.forEach(ensureIcon);
   map.addSource('sh-all', { type: 'geojson', data: EMPTY_FC, cluster: true, clusterRadius: 22, clusterMaxZoom: 17,
     clusterProperties: { ki: ['min', ['get', 'ki']] } });
-  // 히트맵 전용 비클러스터 소스 — 클러스터 소스는 저줌에서 점이 뭉쳐 밀도가 왜곡된다
-  map.addSource('sh-heat', { type: 'geojson', data: EMPTY_FC });
-  // 삽입 위치 = "격자 위, 지명 라벨 아래". 첫 심볼 레이어 아래(1차 시도)는 격자(grid-fill,
-  // sgg-line 아래 삽입)까지 히트맵 위로 올라와 색면이 묻혔다 — 앱 라벨(sgg/emd-label) 바로 아래가 정답.
-  const firstSymbol = ['sgg-label', 'emd-label'].find(l => map.getLayer(l))
-    || (map.getStyle().layers.find(l => l.type === 'symbol') || {}).id;
-  map.addLayer({ id: 'sh-heatmap', type: 'heatmap', source: 'sh-heat',
-    layout: { visibility: 'none' },
-    paint: {
-      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.6, 10, 0.9, 14, 1.6],
-      // 반경을 키워 점별 얼룩 대신 면으로 읽히게
-      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 6, 12, 9, 22, 12, 36, 15, 52],
-      // 등급 밴드(step) — HEAT_BANDS와 반드시 일치(범례가 이 값·이름을 그린다).
-      // 연속 보간 대신 계단으로 끊어 기상도 등고선처럼 "여기부터 다음 등급"이 보이게 한다.
-      'heatmap-color': ['step', ['heatmap-density'],
-        'rgba(0,0,0,0)',
-        0.12, 'rgba(59,130,246,.55)',
-        0.35, 'rgba(163,230,53,.7)',
-        0.6, 'rgba(249,115,22,.8)',
-        0.82, 'rgba(220,38,38,.9)'],
-      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0.85, 16, 0.55],
-    } }, firstSymbol);
+  // (구 커널 히트맵 소스·레이어는 09-01 구역 집계형으로 대체되며 제거 — 점 커널은 겹침이
+  //  줌에 따라 개별 원으로 갈라져 "융합 안 됨" 피드백을 낳았다. 구역 히트맵은 app.js 소관.)
   const iconSize = ['interpolate', ['linear'], ['zoom'], 9, 0.45, 12, 0.75, 16, 1.05];
   map.addLayer({ id: 'sh-pt', type: 'symbol', source: 'sh-all', minzoom: 9, filter: ['!', ['has', 'point_count']],
     layout: { 'icon-image': ['concat', 'sh-ic-', ['get', 'kind']], 'icon-size': iconSize, 'icon-allow-overlap': true, 'icon-padding': 0 }, paint: { 'icon-opacity': 0.95 } });
@@ -241,8 +221,7 @@ export async function setActive(kinds, sido, clip = null) {
     }
   }
   if (map.getSource('sh-all')) map.getSource('sh-all').setData({ type: 'FeatureCollection', features: feats });
-  if (map.getSource('sh-heat')) map.getSource('sh-heat').setData({ type: 'FeatureCollection', features: feats });
-  setHeatmap(heatOn); // 저장된 모드를 레이어 생성 후에도 유지
+  setHeatmap(heatOn); // 저장된 모드(아이콘 숨김)를 레이어 생성 후에도 유지
 }
 const R = 6371000;
 function dist(a, b) { const toR = x => x * Math.PI / 180; const dLat = toR(b[1] - a[1]), dLon = toR(b[0] - a[0]); const s = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[1])) * Math.cos(toR(b[1])) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(s)); }

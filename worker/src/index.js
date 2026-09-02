@@ -55,19 +55,21 @@ export default {
 
 /* ---------- /route — 카카오모빌리티 도보 길찾기 프록시 (2단계 준비 + 키 승인 자가검증)
    ?from=lon,lat&to=lon,lat → { status, len_m, sec, coords:[[lon,lat]...] }. status: no_key | ok | error:<http> (401=키 오류, 403=제휴 미승인) */
-const KAKAO_WALK = 'https://apis-navi.kakaomobility.com/affiliate/walking/v1/directions';
+const KAKAO_WALK = 'https://apis-navi.kakaomobility.com/affiliate/walking/v1/directions';   // 제휴 전용
+const KAKAO_CAR = 'https://apis-navi.kakaomobility.com/v1/directions';                      // 공개 (플랫폼 REST 키)
 async function route(url, env) {
   if (!env.KAKAO_REST_KEY) return { status: 'no_key', updated: now() };
   const from = url.searchParams.get('from') || '', to = url.searchParams.get('to') || '';
   if (!/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(from) || !/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(to)) return { status: 'error:400', updated: now() };
-  return cached(env, `route:${from}|${to}`, 3600, async () => {
-    const r = await fetch(`${KAKAO_WALK}?origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`, { headers: { Authorization: `KakaoAK ${env.KAKAO_REST_KEY}` } });
+  const mode = url.searchParams.get('mode') === 'car' ? 'car' : 'walk';
+  return cached(env, `route:${mode}:${from}|${to}`, 3600, async () => {
+    const r = await fetch(`${mode === 'car' ? KAKAO_CAR : KAKAO_WALK}?origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`, { headers: { Authorization: `KakaoAK ${env.KAKAO_REST_KEY}` } });
     if (!r.ok) return { status: `error:${r.status}`, updated: now(), body: (await r.text()).slice(0, 200) };
     const j = await r.json();
     const rt = (j.routes || [])[0]; if (!rt) return { status: 'error:noroute', updated: now() };
     const coords = [];
     for (const sec of rt.sections || []) for (const rd of sec.roads || []) { const v = rd.vertexes || []; for (let i = 0; i + 1 < v.length; i += 2) coords.push([v[i], v[i + 1]]); }
-    return { status: 'ok', updated: now(), len_m: rt.summary && rt.summary.distance, sec: rt.summary && rt.summary.duration, coords };
+    return { status: 'ok', mode, updated: now(), len_m: rt.summary && rt.summary.distance, sec: rt.summary && rt.summary.duration, coords };
   });
 }
 /* ---------- helpers ---------- */

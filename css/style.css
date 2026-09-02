@@ -702,3 +702,31 @@ html.big .wcard b{font-size:1.1rem} html.big .wcard small{font-size:.9rem}
 .wf-more summary:hover{text-decoration:underline}
 /* 보험 카드 CTA — 수요 계측의 신호 품질을 올리는 명시적 행동 버튼 */
 .ins-cta{display:inline-block;margin:8px 0 6px;text-decoration:none}
+
+/* ── AidPage Simulator (가는 길 위험, 격자 1단계) ── */
+.sim-launch{border-color:var(--accent);background:#f7f9fc} .sim-launch h3{margin-top:0} .sim-launch .btn{margin-top:6px}
+.sim .sim-head{display:flex;align-items:center;justify-content:space-between;gap:8px} .sim .sim-head h3{margin:0}
+.sim-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0}
+.sim-row .lbl{font-weight:700;min-width:48px;font-family:var(--label)}
+.sim-val{flex:1;min-width:0;font-family:var(--mono);font-size:.84em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sim-val.muted{color:var(--mute);font-family:inherit}
+.sim .btn.is-picking{border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 3px rgba(154,115,40,.18)}
+.sim-sel{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font:inherit;font-weight:600;color:var(--ink);background:#fff}
+.sim .actions{display:flex;gap:8px;align-items:center;margin:10px 0 6px}
+.sim-res{display:grid;gap:8px;margin-top:8px}
+.sim-scn{font-size:.82rem;color:var(--mute);font-family:var(--mono)}
+.sim-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px}
+.sim-card.safe{border-color:var(--accent)}
+.sim-card h4{margin:0 0 4px;font-family:var(--label);font-size:1rem;display:flex;align-items:center;gap:8px}
+.sim-card h4 i,.sim-legend .ln{width:22px;height:0;border-top:3px solid #6b768a;display:inline-block;border-radius:0}
+.sim-card.short h4 i,.sim-legend .ln.short{border-top-style:dashed;border-color:#6b768a}
+.sim-card.safe h4 i,.sim-legend .ln.safe{border-color:var(--accent);border-top-width:4px}
+.sim-card .m{font-family:var(--mono);font-size:.88em;color:var(--ink)}
+.sim-card ul{margin:6px 0 0;padding-left:18px;font-size:.9rem;word-break:keep-all}
+.sim-card li.bad{color:var(--danger)} .sim-card li.warn{color:var(--gold)} .sim-card li.ok{color:var(--teal)} .sim-card li.muted{color:var(--mute)}
+.sim-gain{background:#e8f0fb;border-radius:10px;padding:8px 12px;font-size:.92rem;color:var(--accent2);word-break:keep-all}
+.sim-wait{padding:10px;color:var(--mute);font-size:.9rem} .sim-err{padding:10px 12px;border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:.9rem;word-break:keep-all}
+.sim-legend{margin-top:10px} .sim-note{margin-top:8px;word-break:keep-all}
+body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
+
+.kakao-link{color:#3c1e1e;background:#fee500;border-radius:10px;padding:8px 12px;font-weight:700}

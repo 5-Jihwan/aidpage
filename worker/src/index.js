@@ -4,10 +4,12 @@
      GET /news?sgg=11620&lang=ko      → BigKinds: 7-day disaster news for a district   (KV 60 min)
      GET /law?mst=...&art=...         → 국가법령정보: one article's text                  (KV 24 h)
      GET /radar  /sat                 → KMA API hub image passthrough                   (KV 10 min)
+     POST /kakao/skill                → 카카오톡 채널 챗봇(오픈빌더 스킬 서버), src/kakao.js      (키 불필요)
    Every route answers the same envelope as fetch_live.py: { status, updated, items|... }.
    status: "ok" | "no_key" | "error:<code>" | "rate_limited". Missing key never throws. */
 
-const VERSION = '0.2.0';
+import { kakaoSkill } from './kakao.js';
+const VERSION = '0.3.0';
 const TTL = { news: 3600, law: 86400, radar: 600, er: 180 };
 const RATE = { perMin: 30 };
 const ER_DAILY_MAX = 150;  // E-Gen 일 1,000건 중 Actions 수집(~750건)을 빼고 워커 몫
@@ -22,7 +24,8 @@ export default {
     if (origin && !cors['Access-Control-Allow-Origin']) return json({ status: 'error:403' }, 403, cors);
 
     const ip = req.headers.get('CF-Connecting-IP') || '0';
-    if (await rateLimited(env, ip)) return json({ status: 'rate_limited' }, 429, cors);
+    // 카카오 오픈빌더는 소수의 서버 IP로 모든 이용자 발화를 보내므로 IP 속도제한에서 제외 (자체 5초 타임아웃·KV 캐시로 보호)
+    if (!url.pathname.startsWith('/kakao/') && await rateLimited(env, ip)) return json({ status: 'rate_limited' }, 429, cors);
 
     try {
       switch (url.pathname) {
@@ -40,6 +43,8 @@ export default {
         case '/push/sub': return json(await pushSub(req, env), 200, cors);
         case '/push/unsub': return json(await pushUnsub(req, env), 200, cors);
         case '/push/send': return pushSend(req, env, cors);
+        case '/kakao/skill': return json(await kakaoSkill(req, env), 200, cors);
+        case '/route': return json(await route(url, env), 200, cors);
         default: return json({ status: 'error:404' }, 404, cors);
       }
     } catch (e) {
@@ -48,6 +53,23 @@ export default {
   },
 };
 
+/* ---------- /route — 카카오모빌리티 도보 길찾기 프록시 (2단계 준비 + 키 승인 자가검증)
+   ?from=lon,lat&to=lon,lat → { status, len_m, sec, coords:[[lon,lat]...] }. status: no_key | ok | error:<http> (401=키 오류, 403=제휴 미승인) */
+const KAKAO_WALK = 'https://apis-navi.kakaomobility.com/affiliate/walking/v1/directions';
+async function route(url, env) {
+  if (!env.KAKAO_REST_KEY) return { status: 'no_key', updated: now() };
+  const from = url.searchParams.get('from') || '', to = url.searchParams.get('to') || '';
+  if (!/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(from) || !/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(to)) return { status: 'error:400', updated: now() };
+  return cached(env, `route:${from}|${to}`, 3600, async () => {
+    const r = await fetch(`${KAKAO_WALK}?origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`, { headers: { Authorization: `KakaoAK ${env.KAKAO_REST_KEY}` } });
+    if (!r.ok) return { status: `error:${r.status}`, updated: now(), body: (await r.text()).slice(0, 200) };
+    const j = await r.json();
+    const rt = (j.routes || [])[0]; if (!rt) return { status: 'error:noroute', updated: now() };
+    const coords = [];
+    for (const sec of rt.sections || []) for (const rd of sec.roads || []) { const v = rd.vertexes || []; for (let i = 0; i + 1 < v.length; i += 2) coords.push([v[i], v[i + 1]]); }
+    return { status: 'ok', updated: now(), len_m: rt.summary && rt.summary.distance, sec: rt.summary && rt.summary.duration, coords };
+  });
+}
 /* ---------- helpers ---------- */
 const now = () => new Date().toISOString();
 function json(obj, status, headers) { return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers } }); }

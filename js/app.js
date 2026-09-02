@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260831d';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260901p';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260902f';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260902f';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -395,9 +395,9 @@ function addAdminLayers() {
   }
   // 시설 아이콘·클러스터 위를 눌렀을 땐 지역 드릴다운 금지 (펼침이 flyTo에 즉시 접히던 버그)
   const overShelter = e => { const ls = ['sh-pt', 'sh-cluster'].filter(l => map.getLayer(l)); return ls.length && map.queryRenderedFeatures(e.point, { layers: ls }).length; };
-  map.on('click', 'emd-fill', e => { if (overShelter(e)) return; const f = e.features[0]; if (f) selectEmd(f.properties.code); });
-  map.on('click', 'sgg-fill', e => { if (overShelter(e)) return; if (map.queryRenderedFeatures(e.point, { layers: ['emd-fill'] }).length) return; const f = e.features[0]; if (f) selectSgg(f.properties.code); });
-  map.on('click', 'sido-fill', e => { if (overShelter(e)) return; if (map.queryRenderedFeatures(e.point, { layers: ['sgg-fill', 'emd-fill'] }).length) return; const f = e.features[0]; if (f) selectSido(f.properties.code); });
+  map.on('click', 'emd-fill', e => { if (state.simPick || overShelter(e)) return; const f = e.features[0]; if (f) selectEmd(f.properties.code); });
+  map.on('click', 'sgg-fill', e => { if (state.simPick || overShelter(e)) return; if (map.queryRenderedFeatures(e.point, { layers: ['emd-fill'] }).length) return; const f = e.features[0]; if (f) selectSgg(f.properties.code); });
+  map.on('click', 'sido-fill', e => { if (state.simPick || overShelter(e)) return; if (map.queryRenderedFeatures(e.point, { layers: ['sgg-fill', 'emd-fill'] }).length) return; const f = e.features[0]; if (f) selectSido(f.properties.code); });
   map.on('click', () => $('#mapHint').classList.add('is-hidden'));
 }
 /* ---------- 포커스 연출 — 선택한 시군구/동을 '무대'로 (08-31 사용자 아이디어) ----------
@@ -519,14 +519,41 @@ function initHome() {
   $('#btnForgetHome').addEventListener('click', () => { localStorage.removeItem('safepic.home'); renderHome(); });
   $('#btnSaveHome').addEventListener('click', () => { if (!state.emd) return; if (getHome() === state.emd) localStorage.removeItem('safepic.home'); else localStorage.setItem('safepic.home', state.emd); renderHome(); });
   $('#btnResetSel').addEventListener('click', () => { resetNation(); $('#wizard').reset(); syncWizardLoc(); });
+  $('#btnSim').addEventListener('click', openSimulator);
+  initKakao();
+}
+/* ---------- 카카오톡 채널 — 공개 채널 ID(예: '_AbCdE')만 있으면 된다. 앱 키·SDK 불필요(링크 방식). 비어 있으면 버튼 숨김 ---------- */
+const KAKAO_CHANNEL = '';
+function initKakao() {
+  const els = $$('[data-kakao]'); if (!els.length) return;
+  els.forEach(el => { if (!KAKAO_CHANNEL) { el.hidden = true; return; } el.hidden = false; el.href = `https://pf.kakao.com/${KAKAO_CHANNEL}` + (el.dataset.kakao === 'chat' ? '/chat' : '/friend'); });
+}
+/* ---------- AidPage Simulator (가는 길 위험, 격자 1단계) — 버튼을 눌렀을 때만 모듈·워커 로드 ---------- */
+let _simMod = null;
+async function openSimulator() {
+  const b = $('#btnSim'); b.disabled = true;
+  try {
+    if (!_simMod) {
+      _simMod = await import('./sim.js?v=20260902f');
+      _simMod.initSim({
+        map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
+        warningsFor: () => warningsFor(state.sgg, state.sido),
+        // 폰: 지도에서 지점을 찍는 동안 시트를 내려 지도를 보이게, 찍고 나면 다시 올린다
+        onPick: on => { if (!matchMedia(MQ_MOBILE).matches) return; const p = $('#panel'); p.classList.toggle('is-collapsed', on); if (!on) p.classList.remove('is-tall'); setTimeout(() => map.resize(), 260); },
+      });
+    }
+    await _simMod.openSim();
+  } catch (e) { console.warn('simulator load failed', e); toast(t('sim.fail')); }
+  finally { b.disabled = false; }
 }
 /* ---------- pilot grid (탭③ + 탭① 겹침) ---------- */
 let gridAttr = localStorage.getItem('safepic.gridAttr') || 'slope_mean';
 async function syncGrid() {
   const box = $('#gridBox'), where = $('#whereGrid');
   const mapOn = localStorage.getItem('safepic.gridOn') !== '0';  // 지도 위 격자 겹침 표시 (설정)
-  if (!state.sgg || !(await hasGrid(state.sgg))) { state._gridAvail = false; hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; renderLegend(activeShelterKinds()); return; }
-  state._gridAvail = true;  // 꺼져 있어도 범례에 '켜기' 줄을 남기려면 자료 유무를 알아야 한다
+  if (state.sim && state.sim.sgg !== state.sgg) state.sim.close();   // 다른 시·군·구로 이동 = 시뮬레이터 종료(격자가 바뀐다)
+  if (!state.sgg || !(await hasGrid(state.sgg))) { state._gridAvail = false; hideGrid(); if (box) box.hidden = true; if (where) where.hidden = true; $('#wherePending').hidden = false; $('#simLaunch').hidden = true; renderLegend(activeShelterKinds()); return; }
+  state._gridAvail = true; $('#simLaunch').hidden = !!state.sim;  // 꺼져 있어도 범례에 '켜기' 줄을 남기려면 자료 유무를 알아야 한다
   const attrs = gridAttrs(state.sgg); if (!attrs.some(a => a.id === gridAttr)) gridAttr = attrs[0] && attrs[0].id;
   // 지도 표시를 꺼도 renderPrepare()의 수치는 캐시된 셀에서 계산하므로 그대로 나온다.
   let leg = null;
@@ -596,6 +623,7 @@ function renderPrepare() {
 }
 function initGridClick() {
   map.on('click', 'grid-fill', e => {
+    if (state.simPick) return;
     const p = e.features[0].properties, attrs = gridAttrs(state.sgg);
     const rows = attrs.map(a => `<tr><td>${getLang() === 'en' ? a.en : a.ko}</td><td class="mono">${gridFmt(a, p[a.id] == null ? null : +p[a.id])}</td></tr>`).join('') + (p.flood_years ? `<tr><td>${getLang() === 'en' ? 'Flood years' : '침수 연도'}</td><td class="mono">${String(p.flood_years).replace(/[\[\]"]/g, '')}</td></tr>` : '');
     const gm = gridMeta(state.sgg) || {};
@@ -1736,6 +1764,14 @@ function encodeShare(inp) {
   return '#r?' + p.toString();
 }
 async function applyShare(hash) {
+  if (hash.startsWith('#g?')) {
+    const p = new URLSearchParams(hash.slice(3));
+    if (p.get('l') && p.get('l') !== getLang()) setLang(p.get('l'));
+    if (p.get('emd') && state.idx.byEmd.has(p.get('emd'))) await selectEmd(p.get('emd')); else if (p.get('sgg') && state.idx.bySgg.has(p.get('sgg'))) await selectSgg(p.get('sgg')); else if (p.get('sido') && state.idx.sggBySido.has(p.get('sido'))) selectSido(p.get('sido'));
+    const tab = p.get('tab'); if (tab && ['now', 'find', 'where', 'about'].includes(tab)) setTab(tab);
+    if (p.get('sgg') || p.get('emd') || p.get('sido')) { const w = $('#welcome'); if (w) w.hidden = true; }
+    return;
+  }
   if (!hash.startsWith('#r?')) return;
   const p = new URLSearchParams(hash.slice(3)), f = $('#wizard'); f.reset();
   if (p.get('l') && p.get('l') !== getLang()) setLang(p.get('l'));

@@ -9,12 +9,12 @@
    캐시를 셸/데이터로 나눈 이유: 예전엔 참조·시설·격자까지 VERSION 캐시에 있어서,
    셸 버전을 올릴 때마다(하루 10여 회) 138MB 격자를 포함한 전부가 삭제·재다운로드됐다.
    버전을 타는 건 셸뿐이고, 데이터는 DATA_CACHE에서 배포와 무관하게 살아남는다. */
-const VERSION = 'safepic-20260902d';   // 앱 셸 전용 — 배포마다 바뀐다
+const VERSION = 'safepic-20260902f';   // 앱 셸 전용 — 배포마다 바뀐다
 const DATA_CACHE = 'safepic-data-1';   // 참조·시설·격자 — 셸 버전을 올려도 살아남는다
 const FONT_CACHE = 'safepic-fonts';
 const KEEP = [VERSION, DATA_CACHE, FONT_CACHE];
 const SHELL = [   // → VERSION 캐시 (배포마다 교체)
-  './', './index.html', './css/style.css', './js/app.js', './js/i18n.js', './js/rules.js', './js/shelters.js', './js/grid.js', './js/api.js',
+  './', './index.html', './css/style.css', './js/app.js', './js/i18n.js', './js/rules.js', './js/shelters.js', './js/grid.js', './js/api.js', './js/sim.js', './js/sim_worker.js',
   './manifest.webmanifest',
 ];
 const SHELL_DATA = [  // → DATA_CACHE (배포와 무관하게 유지). cacheFirst가 읽는 캐시와 같아야 프리캐시가 쓸모 있다.

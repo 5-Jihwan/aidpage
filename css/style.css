@@ -21,8 +21,7 @@ h1,h2,h3{color:var(--ink)}
 .bars{width:18px;height:2px;background:var(--ink);position:relative;display:block}
 .bars::before,.bars::after{content:"";position:absolute;left:0;width:18px;height:2px;background:var(--ink)} .bars::before{top:-6px} .bars::after{top:6px}
 .brand{display:flex;align-items:baseline;gap:8px;text-decoration:none;color:var(--ink);white-space:nowrap}
-.brand-mark{width:16px;height:16px;border-radius:50%;border:3px solid var(--accent);display:inline-block;align-self:center;position:relative}
-.brand-mark::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--gold)}
+.brand-mark{width:20px;height:20px;display:inline-block;align-self:center;background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%231a5fc4'/><g transform='translate(72 72) scale(0.7200)'><path d='M256 40 96 104v152c0 108 68 176 160 216 92-40 160-108 160-216V104z' fill='%23fff'/><circle cx='256' cy='176' r='30' fill='%231a5fc4'/><rect x='228' y='228' width='56' height='150' rx='16' fill='%231a5fc4'/></g></svg>") center/contain no-repeat}
 .brand-name{font-family:var(--display);font-weight:700;font-size:1.25rem;letter-spacing:-.01em}
 .brand-sub{font-size:.8rem;color:var(--mute)}
 .crumb{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow:hidden;font-family:var(--label);font-weight:500;font-size:.95rem}

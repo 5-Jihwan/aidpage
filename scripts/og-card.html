@@ -18,11 +18,12 @@ body{
   -webkit-mask-image:linear-gradient(105deg,transparent 52%,#000 78%);mask-image:linear-gradient(105deg,transparent 52%,#000 78%);}
 .pin{position:absolute;border-radius:50%}
 .p1{width:420px;height:420px;right:60px;top:105px;border:3px solid #dbe3ee;background:#fff}
-.p2{width:280px;height:280px;right:130px;top:175px;border:16px solid #1a5fc4}
-.p3{width:64px;height:64px;right:238px;top:283px;background:#9a7328}
+.p2{width:280px;height:280px;right:130px;top:175px;background:#1a5fc4;display:flex;align-items:center;justify-content:center}
+.p2 svg{width:200px;height:200px}
+.p3{display:none}
 .dot{position:absolute;width:14px;height:14px;border-radius:50%;background:#1a5fc4}
 .d1{right:96px;top:150px;opacity:.35}.d2{right:480px;top:420px;opacity:.5}.d3{right:150px;top:500px;opacity:.25;width:22px;height:22px}
-.bar{position:absolute;left:0;top:0;bottom:0;width:14px;background:linear-gradient(180deg,#1a5fc4 60%,#9a7328)}
+.bar{position:absolute;left:0;top:0;bottom:0;width:14px;background:#1a5fc4}
 .wrap{position:absolute;left:84px;top:118px;width:640px}
 .kicker{font-weight:500;font-size:26px;color:#1a5fc4;letter-spacing:.06em;margin-bottom:18px}
 h1{font-weight:700;font-size:96px;letter-spacing:-.01em;line-height:1}
@@ -36,7 +37,7 @@ h1 small{color:#9a7328}
 </head>
 <body>
 <div class="grid"></div>
-<div class="pin p1"></div><div class="pin p2"></div><div class="pin p3"></div>
+<div class="pin p1"></div><div class="pin p2"><svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path d="M256 40 96 104v152c0 108 68 176 160 216 92-40 160-108 160-216V104z" fill="#fff"/><circle cx="256" cy="176" r="30" fill="#1a5fc4"/><rect x="228" y="228" width="56" height="150" rx="16" fill="#1a5fc4"/></svg></div>
 <div class="dot d1"></div><div class="dot d2"></div><div class="dot d3"></div>
 <div class="bar"></div>
 <div class="wrap">
@@ -46,7 +47,7 @@ h1 small{color:#9a7328}
   <div class="sub2">Your situation, your safety — on one page</div>
 </div>
 <div class="badges">
-  <span class="badge">지원 51종</span><span class="badge">대피소 17만</span><span class="badge">한국어·English</span>
+  <span class="badge">지원 52종</span><span class="badge">대피소 17만</span><span class="badge">한국어·English</span>
 </div>
 <div class="url">5-jihwan.github.io/aidpage</div>
 </body>

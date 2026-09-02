@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260902f';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260902f';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260902g';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260902g';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -534,7 +534,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260902f');
+      _simMod = await import('./sim.js?v=20260902g');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AidPage Simulator · 가는 길 위험</title>
+<meta name="description" content="출발지에서 목적지까지 격자 위에서 어떤 알려진 위험을 지나는지 계산하는 AidPage 시뮬레이터(독립 실행판)">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="css/style.css?v=20260902g">
+<style>
+  /* 독립 실행판 레이아웃 — 본 사이트 셸(.top/.panel) 없이 지도 + 패널 하나 */
+  body{overflow:hidden}
+  #map{position:fixed;inset:0}
+  .sim-panel{position:fixed;top:12px;left:12px;width:min(440px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 40px rgba(20,32,46,.14);padding:14px 16px;z-index:10}
+  .sim-panel h1{font-family:var(--display);font-size:1.25rem;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+  .sim-panel h1 small{font-family:var(--mono);font-weight:400;font-size:.72rem;color:var(--mute)}
+  .sim-panel .pick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+  .sim-panel select{height:40px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font:inherit;font-weight:600;color:var(--ink);background:#fff;width:100%}
+  .sim-panel .status{font-size:.84rem;color:var(--mute);margin:4px 0 8px}
+  .sim-panel .near{margin:0}
+  .sim-panel .back{display:inline-block;margin-top:10px;font-size:.84rem;color:var(--accent)}
+  @media (max-width:640px){.sim-panel{top:auto;bottom:0;left:0;width:100%;max-height:62vh;border-radius:16px 16px 0 0}}
+</style>
+</head>
+<body>
+<div id="map" aria-label="지도"></div>
+<aside class="sim-panel">
+  <h1>🧭 AidPage Simulator <small>standalone</small></h1>
+  <div class="fine">시·군·구를 고르면 위험 격자가 뜨고, 출발·목적지를 지도에서 찍어 실행합니다. 본 사이트와 같은 데이터·같은 계산기를 씁니다.</div>
+  <div class="pick"><select id="selSido" aria-label="시·도"></select><select id="selSgg" aria-label="시·군·구" disabled></select></div>
+  <div class="status" id="status">시·도부터 골라주세요.</div>
+  <div class="near sim" id="simBox" hidden></div>
+  <div id="simLaunch" hidden></div>
+  <a class="back" href="./">← AidPage 본 사이트로</a>
+</aside>
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<script type="module">
+import { initGrid, hasGrid, cells as gridCells, show as showGrid, hide as hideGrid } from './js/grid.js?v=20260902g';
+import { initShelters, collect as collectShelters, nearest as nearestShelters, KINDS } from './js/shelters.js?v=20260902g';
+import { initSim, openSim, closeSim } from './js/sim.js?v=20260902g';
+const $ = (s, r = document) => r.querySelector(s);
+const state = { sgg: null, sido: null, gps: null, sim: null, simPick: null, shelters: { avail: [] }, _gridAvail: false, live: { alerts: null } };
+let idx = [], map;
+
+/* ---------- 지도 ---------- */
+map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/positron', center: [127.8, 36.3], zoom: 6.3, attributionControl: { compact: true } });
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+window.__map = map;
+const styleReady = new Promise(res => map.on('style.load', res));
+
+/* ---------- 데이터 ---------- */
+async function getJSON(u) { try { const r = await fetch(u, { cache: 'no-cache' }); return r.ok ? await r.json() : null; } catch { return null; } }
+function pipRing(lon, lat, ring) { let inside = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-12) + xi) inside = !inside; } return inside; }
+function pipFeature(lon, lat, f) { const g = f.geometry; const polys = g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates]; return polys.some(p => pipRing(lon, lat, p[0]) && !p.slice(1).some(h => pipRing(lon, lat, h))); }
+function warningsFor() {
+  const a = state.live.alerts; if (!a || !a.warnings || !a.warnings.items) return [];
+  const s = idx.find(x => String(x.code) === String(state.sgg)) || {};
+  return a.warnings.items.filter(w => (w.area_codes || []).some(c => c === String(state.sgg) || c === String(state.sido)) || (w.areas || []).some(x => s.name && x.includes(s.name)));
+}
+function toast(msg) { const st = $('#status'); st.textContent = msg; }
+
+/* ---------- 지역 선택 ---------- */
+async function boot() {
+  idx = (await getJSON('data/admin/sgg_index.json')) || [];
+  getJSON('data/live/alerts.json').then(j => { state.live.alerts = j; });
+  const sidos = []; const seen = new Set();
+  for (const s of idx) if (!seen.has(s.sido)) { seen.add(s.sido); sidos.push({ code: s.sido, name: s.sido_name }); }
+  $('#selSido').innerHTML = '<option value="">시·도</option>' + sidos.map(s => `<option value="${s.code}">${s.name}</option>`).join('');
+  $('#selSido').addEventListener('change', () => {
+    const sido = $('#selSido').value; const list = idx.filter(s => String(s.sido) === sido);
+    $('#selSgg').innerHTML = '<option value="">시·군·구</option>' + list.map(s => `<option value="${s.code}">${s.name}</option>`).join('');
+    $('#selSgg').disabled = !sido; if (state.sim) closeSim(); hideGrid(); state.sgg = null; state._gridAvail = false;
+    toast(sido ? '시·군·구를 골라주세요.' : '시·도부터 골라주세요.');
+  });
+  $('#selSgg').addEventListener('change', () => selectSgg($('#selSgg').value));
+  await styleReady;
+  // grid.js가 'sgg-line' 앞에 레이어를 넣으므로 빈 앵커 레이어를 먼저 둔다
+  map.addSource('sgg-line-src', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({ id: 'sgg-line', type: 'line', source: 'sgg-line-src' });
+  initGrid(map);
+  state.shelters.avail = await initShelters(map);
+  initSim({ map, state, toast, KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp: n => n, padding: () => (innerWidth > 640 ? { top: 40, bottom: 40, left: 480, right: 40 } : { top: 40, bottom: Math.round(innerHeight * 0.64), left: 30, right: 30 }), warningsFor, onPick: () => {} });
+  // 딥링크 sim.html#sgg=11620
+  const m = location.hash.match(/sgg=(\d{5})/); if (m) { const s = idx.find(x => String(x.code) === m[1]); if (s) { $('#selSido').value = String(s.sido); $('#selSido').dispatchEvent(new Event('change')); $('#selSgg').value = m[1]; selectSgg(m[1]); } }
+}
+async function selectSgg(code) {
+  if (state.sim) closeSim();
+  if (!code) { hideGrid(); state.sgg = null; state._gridAvail = false; return; }
+  const s = idx.find(x => String(x.code) === String(code)); state.sgg = String(code); state.sido = String(s.sido);
+  toast('격자 불러오는 중…');
+  if (!(await hasGrid(state.sgg))) { state._gridAvail = false; hideGrid(); toast('이 시·군·구는 아직 격자 자료가 없습니다.'); return; }
+  state._gridAvail = true;
+  showGrid(state.sgg, 'flood_hist_n');
+  const cs = gridCells(state.sgg); const b = [180, 90, -180, -90];
+  for (const f of cs) for (const c of f.geometry.coordinates[0]) { b[0] = Math.min(b[0], c[0]); b[1] = Math.min(b[1], c[1]); b[2] = Math.max(b[2], c[0]); b[3] = Math.max(b[3], c[1]); }
+  map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: innerWidth > 640 ? { top: 40, bottom: 40, left: 480, right: 40 } : { top: 40, bottom: Math.round(innerHeight * 0.64), left: 30, right: 30 }, duration: 900 });
+  toast(`${s.sido_name} ${s.name} · 격자 ${cs.length.toLocaleString()}칸 (색 = 침수 이력)`);
+  await openSim();
+}
+boot();
+</script>
+</body>
+</html>

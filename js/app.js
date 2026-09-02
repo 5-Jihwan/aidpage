@@ -523,7 +523,7 @@ function initHome() {
   initKakao();
 }
 /* ---------- 카카오톡 채널 — 공개 채널 ID(예: '_AbCdE')만 있으면 된다. 앱 키·SDK 불필요(링크 방식). 비어 있으면 버튼 숨김 ---------- */
-const KAKAO_CHANNEL = '';
+const KAKAO_CHANNEL = '_xixnxgxaX';
 function initKakao() {
   const els = $$('[data-kakao]'); if (!els.length) return;
   els.forEach(el => { if (!KAKAO_CHANNEL) { el.hidden = true; return; } el.hidden = false; el.href = `https://pf.kakao.com/${KAKAO_CHANNEL}` + (el.dataset.kakao === 'chat' ? '/chat' : '/friend'); });

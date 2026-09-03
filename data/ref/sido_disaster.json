@@ -1,0 +1,386 @@
+{
+"source": "행정안전부 행정안전통계연보 오픈API 15107320(지역별 자연재난 시설 피해)·15107326(지역별 자연재해 복구비 재원), 시도 단위",
+"unit_note": "금액 백만원(mw). 1인당 피해액은 주민등록 2026-07 인구로 나눈 근사치(연도 불일치). 광주·전남은 행정동 경계 통합코드 12로 합산.",
+"years": [
+"2016",
+"2017",
+"2018",
+"2019",
+"2020",
+"2021",
+"2022",
+"2023"
+],
+"built": "2026-09-03",
+"sido": {
+"11": {
+"names": [
+"서울"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 74471,
+"damage_per_capita_krw": null,
+"share_building": 0.563,
+"share_ship": 0.0,
+"share_farmland": 0.003,
+"share_public": 0.434,
+"share_etc": 0.0,
+"deaths": 24,
+"victims": 32556,
+"recovery_total_mw": 152966,
+"self_burden_ratio": 0.1,
+"state_share": 0.685,
+"local_share": 0.315,
+"loan_share": 0.0
+},
+"26": {
+"names": [
+"부산"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 89971,
+"damage_per_capita_krw": null,
+"share_building": 0.139,
+"share_ship": 0.002,
+"share_farmland": 0.005,
+"share_public": 0.834,
+"share_etc": 0.021,
+"deaths": 41,
+"victims": 2302,
+"recovery_total_mw": 167749,
+"self_burden_ratio": 0.538,
+"state_share": 0.819,
+"local_share": 0.181,
+"loan_share": 0.0
+},
+"27": {
+"names": [
+"대구"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 12416,
+"damage_per_capita_krw": null,
+"share_building": 0.034,
+"share_ship": 0.001,
+"share_farmland": 0.06,
+"share_public": 0.822,
+"share_etc": 0.035,
+"deaths": 16,
+"victims": 93,
+"recovery_total_mw": 19978,
+"self_burden_ratio": 0.199,
+"state_share": 0.545,
+"local_share": 0.455,
+"loan_share": 0.0
+},
+"28": {
+"names": [
+"인천"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 16338,
+"damage_per_capita_krw": null,
+"share_building": 0.312,
+"share_ship": 0.009,
+"share_farmland": 0.013,
+"share_public": 0.181,
+"share_etc": 0.483,
+"deaths": 11,
+"victims": 7929,
+"recovery_total_mw": 19252,
+"self_burden_ratio": 0.417,
+"state_share": 0.678,
+"local_share": 0.322,
+"loan_share": 0.0
+},
+"12": {
+"names": [
+"광주",
+"전남"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 408218,
+"damage_per_capita_krw": null,
+"share_building": 0.033,
+"share_ship": 0.002,
+"share_farmland": 0.028,
+"share_public": 0.673,
+"share_etc": 0.163,
+"deaths": 35,
+"victims": 9220,
+"recovery_total_mw": 1603518,
+"self_burden_ratio": 0.139,
+"state_share": 0.778,
+"local_share": 0.222,
+"loan_share": 0.0
+},
+"30": {
+"names": [
+"대전"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 14373,
+"damage_per_capita_krw": null,
+"share_building": 0.057,
+"share_ship": 0.0,
+"share_farmland": 0.035,
+"share_public": 0.843,
+"share_etc": 0.043,
+"deaths": 0,
+"victims": 1142,
+"recovery_total_mw": 20314,
+"self_burden_ratio": 0.808,
+"state_share": 0.505,
+"local_share": 0.495,
+"loan_share": 0.0
+},
+"31": {
+"names": [
+"울산"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 86979,
+"damage_per_capita_krw": null,
+"share_building": 0.042,
+"share_ship": 0.001,
+"share_farmland": 0.06,
+"share_public": 0.855,
+"share_etc": 0.024,
+"deaths": 4,
+"victims": 3137,
+"recovery_total_mw": 184683,
+"self_burden_ratio": 0.228,
+"state_share": 0.711,
+"local_share": 0.289,
+"loan_share": 0.0
+},
+"36": {
+"names": [
+"세종"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 27466,
+"damage_per_capita_krw": null,
+"share_building": 0.006,
+"share_ship": 0.0,
+"share_farmland": 0.011,
+"share_public": 0.921,
+"share_etc": 0.005,
+"deaths": 2,
+"victims": 61,
+"recovery_total_mw": 72325,
+"self_burden_ratio": 0.25,
+"state_share": 0.671,
+"local_share": 0.329,
+"loan_share": 0.0
+},
+"41": {
+"names": [
+"경기"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 321319,
+"damage_per_capita_krw": null,
+"share_building": 0.071,
+"share_ship": 0.001,
+"share_farmland": 0.037,
+"share_public": 0.833,
+"share_etc": 0.03,
+"deaths": 55,
+"victims": 15744,
+"recovery_total_mw": 754448,
+"self_burden_ratio": 0.27,
+"state_share": 0.706,
+"local_share": 0.294,
+"loan_share": 0.0
+},
+"51": {
+"names": [
+"강원"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 328392,
+"damage_per_capita_krw": null,
+"share_building": 0.022,
+"share_ship": 0.0,
+"share_farmland": 0.051,
+"share_public": 0.837,
+"share_etc": 0.084,
+"deaths": 20,
+"victims": 4282,
+"recovery_total_mw": 979805,
+"self_burden_ratio": 0.192,
+"state_share": 0.772,
+"local_share": 0.228,
+"loan_share": 0.0
+},
+"43": {
+"names": [
+"충북"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 480069,
+"damage_per_capita_krw": null,
+"share_building": 0.024,
+"share_ship": 0.0,
+"share_farmland": 0.088,
+"share_public": 0.803,
+"share_etc": 0.044,
+"deaths": 46,
+"victims": 4141,
+"recovery_total_mw": 1318195,
+"self_burden_ratio": 0.139,
+"state_share": 0.794,
+"local_share": 0.206,
+"loan_share": 0.0
+},
+"44": {
+"names": [
+"충남"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 380396,
+"damage_per_capita_krw": null,
+"share_building": 0.022,
+"share_ship": 0.002,
+"share_farmland": 0.042,
+"share_public": 0.772,
+"share_etc": 0.08,
+"deaths": 27,
+"victims": 3855,
+"recovery_total_mw": 1352741,
+"self_burden_ratio": 0.278,
+"state_share": 0.739,
+"local_share": 0.261,
+"loan_share": 0.0
+},
+"52": {
+"names": [
+"전북"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 235760,
+"damage_per_capita_krw": null,
+"share_building": 0.02,
+"share_ship": 0.0,
+"share_farmland": 0.034,
+"share_public": 0.648,
+"share_etc": 0.147,
+"deaths": 27,
+"victims": 3070,
+"recovery_total_mw": 684605,
+"self_burden_ratio": 0.142,
+"state_share": 0.754,
+"local_share": 0.246,
+"loan_share": 0.0
+},
+"47": {
+"names": [
+"경북"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 994565,
+"damage_per_capita_krw": null,
+"share_building": 0.093,
+"share_ship": 0.0,
+"share_farmland": 0.053,
+"share_public": 0.743,
+"share_etc": 0.039,
+"deaths": 92,
+"victims": 21249,
+"recovery_total_mw": 2840400,
+"self_burden_ratio": 0.109,
+"state_share": 0.805,
+"local_share": 0.195,
+"loan_share": 0.0
+},
+"48": {
+"names": [
+"경남"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 254651,
+"damage_per_capita_krw": null,
+"share_building": 0.016,
+"share_ship": 0.005,
+"share_farmland": 0.013,
+"share_public": 0.85,
+"share_etc": 0.075,
+"deaths": 34,
+"victims": 3304,
+"recovery_total_mw": 751229,
+"self_burden_ratio": 0.33,
+"state_share": 0.737,
+"local_share": 0.263,
+"loan_share": 0.0
+},
+"50": {
+"names": [
+"제주"
+],
+"years": [
+"2016",
+"2023"
+],
+"damage_total_mw": 42889,
+"damage_per_capita_krw": null,
+"share_building": 0.032,
+"share_ship": 0.003,
+"share_farmland": 0.028,
+"share_public": 0.432,
+"share_etc": 0.428,
+"deaths": 2,
+"victims": 1641,
+"recovery_total_mw": 147643,
+"self_burden_ratio": 0.09,
+"state_share": 0.651,
+"local_share": 0.349,
+"loan_share": 0.0
+}
+}
+}

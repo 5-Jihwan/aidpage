@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260903a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260903a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260904a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260904a';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -118,6 +118,17 @@ function ensureDem() {
    — 줌 13부터 과장을 단계적으로 줄여 근접 시 카메라를 안정시킨다. setTerrain은 값이 바뀔 때만. */
 let _terrEx = 1.7;
 const terrainEx = z => z >= 13 ? Math.max(0.5, +(1.7 - (z - 13) * 0.3).toFixed(1)) : 1.7;
+/* 줌 연동 자동 기울기(09-04): 멀리서는 평면, 가까이 갈수록 기울어진다. 3D 모드 + 데스크톱에서만,
+   사용자가 가운데/우클릭 드래그로 직접 기울이면(pitchstart.originalEvent) 자동 추종을 멈춘다(3D 재진입 시 복귀).
+   폰은 두 손가락 제스처가 기울기라 자동 추종 없음 — 핀치줌마다 카메라가 흔들리면 멀미·오작동 신고가 늘어난다. */
+const pitchFor = z => z <= 9 ? 0 : z >= 14 ? 55 : z <= 12 ? (z - 9) / 3 * 30 : 30 + (z - 12) / 2 * 25;
+let _userTilt = false;
+function autoPitchOn() { return localStorage.getItem('safepic.terrain') !== '0' && !_userTilt && !matchMedia(MQ_MOBILE).matches; }
+function syncAutoPitch() {
+  if (!map || !autoPitchOn()) return;
+  const want = pitchFor(map.getZoom());
+  if (Math.abs(map.getPitch() - want) >= 3) map.easeTo({ pitch: want, duration: 450 });
+}
 function syncTerrainEx() {
   if (!map || !map.getTerrain || !map.getTerrain()) return;
   const ex = terrainEx(map.getZoom());
@@ -150,7 +161,8 @@ function set3D(on, ease = true) {
     const anchor = ['sh-pt', 'emd-label', 'sgg-label'].find(l => map.getLayer(l));
     try { map.moveLayer('hillshade', anchor); } catch (e) { /* anchor 미생성 시 그대로 */ }
   }
-  if (ease) map.easeTo({ pitch: on ? 55 : 0, duration: 800 });
+  _userTilt = false; // 3D를 켤 때마다 자동 추종 복귀
+  if (ease) map.easeTo({ pitch: on ? (matchMedia(MQ_MOBILE).matches ? 55 : pitchFor(map.getZoom())) : 0, duration: 800 });
   localStorage.setItem('safepic.terrain', on ? '1' : '0');
   const b = $('.ctrl-3d'); if (b) b.classList.toggle('is-on', on);
   syncGrid3D();
@@ -166,7 +178,7 @@ function initMiddleDrag() {
   cv.addEventListener('mousedown', e => {
     if (e.button !== 1) return;
     e.preventDefault(); // 브라우저 자동 스크롤 차단
-    on = true; x0 = e.clientX; y0 = e.clientY; p0 = map.getPitch(); b0 = map.getBearing();
+    on = true; _userTilt = true; x0 = e.clientX; y0 = e.clientY; p0 = map.getPitch(); b0 = map.getBearing();
   });
   addEventListener('mousemove', e => {
     if (!on) return;
@@ -195,7 +207,8 @@ function initMap() {
   map.addControl(new TerrainToggle(), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
   initMiddleDrag();
-  map.on('zoomend', syncTerrainEx);
+  map.on('zoomend', () => { syncTerrainEx(); syncAutoPitch(); });
+  map.on('pitchstart', e => { if (e && e.originalEvent) _userTilt = true; }); // 사용자가 직접 기울이면 수동 우선
   window.__map = map; // E2E에서 queryTerrainElevation 등 확인용
   map.on('style.load', async () => {
     try { map.setProjection({ type: 'globe' }); } catch (e) { console.warn('globe unsupported', e); }
@@ -534,7 +547,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260903a');
+      _simMod = await import('./sim.js?v=20260904a');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1463,8 +1476,16 @@ function initPanel() {
   ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); else if (p.style.transition) p.style.transition = ''; });
   ps.addEventListener('touchcancel', shCancel);
 }
+/* 오류 계측: 기기군별 카운트만(js_error_m / js_error_d). 세션당 최대 3회, 내용 없음. */
+let _errSent = 0;
+function reportError() {
+  if (_errSent >= 3) return; _errSent++;
+  stat(matchMedia(MQ_MOBILE).matches ? 'js_error_m' : 'js_error_d');
+}
+addEventListener('error', reportError);
+addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260903a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260904a').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

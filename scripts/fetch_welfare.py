@@ -123,7 +123,31 @@ def main() -> int:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     os.replace(tmp, OUT)
     log(f"wrote {OUT} items={len(items)} keys(sample)={sorted(items[0])[:12]}")
+    report_translation_gap(items)
     return 0
+
+
+# js/app.js의 WF_BASE·WF_HH·WF_FR·WF_REGION과 같은 키워드 집합 — 화면에 올라올 수 있는 항목만 번역 대상이다.
+PICK_KW = ["재난", "재해", "풍수해", "이재민", "긴급", "위기", "기초생활", "수급", "저소득", "차상위", "한부모", "조손",
+           "노인", "어르신", "고령", "장애", "농업", "어업", "어촌", "농어촌", "도서", "독거", "돌봄", "응급안전",
+           "외국인", "다문화", "결혼이민", "통번역"]
+
+
+def report_translation_gap(items: list[dict]) -> None:
+    """스냅샷이 갱신되면 신규 서비스가 영문 참고번역(welfare_en.json) 없이 올라올 수 있다.
+    누락을 로그로만 알린다(번역 파일은 손으로 관리 — 자동 생성·지어내기 금지)."""
+    en_path = os.path.join(ROOT, "data", "ref", "welfare_en.json")
+    try:
+        en = json.load(open(en_path, encoding="utf-8")).get("items", {})
+    except (OSError, ValueError):
+        log("welfare_en.json unreadable — translation gap check skipped")
+        return
+    need = [it for it in items if any(k in (it.get("서비스명") or "") or k in (it.get("서비스요약") or "") for k in PICK_KW)]
+    miss = [it for it in need if it.get("서비스아이디") not in en]
+    msg = f"translation coverage: {len(need) - len(miss)}/{len(need)} pickable items have EN text"
+    if miss:
+        msg += "; missing: " + ", ".join(f"{m.get('서비스아이디') or ''} {m.get('서비스명') or ''}" for m in miss[:10])
+    log(msg)
 
 
 if __name__ == "__main__":

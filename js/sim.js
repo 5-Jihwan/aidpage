@@ -2,7 +2,7 @@
    버튼을 눌렀을 때만 app.js가 lazy import 하고, 경로 탐색은 sim_worker.js(Web Worker)가 맡는다.
    원칙: 안전 판정이 아니다 — 출발지→목적지 사이에 '알려진 위험'(침수 이력·경사·산사태 이력·지하차도 등)이
    어디에 얼마나 있는지, 그리고 그것을 피하면 몇 분이 더 드는지만 보여준다. 도로가 아니라 격자(약 170~460m) 위의 방향. */
-import { t, getLang } from './i18n.js?v=20260902h';
+import { t, getLang } from './i18n.js?v=20260903a';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const HZ_KINDS = ['underpass', 'steep'];   // 산불이력(2.5MB)은 가중치 0.3에 파일이 너무 커 제외 — 도보 경로 위험은 지하차도·급경사지가 핵심
@@ -158,7 +158,7 @@ async function run() {
 function compute(payload) {
   return new Promise((resolve, reject) => {
     try {
-      if (!worker) worker = new Worker('js/sim_worker.js?v=20260902h');
+      if (!worker) worker = new Worker('js/sim_worker.js?v=20260903a');
       const to = setTimeout(() => { try { worker.terminate(); } catch (e) { /* */ } worker = null; reject(new Error('timeout')); }, 20000);
       worker.onmessage = ev => { clearTimeout(to); resolve(ev.data); };
       worker.onerror = ev => { clearTimeout(to); worker = null; reject(ev.error || new Error(ev.message || 'worker')); };

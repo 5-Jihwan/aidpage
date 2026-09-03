@@ -38,7 +38,14 @@ h1,h2,h3{color:var(--ink)}
 
 /* stage: sidebar LEFT + map */
 .stage{position:fixed;inset:var(--top-h) 0 0 0}
-.panel{position:absolute;left:16px;top:16px;bottom:16px;width:var(--panel-w);background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 40px rgba(20,32,46,.14);display:flex;flex-direction:column;z-index:10;transition:transform .25s ease,opacity .25s ease}
+/* 패널 아래 지면에 드리운 넓은 그늘 — 섬이 지도 위에 떠 있다는 인상은 물체 그림자보다 지면 쪽 어둠이 만든다 */
+.stage::before{content:"";position:absolute;left:0;top:0;bottom:0;width:calc(var(--panel-w) + 56px);background:linear-gradient(90deg,rgba(20,32,46,.13),rgba(20,32,46,.055) 72%,rgba(20,32,46,0));pointer-events:none;z-index:9;transition:opacity .25s ease}
+.stage:has(.panel.is-collapsed)::before{opacity:0}
+/* 떠 있는 층(라퓨타): 가까운 접촉 그림자 + 멀리 떨어진 부드러운 드리운 그림자 + 윗면 림라이트.
+   그림자 하나(0 12px 40px)로는 "그림자만 있고 공간이 안 분리된다"(09-03 피드백) — 높이 차는 근·원 두 겹이 만든다 */
+:root{--float-sh:inset 0 1px 0 rgba(255,255,255,.95),0 0 0 1px rgba(20,32,46,.05),0 2px 4px rgba(20,32,46,.06),4px 14px 30px -8px rgba(20,32,46,.16),14px 44px 64px -26px rgba(20,32,46,.40);
+      --float-sm:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 1px rgba(20,32,46,.05),0 2px 4px rgba(20,32,46,.06),3px 12px 24px -8px rgba(20,32,46,.24)}
+.panel{position:absolute;left:16px;top:16px;bottom:16px;width:var(--panel-w);background:linear-gradient(180deg,rgba(255,255,255,.985),rgba(255,255,255,.955));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(219,227,238,.95);border-bottom-color:#c9d3e1;border-radius:18px;box-shadow:var(--float-sh);display:flex;flex-direction:column;z-index:10;transition:transform .25s ease,opacity .25s ease}
 .panel.is-collapsed{transform:translateX(calc(-100% - 24px));opacity:0;pointer-events:none}
 .panel-grip{display:none}
 .panel-resize{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;z-index:12}
@@ -58,14 +65,14 @@ h3{font-family:var(--label);font-weight:700;font-size:1.05rem;margin:22px 0 8px;
 .map-hint.is-hidden{opacity:0}
 .search{position:absolute;top:16px;left:calc(var(--panel-w) + 32px);width:min(360px,calc(100% - var(--panel-w) - 48px));z-index:5;transition:left .25s}
 .panel.is-collapsed~.mapwrap .search{left:16px;width:min(360px,calc(100% - 32px))}
-.search input{width:100%;height:44px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:0 48px 0 40px;font-size:1rem;outline:none;box-shadow:0 4px 14px rgba(20,32,46,.08);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23566577' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:13px 50%}
+.search input{width:100%;height:44px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:0 48px 0 40px;font-size:1rem;outline:none;box-shadow:var(--float-sm);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23566577' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:13px 50%}
 .search input:focus{border-color:var(--accent)} .search input::placeholder{color:var(--mute)}
 .search-list{list-style:none;margin:6px 0 0;padding:6px;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(20,32,46,.16);max-height:320px;overflow:auto}
 .search-list li{padding:8px 10px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;gap:10px}
 .search-list li:hover,.search-list li.is-hot{background:var(--bg)} .search-list li small{color:var(--mute);font-family:var(--mono)}
 
 /* weather selector (over map, top-right) */
-.wxsel{position:relative;display:flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 8px;box-shadow:0 4px 14px rgba(20,32,46,.08)}
+.wxsel{position:relative;display:flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 8px;box-shadow:var(--float-sm)}
 .wxsel label{display:none} .wxsel.is-open label{display:inline-block} .wxsel.is-open{flex-wrap:wrap}
 .wxsel-t{cursor:pointer;padding:4px 6px;border:0;background:none;border-radius:8px;color:var(--ink);margin-right:4px;font-size:.85rem;font-family:var(--label);font-weight:500} .wxsel-t:hover{background:var(--bg)} .wxsel-t::after{content:' \25BE';color:var(--mute)}
 .wxsel label{position:relative} .wxsel input{position:absolute;opacity:0;inset:0;pointer-events:none}
@@ -167,7 +174,7 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
 .rules-table th{position:sticky;top:0;background:#fff;font-family:var(--mono);font-weight:500;color:var(--mute)}
 
 .maplibregl-ctrl-attrib{font-size:10px}
-.maplibregl-ctrl-group{box-shadow:0 4px 14px rgba(20,32,46,.08)!important;border:1px solid var(--line)}
+.maplibregl-ctrl-group{box-shadow:var(--float-sm)!important;border:1px solid var(--line)}
 
 /* mobile: bottom sheet + compact header (≤900px) */
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){
@@ -179,7 +186,7 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
   /* 스크롤 절단면에서 글자가 반 토막으로 보이던 것("지원 ㅊ") → 가장자리 페이드로 "더 있음"으로 읽히게 */
   .tabs{margin-left:auto;overflow-x:auto;scrollbar-width:none;flex:0 1 auto;min-width:0;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent)} .tabs::-webkit-scrollbar{display:none}
   .tab{padding:6px 9px;font-size:.8rem;flex:none} .tab i{display:none} .tab-about{display:none} .tab-start span{display:none} .tab-start{padding:6px 8px}
-  .stage{inset:var(--top-h) 0 0 0}
+  .stage{inset:var(--top-h) 0 0 0} .stage::before{display:none}
   .mapwrap{position:absolute;inset:0}
   /* floating controls: search full-width on top, pills beneath on the right */
   .search{left:10px!important;right:10px;top:10px;width:auto!important;transition:none}
@@ -254,7 +261,7 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
 
 /* map stack (weather → facilities → language → text size), PiP-style column */
 .mapstack{position:absolute;top:16px;right:16px;z-index:5;display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:min(560px,calc(100% - 32px))}
-.pill{display:flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;box-shadow:0 4px 14px rgba(20,32,46,.08)}
+.pill{display:flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;box-shadow:var(--float-sm)}
 .pill button{border:0;background:none;padding:5px 10px;border-radius:8px;font-size:.82rem;color:var(--mute);min-height:30px}
 .pill button.is-on{background:var(--bg);color:var(--ink);font-weight:700;border:1px solid var(--line)}
 .size-btn[data-size="big"]{font-size:.95rem}
@@ -358,7 +365,7 @@ html.big .route-row a{font-size:.95rem;padding:7px 8px}
 /* recent neighborhoods */
 .recent-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-6px 0 14px;font-size:.85rem} .recent-row .chip{padding:4px 10px}
 /* map legend (bottom-left) */
-.map-legend{position:absolute;left:16px;bottom:22px;z-index:5;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:.78rem;color:var(--text);box-shadow:0 4px 14px rgba(20,32,46,.08);max-width:min(420px,calc(100% - 32px))}
+.map-legend{position:absolute;left:16px;bottom:22px;z-index:5;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:.78rem;color:var(--text);box-shadow:var(--float-sm);max-width:min(420px,calc(100% - 32px))}
 .lg-row{display:flex;flex-wrap:wrap;gap:4px 10px} .lg-row span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap} .lg-row i{width:10px;height:10px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
 .lg-row.is-sw{cursor:pointer;border-radius:8px;padding:3px 5px;margin-left:-5px;margin-right:-5px}
 .lg-row.is-sw:hover{background:var(--bg)}
@@ -729,3 +736,12 @@ html.big .wcard b{font-size:1.1rem} html.big .wcard small{font-size:.9rem}
 body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
 
 .kakao-link{color:#3c1e1e;background:#fee500;border-radius:10px;padding:8px 12px;font-weight:700}
+
+/* 복지서비스 — 지역 특성 줄 + 지역 가중 배지 (09-03) */
+.wf-region{font-size:.86rem;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0 8px;line-height:1.5}
+.wf-region .rg-tag{color:var(--accent2);margin-top:2px}
+.wf-region small{display:block;color:var(--mute);margin-top:4px;font-size:.78rem;line-height:1.4}
+.badge.rg{background:#e8effb;color:var(--accent2)}
+.wf-regional{margin-top:8px;padding-top:6px;border-top:1px solid var(--line)}
+.wf-sub{font-size:.8rem;font-weight:700;color:var(--accent2);margin:2px 0 0}
+.wf-regional .item:first-of-type{border-top:0}

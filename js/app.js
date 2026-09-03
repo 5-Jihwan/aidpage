@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260902h';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260902h';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260903a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260903a';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -534,7 +534,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260902h');
+      _simMod = await import('./sim.js?v=20260903a');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1464,7 +1464,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260902d').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260903a').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1649,7 +1649,13 @@ function initWelcome() {
   let pendingSit = null, locFrom = 'groups';
   const show = step => { groups.hidden = step !== 'groups'; sub.hidden = step !== 'sub'; loc.hidden = step !== 'loc'; skip.hidden = step === 'loc';
     $('#welH1').hidden = $('#welLead').hidden = step === 'loc'; };  // 위치 스텝은 "어디세요?"가 유일한 질문이어야 한다
-  const close = () => { w.hidden = true; };
+  /* via='sheet'(끌어내림·건너뛰기·배경 탭) = "지도부터 볼게요" → 폰에서는 홈 시트를 하단에 접어 둔다.
+     닫힌 자리에 같은 문구(지금 어떤 상황이세요?)의 패널이 50dvh로 다시 서 있으면 "내렸는데 하단 고정이
+     안 된다"로 읽힌다(09-03 보고). 상황 카드를 골라 launch()로 닫힐 때는 접지 않는다. */
+  const close = via => {
+    w.hidden = true;
+    if (via === 'sheet' && matchMedia(MQ_MOBILE).matches) { const p = $('#panel'); p.classList.add('is-collapsed'); p.classList.remove('is-tall'); p.style.height = ''; setTimeout(() => map && map.resize(), 280); }
+  };
   const open = () => { w.hidden = false; pendingSit = null; show('groups'); };
   state._welOpen = open;
   const toLoc = (sit, from) => { pendingSit = sit; locFrom = from; show('loc'); };
@@ -1681,7 +1687,7 @@ function initWelcome() {
   $('#welLocBack').addEventListener('click', () => show(locFrom));
   $('#welGps').addEventListener('click', () => { launch('gps'); (state._coreP || Promise.resolve()).then(() => locateMe()); });
   $('#welLocSkip').addEventListener('click', () => launch('map'));
-  $('#welSkip').addEventListener('click', close);
+  $('#welSkip').addEventListener('click', () => close('sheet'));
   /* 오버레이 안 지역 검색 — 본검색과 같은 suggest(), 목록은 카드 아래 정적 배치 */
   const inp = $('#welSearch'), list = $('#welSearchList'); let items = [];
   const render = () => { list.innerHTML = items.map((it, i) => `<li data-i="${i}"><span>${it.name}</span><small>${it.path}</small></li>`).join(''); list.hidden = !items.length; };
@@ -1711,11 +1717,11 @@ function initWelcome() {
   card.addEventListener('touchend', e => {
     if (!wDrag) return;
     const dy = e.changedTouches[0].clientY - wy0;
-    if (dy > 110) { card.style.transition = 'transform .18s ease'; card.style.transform = 'translateY(110%)'; setTimeout(() => { close(); card.style.transition = ''; card.style.transform = ''; }, 180); wDrag = false; }
+    if (dy > 110) { card.style.transition = 'transform .18s ease'; card.style.transform = 'translateY(110%)'; setTimeout(() => { close('sheet'); card.style.transition = ''; card.style.transform = ''; }, 180); wDrag = false; }
     else wBack();
   });
   card.addEventListener('touchcancel', () => { if (wDrag) wBack(); });
-  w.addEventListener('click', e => { if (e.target === w) close(); }); // 배경 탭 = 닫기 (시트 관례)
+  w.addEventListener('click', e => { if (e.target === w) close('sheet'); }); // 배경 탭 = 닫기 (시트 관례)
   if (!location.hash && !getHome()) open();
 }
 /* 상황 바: 지금 고른 상황을 보여주고 한 번에 바꾼다 */
@@ -1763,10 +1769,16 @@ function encodeShare(inp) {
   if (inp.special_zone) p.set('sz', '1'); if (inp.event_end) p.set('end', inp.event_end); if (inp.proxy) p.set('p', '1'); if (inp.foreign) p.set('fr', '1'); p.set('l', getLang());
   return '#r?' + p.toString();
 }
+/* 공유 링크의 l= 은 서랍 언어 버튼과 같은 전체 경로(규칙 라벨 EN 전환·지도 라벨·재렌더)를 타야 한다.
+   setLang()만 부르면 UI 문구만 바뀌고 rules/en.json이 적용되지 않아 결과가 한국어로 남았다(09-03 E2E 발견). */
+function applyLangParam(l) {
+  const lb = $$('.lang-btn').find(x => x.dataset.lang === l);
+  if (lb) lb.click(); else setLang(l);
+}
 async function applyShare(hash) {
   if (hash.startsWith('#g?')) {
     const p = new URLSearchParams(hash.slice(3));
-    if (p.get('l') && p.get('l') !== getLang()) setLang(p.get('l'));
+    if (p.get('l') && p.get('l') !== getLang()) applyLangParam(p.get('l'));
     if (p.get('emd') && state.idx.byEmd.has(p.get('emd'))) await selectEmd(p.get('emd')); else if (p.get('sgg') && state.idx.bySgg.has(p.get('sgg'))) await selectSgg(p.get('sgg')); else if (p.get('sido') && state.idx.sggBySido.has(p.get('sido'))) selectSido(p.get('sido'));
     const tab = p.get('tab'); if (tab && ['now', 'find', 'where', 'about'].includes(tab)) setTab(tab);
     if (p.get('sgg') || p.get('emd') || p.get('sido')) { const w = $('#welcome'); if (w) w.hidden = true; }
@@ -1774,7 +1786,7 @@ async function applyShare(hash) {
   }
   if (!hash.startsWith('#r?')) return;
   const p = new URLSearchParams(hash.slice(3)), f = $('#wizard'); f.reset();
-  if (p.get('l') && p.get('l') !== getLang()) setLang(p.get('l'));
+  if (p.get('l') && p.get('l') !== getLang()) applyLangParam(p.get('l'));
   if (p.get('h')) { const r = f.querySelector(`input[name=housing][value=${p.get('h')}]`); if (r) r.checked = true; }
   (p.get('d') || '').split(',').filter(Boolean).forEach(v => { const c = f.querySelector(`input[name=damage][value=${v}]`); if (c) c.checked = true; });
   (p.get('f') || '').split(',').filter(Boolean).forEach(v => { const c = f.querySelector(`input[name=household][value=${v}]`); if (c) c.checked = true; });
@@ -1894,35 +1906,89 @@ function itemHTML(r) {
 /* ---------- 복지서비스 (한국사회보장정보원 스냅샷, fetch_welfare.py가 갱신) ----------
    367건 전량이 아니라: 재난·긴급·위기 키워드 + 위저드에서 고른 가구 조건 키워드에 걸리는
    것만 점수순으로. 267KB라 결과 화면을 열 때 한 번만 lazy-load (SW가 cache-first로 보관). */
-let _welfareP = null;
-const loadWelfare = () => _welfareP || (_welfareP = fetch('data/ref/welfare.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null));
+let _welfareP = null, _welfareEnP = null, _demoP = null;
+const _refJSON = url => fetch(url, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null);
+const loadWelfare = () => _welfareP || (_welfareP = _refJSON('data/ref/welfare.json'));
+/* 영문은 비공식 참고번역(data/ref/welfare_en.json, 서비스ID 키). 없는 항목은 한국어 그대로 — 지어내지 않는다. */
+const loadWelfareEn = () => _welfareEnP || (_welfareEnP = _refJSON('data/ref/welfare_en.json'));
+/* 시군구 인구 프로필(행안부 주민등록, 행정동 합산 — scripts/build_sgg_demo.py). 25KB, 결과 화면에서만. */
+const loadDemo = () => _demoP || (_demoP = _refJSON('data/ref/sgg_demo.json'));
 const WF_BASE = ['재난', '재해', '풍수해', '이재민', '긴급', '위기'];
 const WF_HH = { basic: ['기초생활', '수급', '저소득'], near_poor: ['차상위', '저소득'], single_parent: ['한부모', '조손'], senior: ['노인', '어르신', '고령'], disabled: ['장애'] };
-function welfarePick(items, inp) {
+const WF_FR = ['외국인', '다문화', '결혼이민', '통번역'];
+/* 지역 특성 → 가중 키워드. 고령 비율 상위 25%면 노인, 65세+ 1인세대 상위 25%면 돌봄·응급안전, '군'이면 농어업·도서.
+   ⚠'군'은 행정구역 이름으로 판단한 농어촌 근사치 — UI 출처 줄에 그대로 밝힌다. */
+const WF_REGION = { elderly: ['노인', '어르신', '고령', '독거'], alone: ['독거', '돌봄', '응급안전'], rural: ['농업', '어업', '어촌', '농어촌', '도서'] };
+function regionProfile(demo) {
+  if (!demo || !demo.sgg || !state.sgg) return null;
+  const r = demo.sgg[String(state.sgg)]; if (!r) return null;
+  const q = demo.q || {}, tier = (k, v) => !q[k] ? '' : v >= q[k].p75 ? 'hi' : v >= q[k].p50 ? 'mid' : 'lo';
+  const tags = [];
+  if (tier('e65', r.e65) === 'hi') tags.push('elderly');
+  if (tier('ealone', r.ealone) === 'hi') tags.push('alone');
+  if (r.gun) tags.push('rural');
+  return { ...r, tags, tierE65: tier('e65', r.e65), basis: demo.basis || '' };
+}
+function welfarePick(items, inp, prof) {
   const hhKw = [...new Set((inp.household || []).flatMap(h => WF_HH[h] || []))];
+  const frKw = inp.foreign ? WF_FR : [];
+  const rgKw = [...new Set((prof ? prof.tags : []).flatMap(k => WF_REGION[k] || []))];
   const scored = [];
   for (const it of items) {
     const name = it['서비스명'] || '', sum = it['서비스요약'] || '';
-    let s = 0;
+    let s = 0, rg = 0;
     for (const k of WF_BASE) { if (name.includes(k)) s += 3; else if (sum.includes(k)) s += 1; }
     for (const k of hhKw) { if (name.includes(k)) s += 2; else if (sum.includes(k)) s += 1; }
-    if (s > 0) scored.push([s, it]);
+    for (const k of frKw) { if (name.includes(k)) s += 2; else if (sum.includes(k)) s += 1; }
+    for (const k of rgKw) { if (name.includes(k)) rg += 2; else if (sum.includes(k)) rg += 1; }
+    if (s + rg > 0) scored.push({ it, s, rg });
   }
-  return scored.sort((a, b) => b[0] - a[0]).map(x => x[1]);
+  /* 본 목록은 재난·긴급·가구 점수(s)순 — 지역 가중(rg)은 동점 정렬과 별도 "지역 특성" 묶음에만 쓴다.
+     (진안군처럼 태그 3개가 겹치면 rg가 6까지 올라 풍수해보험(3)을 밀어내던 것을 막는다) */
+  const main = scored.filter(x => x.s > 0).sort((a, b) => b.s - a.s || b.rg - a.rg);
+  const top = main.slice(0, 6), topIds = new Set(top.map(x => x.it['서비스아이디']));
+  const regional = scored.filter(x => x.rg > 0 && !topIds.has(x.it['서비스아이디'])).sort((a, b) => b.rg - a.rg || b.s - a.s).slice(0, 4);
+  const seen = new Set([...topIds, ...regional.map(x => x.it['서비스아이디'])]);
+  const rest = [...main, ...scored.filter(x => x.s === 0).sort((a, b) => b.rg - a.rg)].filter(x => !seen.has(x.it['서비스아이디']));
+  return { top, regional, rest, n: top.length + regional.length + rest.length };
+}
+/* 대표문의는 "기관명번호 기관명번호…"가 수백 자까지 이어진다. 한국어는 한 줄 분량에서 끊고,
+   영어는 알려진 기관명만 번역·나머지는 번호만 남긴다(모르는 기관명을 영어로 지어내지 않기 위해). */
+function wfContact(s, tr) {
+  s = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!tr) return s.length > 90 ? s.slice(0, 90) + '…' : s;
+  const keys = Object.keys(tr.orgs || {}), out = [], re = /([^\d]*?)(\d[\d\-\/~,.()+ ]*\d|\d)(?=\s|$)/g; let m;
+  while ((m = re.exec(s)) && out.length < 3) {
+    const org = m[1].trim().replace(/^[·,]\s*/, ''), num = m[2].trim();
+    const k = tr.orgs[org] ? org : keys.find(x => org.endsWith(x));
+    out.push(k ? `${tr.orgs[k]} ${num}` : num);
+  }
+  return out.join(' · ') || s;
+}
+function regionHTML(prof) {
+  if (!prof) return '';
+  const n = nameOf(), pc = v => (v * 100).toFixed(1);
+  const tierKey = prof.tierE65 ? `res.welfare.rg.${prof.tierE65}` : '';
+  return `<div class="wf-region"><b>${t('res.welfare.rg')}</b> ${t('res.welfare.rg.line', { sgg: escapeHTML(n.sggName || ''), e65: pc(prof.e65), single: pc(prof.single), ealone: pc(prof.ealone) })}${tierKey ? ` <span class="badge">${t(tierKey)}</span>` : ''}${prof.tags.map(k => `<div class="rg-tag">${t('res.welfare.rg.' + k)}</div>`).join('')}<small>${t('res.welfare.rg.src', { d: escapeHTML(prof.basis) })}</small></div>`;
 }
 async function renderWelfare(inp) {
-  const doc = await loadWelfare();
+  const en = getLang() === 'en';
+  const [doc, tr, demo] = await Promise.all([loadWelfare(), en ? loadWelfareEn() : null, state.sgg ? loadDemo() : null]);
   const box = $('#welfareBox'); // fetch 동안 결과가 다시 그려졌으면 새 box에 그린다
   if (!doc || !doc.items || !box) return;
-  const picked = welfarePick(doc.items, inp);
-  if (!picked.length) return;
-  // 대표문의가 기관 전화 나열로 수백 자인 항목(풍수해보험 등)이 있어 한 줄 분량에서 끊는다
-  const tel = s => { s = String(s || ''); return s.length > 90 ? s.slice(0, 90) + '…' : s; };
-  const item = it => `<div class="item"><div class="item-row"><b>${escapeHTML(it['서비스명'] || '')}</b><span class="item-amt">${escapeHTML(it['소관부처명'] || '')}</span></div>${it['서비스요약'] ? `<div class="item-sum">${escapeHTML(it['서비스요약'])}</div>` : ''}<div class="item-basis">${it['대표문의'] ? `${escapeHTML(tel(it['대표문의']))} · ` : ''}${it['서비스URL'] ? `<a href="${escapeHTML(it['서비스URL'])}" data-stat="${(it['서비스명'] || '').includes('보험') ? 'ins_click' : 'welfare_click'}" target="_blank" rel="noopener">${t('res.welfare.link')} ↗</a>` : ''}</div></div>`;
-  const top = picked.slice(0, 6), rest = picked.slice(6);
+  const prof = regionProfile(demo);
+  const picked = welfarePick(doc.items, inp, prof);
+  if (!picked.n) return;
+  const trOf = it => (tr && tr.items && tr.items[it['서비스아이디']]) || null;
+  const name = it => { const x = trOf(it); return x && x[0] ? x[0] : (it['서비스명'] || ''); };
+  const summ = it => { const x = trOf(it); return x && x[1] ? x[1] : (it['서비스요약'] || ''); };
+  const agency = it => (tr && tr.agency && tr.agency[it['소관부처명']]) || it['소관부처명'] || '';
+  const item = ({ it, rg }) => `<div class="item"><div class="item-row"><b>${escapeHTML(name(it))}${rg ? `<span class="badge rg">${t('badge.rg')}</span>` : ''}</b><span class="item-amt">${escapeHTML(agency(it))}</span></div>${summ(it) ? `<div class="item-sum">${escapeHTML(summ(it))}</div>` : ''}<div class="item-basis">${it['대표문의'] ? `${escapeHTML(wfContact(it['대표문의'], tr))} · ` : ''}${it['서비스URL'] ? `<a href="${escapeHTML(it['서비스URL'])}" data-stat="${(it['서비스명'] || '').includes('보험') ? 'ins_click' : 'welfare_click'}" target="_blank" rel="noopener">${t('res.welfare.link')} ↗</a>` : ''}</div></div>`;
+  const { top, regional, rest } = picked;
+  const untranslated = en && tr ? [...top, ...regional, ...rest].filter(p => !trOf(p.it)).length : 0;
   stat('welfare_shown');
   box.hidden = false;
-  box.innerHTML = `<h3>${t('res.welfare')}</h3><small class="muted">${t('res.welfare.s')}</small>${inp.foreign ? `<small class="muted">${t('res.welfare.fr')}</small>` : ''}${top.map(item).join('')}${rest.length ? `<details class="wf-more"><summary>${t('res.welfare.more', { n: picked.length })}</summary>${rest.map(item).join('')}</details>` : ''}<small class="muted">${t('res.welfare.src', { d: (doc.updated || '').slice(0, 10) })}</small>`;
+  box.innerHTML = `<h3>${t('res.welfare')}</h3><small class="muted">${t('res.welfare.s')}</small>${inp.foreign ? `<small class="muted">${t('res.welfare.fr')}</small>` : ''}${regionHTML(prof)}${top.map(item).join('')}${regional.length ? `<div class="wf-regional"><div class="wf-sub">${t('res.welfare.rg.list')}</div>${regional.map(item).join('')}</div>` : ''}${rest.length ? `<details class="wf-more"><summary>${t('res.welfare.more', { n: picked.n })}</summary>${rest.map(item).join('')}</details>` : ''}<small class="muted">${t('res.welfare.src', { d: (doc.updated || '').slice(0, 10) })}${en ? ` ${t(untranslated ? 'res.welfare.tr.part' : 'res.welfare.tr', { n: untranslated })}` : ''}</small>`;
 }
 function renderResult(res, inp) {
   const n = nameOf(), el = $('#result'); el.hidden = false;

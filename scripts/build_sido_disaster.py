@@ -65,9 +65,16 @@ def main() -> None:
         a = agg[code]
         a["rec_tot"] += num(r["total_recovery_amount"]); a["sup"] += num(r["support_recovery_subtotal"]); a["state"] += num(r["support_recovery_state_coffer"])
         a["local"] += num(r["support_recovery_local_rate"]); a["loan"] += num(r["support_recovery_loan"]); a["selfpay"] += num(r["support_recovery_self_pay"]); a["selfrec"] += num(r["self_recovery"])
+    # 시도 인구 = sgg_demo의 시군구 인구를 sgg_index의 sido 코드로 합산(sgg_demo에 sido 합계가 없을 때도 동작)
+    idx = json.load(open(os.path.join(ROOT, "data", "admin", "sgg_index.json"), encoding="utf-8"))
+    sido_pop: dict[str, int] = {}
+    for sg in idx:
+        r = (demo.get("sgg") or {}).get(sg["code"])
+        if r:
+            sido_pop[str(sg["sido"])] = sido_pop.get(str(sg["sido"]), 0) + int(r.get("pop") or 0)
     out_sido = {}
     for code, a in agg.items():
-        pop = (demo.get("sido") or {}).get(code, {}).get("pop") or 0
+        pop = ((demo.get("sido") or {}).get(code, {}) or {}).get("pop") or sido_pop.get(code) or 0
         t = a["tot"] or 1; rt = a["rec_tot"] or 1; sup = a["sup"] or 1
         out_sido[code] = {
             "names": sorted(a["names"]), "years": [years[0], years[-1]],

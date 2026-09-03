@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260903b';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260903b';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260903a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260903a';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -379,7 +379,6 @@ function addAdminLayers() {
   setTimeout(() => { applyWxLayer(); applyTyphoon(); }, 0);
 
   const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; $('#map').appendChild(tip);
-  loadDemo().then(d => { state._demo = d; }); // 호버 툴팁용(25KB) — 읍면동 원값은 시군구 진입 시 renderDemo가 채운다
   let hover = { src: null, id: null };
   const setHover = (src, id) => {
     if (hover.id != null) map.setFeatureState({ source: hover.src, id: hover.id }, { hover: false });
@@ -390,7 +389,7 @@ function addAdminLayers() {
     map.on('mousemove', `${lv}-fill`, e => {
       const f = e.features[0]; if (!f) return; setHover(lv, f.id);
       const top = map.queryRenderedFeatures(e.point, { layers: ['emd-fill', 'sgg-fill', 'sido-fill'] })[0];
-      if (top && top.layer.id === `${lv}-fill`) { tip.hidden = false; tip.innerHTML = `${rn(f.properties)}${demoTipHTML(lv, f.properties.code)}<small>${t('lv.' + lv)} · ${t('tip.click')} ${lv === 'emd' ? t('tip.summary') : t('tip.enter')}</small>`; tip.style.left = e.point.x + 'px'; tip.style.top = e.point.y + 'px'; }
+      if (top && top.layer.id === `${lv}-fill`) { tip.hidden = false; tip.innerHTML = `${rn(f.properties)}<small>${t('lv.' + lv)} · ${t('tip.click')} ${lv === 'emd' ? t('tip.summary') : t('tip.enter')}</small>`; tip.style.left = e.point.x + 'px'; tip.style.top = e.point.y + 'px'; }
     });
     map.on('mouseleave', `${lv}-fill`, () => { setHover(lv, null); tip.hidden = true; });
   }
@@ -535,7 +534,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260903b');
+      _simMod = await import('./sim.js?v=20260903a');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1153,7 +1152,7 @@ function renderRegion() {
   $('#regionPath').textContent = [n.sidoName, state.level !== 'sido' && n.sggName].filter(Boolean).join(' › ');
   $('#regionName').textContent = state.level === 'emd' ? n.emdName : state.level === 'sgg' ? n.sggName : n.sidoName;
   $('#levelGuide').innerHTML = ['sido', 'sgg', 'emd'].map(l => `<span class="${state.level === l ? 'on' : ''}">${t('lv.' + l)}</span>`).join('');
-  renderTodo(); renderInsurance(); renderReports(); renderRiskLine(); renderER(); renderMsgs(); renderSitBar(); renderDemo(); setTimeout(applyFolds, 0);
+  renderTodo(); renderInsurance(); renderReports(); renderRiskLine(); renderER(); renderMsgs(); renderSitBar(); setTimeout(applyFolds, 0);
   // weather + air
   const wx = $('#wxCard');
   if (state.sgg) {
@@ -1465,7 +1464,7 @@ function initPanel() {
   ps.addEventListener('touchcancel', shCancel);
 }
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260903b').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260903a').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1626,8 +1625,7 @@ const SIT_ICON = { house_flood: '🏠', shop_flood: '🏪', evacuating: '🚨', 
 const SIT_KEY = { house_flood: 'sit.house', shop_flood: 'sit.shop', evacuating: 'sit.evac', before_rain: 'sit.before', injury: 'sit.injury', no_news: 'sit.nonews', past: 'sit.past', proxy: 'sit.proxy' };
 const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
 // 상황별로 펼쳐 두는 카드 (나머지는 제목 한 줄로 접힘). null = 상황 없음
-/* demo(이 지역은 누가 사나)는 대피·부상·피해 직후 상황에선 접힘 — 그 순간 인구통계는 소음이다 */
-const OPEN = { null: ['wx', 'near', 'er', 'grid', 'demo'], past: ['near', 'ins', 'grid', 'demo'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near', 'demo'], injury: ['er', 'near'], no_news: ['near'], proxy: ['near', 'wx', 'demo'] };
+const OPEN = { null: ['wx', 'near', 'er', 'grid'], past: ['near', 'ins', 'grid'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], proxy: ['near', 'wx'] };
 function applySituation(sit, navigate) {
   state.sit = sit; if (sit) sessionStorage.setItem('safepic.sit', sit); else sessionStorage.removeItem('safepic.sit');
   state._foldOverride = {}; // 상황이 바뀌면 사용자가 손으로 접고 편 기록은 초기화
@@ -1734,7 +1732,7 @@ function renderSitBar() {
   const on = bar.querySelector('.sit-chip.is-on'); if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 /* 카드 접기: 상황별 기본 + 사용자 수동 토글(상황 바뀔 때까지 유지) */
-const SEC_LABEL = { er: 'sec.er', near: 'sec.near', wx: 'sec.wx', ins: 'sec.ins', rep: 'sec.rep', demo: 'sec.demo', kv: 'sec.kv', grid: 'sec.grid' };
+const SEC_LABEL = { er: 'sec.er', near: 'sec.near', wx: 'sec.wx', ins: 'sec.ins', rep: 'sec.rep', kv: 'sec.kv', grid: 'sec.grid' };
 let _foldQ = 0; // renderAll 한 번에 서너 곳에서 불리므로 프레임당 1회로 합친다 (DOM 직렬화 비용)
 function applyFolds() {
   if (_foldQ) return;
@@ -1972,43 +1970,6 @@ function regionHTML(prof) {
   const n = nameOf(), pc = v => (v * 100).toFixed(1);
   const tierKey = prof.tierE65 ? `res.welfare.rg.${prof.tierE65}` : '';
   return `<div class="wf-region"><b>${t('res.welfare.rg')}</b> ${t('res.welfare.rg.line', { sgg: escapeHTML(n.sggName || ''), e65: pc(prof.e65), single: pc(prof.single), ealone: pc(prof.ealone) })}${tierKey ? ` <span class="badge">${t(tierKey)}</span>` : ''}${prof.tags.map(k => `<div class="rg-tag">${t('res.welfare.rg.' + k)}</div>`).join('')}<small>${t('res.welfare.rg.src', { d: escapeHTML(prof.basis) })}</small></div>`;
-}
-/* ---------- 이 지역은 누가 사나 (행안부 주민등록, scripts/build_sgg_demo.py) ----------
-   시도=시군구 합산(전국 값과 나란히), 시군구=행정동 합산(전국 시군구 사분위 띠), 읍면동=원값(전국 읍면동 사분위 띠).
-   순위 숫자는 쓰지 않고 상위 25%/중위 이상/중위 이하 띠까지만 — 지역 서열표로 읽히지 않게. */
-let _emdDemoP = null;
-const loadEmdDemo = () => _emdDemoP || (_emdDemoP = _refJSON('data/ref/emd_demo.json').then(d => { state._emdDemo = d; return d; }));
-const DEMO_LV = { sido: 'sido', sgg: 'sgg', emd: 'emd' };
-function demoRowFor(lv, code, demo, emdDemo) {
-  if (!demo || !code) return null;
-  if (lv === 'emd') { const a = emdDemo && emdDemo.items && emdDemo.items[String(code)]; return a ? { pop: a[0], hh: a[1], e65: a[2], single: a[3], ealone: a[4], q: demo.q_emd, lv } : null; }
-  if (lv === 'sgg') { const r = demo.sgg && demo.sgg[String(code)]; return r ? { ...r, q: demo.q, lv } : null; }
-  if (lv === 'sido') { const r = demo.sido && demo.sido[String(code)]; return r ? { ...r, q: null, lv } : null; }
-  return null;
-}
-const pctOf = v => (v * 100).toFixed(1) + '%';
-const fmtInt = n => Number(n || 0).toLocaleString(getLang() === 'en' ? 'en-US' : 'ko-KR');
-function demoTipHTML(lv, code) {
-  const r = demoRowFor(lv, code, state._demo, state._emdDemo);
-  return r ? `<small class="tip-demo">${t('demo.tip', { pop: fmtInt(r.pop), e65: pctOf(r.e65) })}</small>` : '';
-}
-async function renderDemo() {
-  const box = $('#demoCard'); if (!box) return;
-  const lv = DEMO_LV[state.level];
-  if (!lv) { box.hidden = true; return; }
-  const sig = () => `${state.level}|${state.sido}|${state.sgg}|${state.emd}|${getLang()}`, s0 = sig();
-  const [demo, emdDemo] = await Promise.all([loadDemo(), state.sgg ? loadEmdDemo() : null]); // 시군구 이하에선 읍면동 원값도 (호버 툴팁 공용)
-  if (sig() !== s0) return; // 기다리는 사이 지역이 바뀌었으면 버린다
-  const code = lv === 'emd' ? state.emd : lv === 'sgg' ? state.sgg : state.sido;
-  const r = demoRowFor(lv, code, demo, emdDemo);
-  if (!r) { box.hidden = true; applyFolds(); return; }
-  const nat = demo.nation || {};
-  const tier = k => { const q = r.q && r.q[k]; if (!q) return null; return r[k] >= q.p75 ? 'hi' : r[k] >= q.p50 ? 'mid' : 'lo'; };
-  const band = k => { const tr = tier(k); if (tr) return `<span class="demo-tier ${tr}">${t(`demo.tier.${tr}.${lv}`)}</span>`; return nat[k] != null ? `<span class="demo-tier nat">${t('demo.nat', { v: pctOf(nat[k]) })}</span>` : ''; };
-  const tile = (k, v, sub) => `<div class="demo-tile"><div class="k">${t('demo.' + k)}</div><div class="v">${v}</div>${sub}</div>`;
-  box.hidden = false;
-  box.innerHTML = `<div class="demo-grid">${tile('pop', fmtInt(r.pop), `<span class="demo-tier nat">${t('demo.hh', { n: fmtInt(r.hh) })}</span>`)}${tile('e65', pctOf(r.e65), band('e65'))}${tile('ealone', pctOf(r.ealone), band('ealone'))}${tile('single', pctOf(r.single), band('single'))}</div><div class="demo-why">${t('demo.why')}</div><small class="muted">${t('demo.src.' + lv, { d: escapeHTML(demo.basis || '') })}</small>`;
-  applyFolds();
 }
 async function renderWelfare(inp) {
   const en = getLang() === 'en';

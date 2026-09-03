@@ -745,16 +745,3 @@ body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
 .wf-regional{margin-top:8px;padding-top:6px;border-top:1px solid var(--line)}
 .wf-sub{font-size:.8rem;font-weight:700;color:var(--accent2);margin:2px 0 0}
 .wf-regional .item:first-of-type{border-top:0}
-
-/* 이 지역은 누가 사나 — 인구 프로필 카드 (09-03) */
-.demo-card{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
-.demo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.demo-tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
-.demo-tile .k{font-size:.78rem;color:var(--mute)}
-.demo-tile .v{font-family:var(--mono);font-size:1.25rem;font-weight:600;color:var(--ink);line-height:1.2;margin:2px 0 4px}
-.demo-tier{display:inline-block;font-size:.7rem;padding:1px 7px;border-radius:999px;background:var(--bg2);color:var(--mute);font-family:var(--mono);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
-.demo-tier.hi{background:#fbf3e4;color:var(--gold)} .demo-tier.mid{background:#e8effb;color:var(--accent2)}
-.demo-why{font-size:.82rem;color:var(--text);margin:8px 0 2px;line-height:1.45}
-.demo-card > small.muted{display:block;font-size:.76rem;line-height:1.4;margin-top:4px}
-.tip .tip-demo{display:block;color:var(--accent2);font-weight:600;font-size:.8rem}
-html.big .demo-tile .v{font-size:1.4rem}

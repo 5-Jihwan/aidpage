@@ -12,6 +12,20 @@
   취약(부 타입) — 노년: e65 ≥ p75 그리고 ealone ≥ p75 / 홀로: single ≥ p75(노년 아님) / 없으면 구조 — 도심: dens ≥ p75 / 들: kind == '군' [proxy]
   굵기(노출) — dens ≥ p75 이면 bold. 경계 — 임계 ±5% 안이면 edge 표기. 상위분류 — 행정유형 × 해안/내륙.
 사분위는 같은 단위 전국(시군구↔시군구, 행정동↔행정동). 순위 숫자 없음. 표준화 초과치로 주 타입 중 최강 선택.
+
+근거 문헌 (docs/16 §1·§3, 2026-09-04 — 규칙별 인용, 논리 변경 없음):
+  위해·취약 분리(주=위해, 부=취약>구조)   Tocchi·Pittore·Polese 2025 NHESS(위해 제외한 취약 원형); Hincks·Carter·Connelly 2023 GEC(ECRT, 위해·노출·취약 3영역 분리)
+  물(침수 이력·침수위험지구 밀도)        ECRT V12·V14(하천홍수·노출 인구); Klein 외 2024 ESPON-TITAN(100년 침수면적 %); 지방정부간 재난관리 차이 2016(재해위험지구 수=발생가능성); 구주영 2026(위험개선지구↑→피해↑ = 노출 대리)
+  산(산사태 이력·경사·기타 지구)         ECRT V13·V22, class 7(산지=산사태); 장경은 외 2023 KIEAE(홍수 민감도에 경사)
+  바다(해안 접촉, 부분 규칙)             ECRT V9·V18; Chang 외 2018 Applied Geography(해안 거주 %·해안 지형) — 해일·태풍 강도 자료 대기
+  노년(65+ & 65+ 1인세대)               김강민·황철수 2024(독거노인·65세 이상); KIPA 2017 메타평가(지역안전지수 취약지표 '재난약자수·고령인구'); Lee 2019 LGS(65+ %)
+  홀로(1인세대)                          박현수·권설아 2024(1인가구 비율 B=1.18, 계층 최강 설명변수)
+  도심(인구밀도) · 굵기(노출=밀도)       Tocchi 2025 1단 범주(도시화·인구 규모); ECRT 노출 축(위해 구역 안 인구·인프라); Lee 2019(빈도×규모 노출 유형)
+  들('군' 근사)                          Tocchi 2025 농촌 원형; Chang 2018 1차산업 고용 — 농가·어가 비율로 교체 예정
+  전국 p75 상대 임계 · 경계 ±5%          장경은 외 2023(등분위 5등급); KIPA 2017(동일유형 내 상대등급); Tate 2012(임계·변환 민감도 → 경계 표기)
+  복합(위해 2개 이상)                    ESPON 위해 상호작용; ECRT class 1·3(다중 위해)
+  가중합 지수·순위 금지                  Spielman 외 2020; Greco 외 2019; Cutter 외 2003 원저자 결론(프로파일 해석)
+  '기록 없음 ≠ 안전'                     침수흔적도 성격; ECRT class 8("위해 온화"도 클래스로 명명)
 """
 from __future__ import annotations
 
@@ -112,9 +126,11 @@ for r in rows:
 
 meta = dict(version=VERSION, built=_dt.date.today().isoformat(), unit="sgg", n=len(sgg_out),
             thresholds={k: round(v, 4) for k, v in TH.items()}, fixed_thresholds={"edge_rel": EDGE, "emd_ls_r_floor": 0.02},
-            rules={"primary": "물: flood_r≥p75 or 침수위험개선지구밀도(rzf,/100km²)≥p75 / 산: ls_r≥p75 or slope≥p75 or 기타위험개선지구밀도(rzo)≥p75[붕괴 proxy] / 바다: coastal==1[부분 규칙] / 없음→평온; 둘 이상→complex; 표준화 초과치 최강이 주 타입",
-                   "secondary": "노년: e65≥p75 & ealone≥p75 / 홀로: single≥p75 / 도심: dens≥p75 / 들: kind=='군'[proxy] / 없음→null",
-                   "bold": "dens≥p75 (노출 대리) — 주 타입이 평온이면 미적용", "edge": "임계 ±5% 이내 타입", "upper": "행정유형(구/시/군) × 해안/내륙"},
+            rules={"primary": "물: flood_r≥p75 or 침수위험개선지구밀도(rzf,/100km²)≥p75 / 산: ls_r≥p75 or slope≥p75 or 기타위험개선지구밀도(rzo)≥p75[붕괴 proxy] / 바다: coastal==1[부분 규칙] / 없음→평온; 둘 이상→complex; 표준화 초과치 최강이 주 타입 — 근거: ECRT(Hincks 2023) V9·V12·V13·V14·V18·V22, ESPON-TITAN(Klein 2024), 구주영 2026(위험개선지구=노출), 장경은 2023(경사), Chang 2018(해안)",
+                   "secondary": "노년: e65≥p75 & ealone≥p75 / 홀로: single≥p75 / 도심: dens≥p75 / 들: kind=='군'[proxy] / 없음→null — 근거: 김강민·황철수 2024·KIPA 2017 재난약자(노년), 박현수·권설아 2024(1인가구), Tocchi 2025 1단 범주(도심·농촌)",
+                   "bold": "dens≥p75 (노출 대리) — 주 타입이 평온이면 미적용 — 근거: ECRT 노출 축, Chang 2018 해안 거주 %, Lee 2019 빈도×규모", "edge": "임계 ±5% 이내 타입 — 근거: Tate 2012 임계 민감도", "upper": "행정유형(구/시/군) × 해안/내륙 — 근거: Tocchi 2025 상위=범주형 구조, KIPA 2017 5그룹 상대평가",
+                   "threshold_basis": "같은 단위 전국 p75 — 근거: 장경은 외 2023 등분위 5등급, KIPA 2017 동일유형 내 상대등급; 순위·가중합 금지 — Spielman 2020, Greco 2019, Cutter 2003",
+                   "literature": "docs/16_타입기준_v1_문헌근거_20260904.md"},
             sources={"flood_r,ls_r,slope,dens,coastal": "data/grid(행안부 침수흔적도·산사태 발생이력, Copernicus GLO-30), kr_sgg 경계 접촉 판정 (docs/lib/sgg_typology_explore_20260903.csv)",
                      "e65,ealone,single,pop": "행안부 주민등록 2026-07 (sgg_demo.json)", "rz_flood,rz_other": "행안부 자연재해위험개선지구 (riskzone_by_sgg.json, asof 2026-08-27)"},
             caveats=["기록 없음 ≠ 안전: 침수·산사태 이력은 신고·기록된 것만 담는다", "'들' 타입은 행정구역 이름(군)으로 판단한 농어촌 근사치", "'바다' 타입은 해안 접촉 여부만 본 부분 규칙(해일·태풍 강도 미반영)",

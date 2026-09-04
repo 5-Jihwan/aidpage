@@ -804,9 +804,12 @@ body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
   .rg-tabs button{flex:1;border:0;background:transparent;border-radius:10px;padding:9px 10px;font-weight:700;font-size:.92rem;color:var(--mute);min-height:var(--tap)}
   .rg-tabs button.is-on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(20,32,46,.10)}
   /* 지역 탭이 켜지면 헤더·탭·지역 컨테이너만 남기고 '지금 여기' 내용은 숨긴다 */
-  #nowRegion.rt-region > *:not(.region-head):not(.rg-tabs):not(#rgSum):not(#regionMobile){display:none!important}
+  /* 지역 탭에선 요약 칩(#rgSum)도 숨김 — 서랍 헤더 태그 줄에 같은 칩이 있어 폰에서 두 번 보이던 중복(09-04 스크리닝) */
+  #nowRegion.rt-region > *:not(.region-head):not(.rg-tabs):not(#regionMobile){display:none!important}
   .rg-mobile .rg-blk h4{font-size:.95rem} .rg-mobile .rg-row{font-size:.86rem;padding:7px 0} .rg-mobile .rg-row small{font-size:.72rem}
-  .rg-mobile .rg-map{min-height:30px;padding:3px 10px;font-size:.74rem}
+  .rg-mobile .rg-map{min-height:36px;padding:5px 12px;font-size:.78rem}
+  .rg-mobile .rg-link{min-height:40px;align-items:center;padding:8px 0}
+  .rg-mobile .rg-row{min-height:40px;align-items:center}
   .rg-mobile .rg-filters .chip{padding:6px 11px;font-size:.82rem;min-height:var(--tap)}
   .rg-mobile .rg-tags .ty-chip{font-size:.86rem}
 }

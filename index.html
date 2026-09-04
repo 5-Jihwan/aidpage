@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260904c">
+<link rel="stylesheet" href="css/style.css?v=20260904d">
 </head>
 <body>
 
@@ -151,7 +151,9 @@
             <div><div class="eyebrow mono" id="regionPath"></div><h2 class="h2" id="regionName"></h2></div>
             <button class="btn btn-primary" id="btnFindHere" data-i18n="region.find">이 위치로 지원 찾기 →</button>
           </div>
+          <div class="rg-tabs" id="rgTabs" hidden role="tablist"></div>
           <div class="rg-sum" id="rgSum" hidden></div>
+          <div class="rg-mobile" id="regionMobile" hidden></div>
           <div class="region-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSaveHome"></button><button type="button" class="btn btn-ghost btn-sm" id="btnResetSel" data-i18n="sel.reset">선택 초기화</button></div>
           <div class="level-guide" id="levelGuide"></div>
           <div class="sit-bar" id="sitBar"></div>
@@ -304,6 +306,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260904c"></script>
+<script type="module" src="js/app.js?v=20260904d"></script>
 </body>
 </html>

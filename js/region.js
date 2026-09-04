@@ -2,7 +2,7 @@
    역할 분리: 왼쪽 패널 = 지금(특보·대피소·할 일), 이 서랍 = 이 지역은(구조·이력·시설 총량·지원 미리보기).
    한 항목 한 집: 특보는 태그 1개만, 가까운 대피소는 총량 행만. 순위 숫자 없음, 사분위 띠까지만.
    lazy import — 평소 0바이트. app.js가 open(ctx) 호출 시 ctx로 상태·도우미를 넘긴다(전역 import 없음). */
-let ctx = null, root = null, topic = 'all', _types = null, _demo = null, _rz = null, _sidoDis = null, _welfare = null, _welfareEn = null;
+let ctx = null, root = null, mobile = false, topic = 'all', _types = null, _demo = null, _rz = null, _sidoDis = null, _welfare = null, _welfareEn = null;
 const J = u => fetch(u, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null);
 const load = async () => {
   [_types, _demo, _rz, _sidoDis] = await Promise.all([_types || J('data/ref/sgg_types.json'), _demo || J('data/ref/sgg_demo.json'), _rz || J('data/ref/riskzone_by_sgg.json'), _sidoDis || J('data/ref/sido_disaster.json')]);
@@ -114,6 +114,14 @@ async function blockSupport(s, ty) {
 /* ---------- 렌더 ---------- */
 export async function render() {
   if (!root || !ctx) return;
+  try { await renderInner(); }
+  catch (e) { // 폰에서 오류가 조용히 화면을 비우던 전례 — 실패는 보이게, 계측은 기기군별로
+    console.warn('region render', e);
+    root.innerHTML = `<p class="rg-note warn">${ctx.t('rg.err')}</p>`;
+    try { ctx.stat(mobile ? 'js_error_m' : 'js_error_d'); } catch (e2) { /* no-op */ }
+  }
+}
+async function renderInner() {
   const s = ctx.state, t = ctx.t;
   if (s.level === 'nation') { close(); return; }
   await load();
@@ -127,13 +135,13 @@ export async function render() {
   const upper = upperTxt ? `<span class="tag" title="${esc(t('rg.upper.d'))}">${esc(upperTxt)}</span>` : '';
   const sidoDist = s.level === 'sido' && _types ? await sidoDistHTML(s.sido) : '';
   const [people, hist, fac, sup] = await Promise.all([blockPeople(s), blockHistory(s), blockFacilities(s), blockSupport(s, ty)]);
-  root.innerHTML = `<div class="rg-head"><div><div class="eyebrow">${t('rg.eyebrow')}</div><h3>${esc(name)}</h3></div><button type="button" class="rg-x" aria-label="${t('rg.close')}">✕</button></div>
+  root.innerHTML = `${mobile ? '' : `<div class="rg-head"><div><div class="eyebrow">${t('rg.eyebrow')}</div><h3>${esc(name)}</h3></div><button type="button" class="rg-x" aria-label="${t('rg.close')}">✕</button></div>`}
     <div class="rg-tags">${ty ? typeChips(ty) : ''}${upper}${warnTag}</div>${sidoDist}
     <div class="rg-filters">${['all', 'people', 'history', 'facility', 'support'].map(k => `<button type="button" class="chip ${topic === k ? 'is-on' : ''}" data-topic="${k}">${t('rg.topic.' + k)}</button>`).join('')}</div>
     <div class="rg-body">${people}${hist}${fac}${sup}</div>
     <p class="rg-src">${t('rg.src')}</p>`;
   applyTopic();
-  root.querySelector('.rg-x').addEventListener('click', () => close(true));
+  const x = root.querySelector('.rg-x'); if (x) x.addEventListener('click', () => close(true));
   root.querySelectorAll('.rg-filters .chip').forEach(b => b.addEventListener('click', () => { topic = b.dataset.topic; root.querySelectorAll('.rg-filters .chip').forEach(x => x.classList.toggle('is-on', x === b)); applyTopic(); }));
   root.querySelectorAll('.rg-map').forEach(b => b.addEventListener('click', () => { ctx.toggleKind(b.dataset.kind); ctx.stat('region_maplink'); }));
   const f = root.querySelector('.rg-find'); if (f) f.addEventListener('click', () => { ctx.stat('region_to_find'); ctx.goFind(); });
@@ -145,18 +153,28 @@ async function sidoDistHTML(sido) {
   return `<div class="rg-sido"><small>${ctx.t('rg.sido.dist', { n: d.n_sgg })}</small><div>${bar(d.primary_pct)}</div><div>${bar(d.secondary_pct)}</div></div>`;
 }
 
-export function init(c) { ctx = c; root = document.getElementById('regionDrawer'); if (!init._esc) { init._esc = true; addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen()) close(true); }); } }
+export function init(c) { ctx = c; if (!init._esc) { init._esc = true; addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen()) close(true); }); } }
 export function isOpen() { return !!(root && !root.hidden); }
-export async function open(c) {
-  ctx = c; root = document.getElementById('regionDrawer'); if (!root) return;
-  topic = 'all'; root.hidden = false; document.querySelector('.stage').classList.add('has-drawer');
+export function isMobile() { return mobile; }
+/* opts.mobile=true → 시트 안 #regionMobile(두 번째 탭)에 그린다. 데스크톱은 오른쪽 #regionDrawer. */
+export async function open(c, opts) {
+  ctx = c; mobile = !!(opts && opts.mobile);
+  const other = document.getElementById(mobile ? 'regionDrawer' : 'regionMobile'); if (other) other.hidden = true;
+  root = document.getElementById(mobile ? 'regionMobile' : 'regionDrawer'); if (!root) return;
+  topic = 'all'; root.hidden = false;
+  const stage = document.querySelector('.stage'), now = document.getElementById('nowRegion');
+  if (stage) stage.classList.toggle('has-drawer', !mobile);
+  if (now) now.classList.toggle('rt-region', mobile);
   ctx.state._drawerOpen = true; ctx.onOpen && ctx.onOpen();
-  ctx.stat('region_open');
+  ctx.stat(mobile ? 'region_open_m' : 'region_open');
   await render();
 }
 export function close(user) {
   if (!root) return;
-  root.hidden = true; document.querySelector('.stage').classList.remove('has-drawer');
+  root.hidden = true;
+  const stage = document.querySelector('.stage'), now = document.getElementById('nowRegion');
+  if (stage) stage.classList.remove('has-drawer');
+  if (now) now.classList.remove('rt-region');
   if (ctx) { ctx.state._drawerOpen = false; ctx.onClose && ctx.onClose(user); }
 }
 export function refresh() { if (isOpen()) render(); }

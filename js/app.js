@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260904c';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260904c';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260904d';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260904d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -558,7 +558,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260904c');
+      _simMod = await import('./sim.js?v=20260904d');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1509,7 +1509,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260904c').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260904d').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1772,7 +1772,7 @@ function initWelcome() {
 
 /* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
 let _regionMod = null;
-const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260904c'));
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260904d'));
 const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
 function regionCtx() {
   return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,
@@ -1780,12 +1780,30 @@ function regionCtx() {
     goFind: () => { setTab('find'); syncWizardLoc(); },
     onOpen: () => { applyDrawerFx(); }, onClose: () => { applyDrawerFx(); } };
 }
-async function openRegionDrawer() { if (matchMedia(MQ_MOBILE).matches || state.level === 'nation') return; const m = await regionMod(); m.init(regionCtx()); await m.open(regionCtx()); }
-function closeRegionDrawer() { if (_regionMod) _regionMod.then(m => m.close(false)); }
+/* 데스크톱·태블릿 가로 = 오른쪽 서랍 / 폰·태블릿 세로(시트 모드) = 시트 안 "이 지역은" 탭 */
+async function openRegionDrawer() {
+  if (state.level === 'nation') return;
+  const mobile = matchMedia(MQ_MOBILE).matches;
+  const m = await regionMod(); m.init(regionCtx()); await m.open(regionCtx(), { mobile });
+  if (mobile) { state._rgTab = 'region'; paintRgTabs(); const p = $('#panel'); if (p && p.classList.contains('is-collapsed')) { p.classList.remove('is-collapsed'); setTimeout(() => map && map.resize(), 260); } }
+}
+function paintRgTabs() { $$('#rgTabs button').forEach(b => b.classList.toggle('is-on', (state._rgTab || 'now') === b.dataset.rt)); }
+function closeRegionDrawer() { state._rgTab = 'now'; paintRgTabs(); if (_regionMod) _regionMod.then(m => m.close(false)); }
 /* 패널 상단 요약 줄: 타입 칩 + "이 지역 알아보기" (서랍 진입점). 시군구 타입은 data/ref/sgg_types.json(v0). */
 async function renderRegionSummary() {
   const box = $('#rgSum'); if (!box) return;
-  if (state.level === 'nation' || HIDE_SUM_SIT.has(state.sit)) { box.hidden = true; return; }
+  const tabs = $('#rgTabs');
+  if (state.level === 'nation' || HIDE_SUM_SIT.has(state.sit)) { box.hidden = true; if (tabs) tabs.hidden = true; if (state._drawerOpen) closeRegionDrawer(); return; }
+  // 시트 모드(폰·태블릿 세로): 탭 바가 진입점. 처음 한 번만 그리고 이후엔 상태만 칠한다
+  if (tabs && matchMedia(MQ_MOBILE).matches) {
+    tabs.hidden = false;
+    if (!tabs.dataset.built || tabs.dataset.lang !== getLang()) {
+      tabs.dataset.built = '1'; tabs.dataset.lang = getLang();
+      tabs.innerHTML = `<button type="button" data-rt="now">${t('rg.tab.now')}</button><button type="button" data-rt="region">${t('rg.tab.region')}</button>`;
+      $$('button', tabs).forEach(b => b.addEventListener('click', () => { if (b.dataset.rt === 'region') openRegionDrawer(); else closeRegionDrawer(); }));
+    }
+    paintRgTabs();
+  } else if (tabs) tabs.hidden = true;
   const m = await regionMod(); m.init(regionCtx()); await m.ensureTypes();
   const sig = `${state.level}|${state.sgg}|${state.sit}|${getLang()}`; if (box.dataset.sig === sig) return; box.dataset.sig = sig;
   const ty = state.sgg ? m.typeOf(state.sgg) : null;

@@ -312,7 +312,7 @@ async function pushSend(req, env, cors) {
 /* ── 익명 사용 계측 — 이벤트 이름별 일 단위 카운터. 페이로드는 {ev}뿐(지역·입력·식별자 없음).
    KV 증분은 동시 요청에서 일부 유실될 수 있으나(비원자적) 추세 파악용으론 충분하다.
    조회는 wrangler kv key list/get (stat:YYYY-MM-DD:이벤트). 400일 보존. ── */
-const STAT_EVS = new Set(['wizard_submit', 'nearmiss_shown', 'welfare_shown', 'print', 'share_copy', 'ins_click', 'welfare_click', 'js_error_m', 'js_error_d', 'region_open', 'region_to_find', 'region_maplink']);
+const STAT_EVS = new Set(['wizard_submit', 'nearmiss_shown', 'welfare_shown', 'print', 'share_copy', 'ins_click', 'welfare_click', 'js_error_m', 'js_error_d', 'region_open', 'region_open_m', 'region_to_find', 'region_maplink']);
 /* 최근 14일 이벤트별 카운트 — 익명 집계라 공개 조회 무해. 사업 지표 대시보드용. */
 async function statSummary(env) {
   const days = [];

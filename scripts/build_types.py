@@ -5,7 +5,7 @@
   data/ref/emd_types.json   행정동(격자 emd 속성): 같은 규칙, 읍면동 전국 사분위, 해안·행정유형은 시군구 상속
   data/ref/sido_types.json  시도: 인구 가중 타입 분포(단일 타입 없음)
 
-규칙 v0-20260904 (docs/15 §2-2 기준 4·5·6·7):
+규칙 v1.1-20260904 (docs/15 §2-2 기준 4·5·6·7):
   위해(주 타입) — 물: flood_r ≥ p75 또는 침수위험개선지구 밀도(/100km²) ≥ p75 / 산: ls_r ≥ p75 또는 slope ≥ p75 또는 기타 위험개선지구 밀도 ≥ p75 [붕괴 proxy]
               바다: coastal == 1 [부분 규칙 — 해안 접촉만] / 없으면 평온. 둘 이상 성립 → complex. (첫 실행의 절대 개수 규칙 ≥5·≥3은 면적 큰 군을 전부 '물'로 만들어 폐기)
   행정동 — 같은 규칙, 읍면동 전국 p75. 산사태 이력 p75가 0이라 ls_r 임계 하한 0.02. 위험개선지구는 시군구 자료라 행정동 판정 미사용.
@@ -42,7 +42,7 @@ import numpy as np
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
-VERSION = "v0-20260904"
+VERSION = "v1.1-20260904"
 EDGE = 0.05  # 임계 ±5%
 
 rows = list(csv.DictReader(io.open(P("docs", "lib", "sgg_typology_explore_20260903.csv"), encoding="utf-8")))
@@ -68,18 +68,22 @@ def exceed(v, thr, sd):
 def classify(m, th, sd, kind, coastal):
     """m: dict(flood_r, ls_r, slope, e65, ealone, single, dens, rzf, rzo). th: p75 thresholds. sd: std per metric.
     rzf/rzo = 침수위험개선지구·기타(붕괴 등) 지구 수 / 100km² (시군구만; 행정동은 0). 반환 dict(primary, secondary, complex, bold, edge, hazards, scores)"""
-    haz = {}
+    haz = {}; basis = None
+    # v1.1(09-04 스크리닝): 물은 '이력' 성립인지 '지정(위험개선지구 밀도)' 성립인지 basis로 구분 — 이력 0인 물 타입이 절반(40/74)이었다
     if m["flood_r"] >= th["flood_r"] or (th["rzf"] > 0 and m["rzf"] >= th["rzf"]):
         haz["물"] = max(exceed(m["flood_r"], th["flood_r"], sd["flood_r"]), exceed(m["rzf"], th["rzf"], sd["rzf"]) if th["rzf"] > 0 else -9)
-    if m["ls_r"] >= th["ls_r"] or m["slope"] >= th["slope"] or (th["rzo"] > 0 and m["rzo"] >= th["rzo"]):
-        haz["산"] = max(exceed(m["ls_r"], th["ls_r"], sd["ls_r"]), exceed(m["slope"], th["slope"], sd["slope"]), exceed(m["rzo"], th["rzo"], sd["rzo"]) if th["rzo"] > 0 else -9)
+        basis = "history" if m["flood_r"] >= th["flood_r"] else "zone"
+    # v1.1: 잔여 위험지구 밀도(rzo, 6유형 혼합)는 '산' 판정에서 제외(39곳이 이것 하나로 성립) — 유형 코드 분리 후 붕괴지구만 복귀.
+    #       경사 단독은 p80(강한 경사)만. 산사태 이력 p75는 유지.
+    if m["ls_r"] >= th["ls_r"] or m["slope"] >= th["slope80"]:
+        haz["산"] = max(exceed(m["ls_r"], th["ls_r"], sd["ls_r"]), exceed(m["slope"], th["slope80"], sd["slope"]))
     if coastal == 1:
         haz["바다"] = 0.0  # 부분 규칙: 접촉 여부만이라 강도 없음 → 다른 위해와 동시 성립 시 그쪽이 주 타입
     primary = max(haz, key=haz.get) if haz else "평온"
     # 부 타입: 취약 → 구조
     if m["e65"] >= th["e65"] and m["ealone"] >= th["ealone"]:
         secondary = "노년"
-    elif m["single"] >= th["single"]:
+    elif m["single"] >= th["single80"]:  # v1.1: p75(.510) ±5% 안에 57곳이 몰려 경계 표시가 무뎌짐 → p80
         secondary = "홀로"
     elif m["dens"] >= th["dens"]:
         secondary = "도심"
@@ -89,17 +93,21 @@ def classify(m, th, sd, kind, coastal):
         secondary = None
     edge = []
     if near(m["flood_r"], th["flood_r"]): edge.append("물")
-    if near(m["ls_r"], th["ls_r"]) or near(m["slope"], th["slope"]) or (th["rzo"] > 0 and near(m["rzo"], th["rzo"])): edge.append("산")
+    if near(m["ls_r"], th["ls_r"]) or near(m["slope"], th["slope80"]): edge.append("산")
     if th["rzf"] > 0 and near(m["rzf"], th["rzf"]): edge.append("물")
     if near(m["e65"], th["e65"]) or near(m["ealone"], th["ealone"]): edge.append("노년")
-    if near(m["single"], th["single"]): edge.append("홀로")
+    if near(m["single"], th["single80"]): edge.append("홀로")
     if near(m["dens"], th["dens"]): edge.append("도심")
+    # v1.1: 결과를 바꿀 수 없는 경계는 표시하지 않는다(노년이면 홀로·도심 경계 무의미, 홀로면 도심 경계 무의미) — 경계 표시 44%의 정보량 회복
+    if secondary == "노년": edge = [e for e in edge if e not in ("홀로", "도심")]
+    elif secondary == "홀로": edge = [e for e in edge if e != "도심"]
     return dict(primary=primary, secondary=secondary, complex=len(haz) >= 2, bold=(primary != "평온" and m["dens"] >= th["dens"]),
-                edge=sorted(set(edge)), hazards=sorted(haz, key=haz.get, reverse=True), scores={k: round(v, 2) for k, v in haz.items()})
+                edge=sorted(set(edge)), hazards=sorted(haz, key=haz.get, reverse=True), scores={k: round(v, 2) for k, v in haz.items()},
+                basis=(basis if primary == "물" else None))
 
 
 def label(t):
-    s = t["primary"] + "·" + (t["secondary"] or "—")
+    s = t["primary"] + ("(지정)" if t.get("basis") == "zone" else "") + "·" + (t["secondary"] or "—")
     if t["bold"]: s += "(굵게)"
     if t["complex"]: s += "[복합]"
     return s
@@ -112,6 +120,7 @@ for r in rows:  # 위험개선지구 밀도(/100km²) — 절대 개수는 면�
     r["rzf"] = fl / area * 100; r["rzo"] = (int(z.get("n", 0)) - fl) / area * 100
 M = {v: [float(r[v]) for r in rows] for v in METRICS}
 TH = {v: pct(M[v]) for v in METRICS}
+TH["slope80"] = pct(M["slope"], 80); TH["single80"] = pct(M["single"], 80)  # v1.1
 SD = {v: float(np.std(M[v])) for v in METRICS}
 sgg_out, pair, prim_cnt, cross = {}, Counter(), Counter(), defaultdict(Counter)
 for r in rows:
@@ -126,8 +135,8 @@ for r in rows:
 
 meta = dict(version=VERSION, built=_dt.date.today().isoformat(), unit="sgg", n=len(sgg_out),
             thresholds={k: round(v, 4) for k, v in TH.items()}, fixed_thresholds={"edge_rel": EDGE, "emd_ls_r_floor": 0.02},
-            rules={"primary": "물: flood_r≥p75 or 침수위험개선지구밀도(rzf,/100km²)≥p75 / 산: ls_r≥p75 or slope≥p75 or 기타위험개선지구밀도(rzo)≥p75[붕괴 proxy] / 바다: coastal==1[부분 규칙] / 없음→평온; 둘 이상→complex; 표준화 초과치 최강이 주 타입 — 근거: ECRT(Hincks 2023) V9·V12·V13·V14·V18·V22, ESPON-TITAN(Klein 2024), 구주영 2026(위험개선지구=노출), 장경은 2023(경사), Chang 2018(해안)",
-                   "secondary": "노년: e65≥p75 & ealone≥p75 / 홀로: single≥p75 / 도심: dens≥p75 / 들: kind=='군'[proxy] / 없음→null — 근거: 김강민·황철수 2024·KIPA 2017 재난약자(노년), 박현수·권설아 2024(1인가구), Tocchi 2025 1단 범주(도심·농촌)",
+            rules={"primary": "[v1.1] 물: flood_r≥p75 or 침수위험개선지구밀도(rzf,/100km²)≥p75 (basis=history|zone) / 산: ls_r≥p75 or slope≥p80 (rzo 제외 — 6유형 혼합 잔여항목) / 바다: coastal==1[부분 규칙] / 없음→평온; 둘 이상→complex; 표준화 초과치 최강이 주 타입 — 근거: ECRT(Hincks 2023) V9·V12·V13·V14·V18·V22, ESPON-TITAN(Klein 2024), 구주영 2026(위험개선지구=노출), 장경은 2023(경사), Chang 2018(해안)",
+                   "secondary": "[v1.1] 노년: e65≥p75 & ealone≥p75 / 홀로: single≥p80 / 도심: dens≥p75 / 들: kind=='군'[proxy] / 없음→null — 근거: 김강민·황철수 2024·KIPA 2017 재난약자(노년), 박현수·권설아 2024(1인가구), Tocchi 2025 1단 범주(도심·농촌)",
                    "bold": "dens≥p75 (노출 대리) — 주 타입이 평온이면 미적용 — 근거: ECRT 노출 축, Chang 2018 해안 거주 %, Lee 2019 빈도×규모", "edge": "임계 ±5% 이내 타입 — 근거: Tate 2012 임계 민감도", "upper": "행정유형(구/시/군) × 해안/내륙 — 근거: Tocchi 2025 상위=범주형 구조, KIPA 2017 5그룹 상대평가",
                    "threshold_basis": "같은 단위 전국 p75 — 근거: 장경은 외 2023 등분위 5등급, KIPA 2017 동일유형 내 상대등급; 순위·가중합 금지 — Spielman 2020, Greco 2019, Cutter 2003",
                    "literature": "docs/16_타입기준_v1_문헌근거_20260904.md"},
@@ -159,6 +168,7 @@ for fn in sorted(os.listdir(GRID)):
 for e in emd.values(): e["rzf"] = 0.0; e["rzo"] = 0.0  # 위험개선지구는 시군구 단위 자료 — 행정동 판정에 미사용
 ME = {v: [e[v] for e in emd.values()] for v in METRICS}
 TH_E = {v: pct(ME[v]) for v in METRICS}; SD_E = {v: float(np.std(ME[v])) for v in METRICS}
+TH_E["slope80"] = pct(ME["slope"], 80); TH_E["single80"] = pct(ME["single"], 80)  # v1.1
 TH_E["ls_r"] = max(TH_E["ls_r"], 0.02)  # 행정동 산사태 이력 p75가 0이라 '셀 하나만 있어도 산'이 되는 것을 막는다(v0 첫 실행 교훈)
 TH_E["rzf"] = TH_E["rzo"] = 0.0
 COLS = ["code", "sgg", "name", "pop", "primary", "secondary", "bold", "complex", "edge", "label"]

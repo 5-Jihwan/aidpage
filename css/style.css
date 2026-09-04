@@ -824,3 +824,5 @@ body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
   .stage.has-drawer .maplibregl-ctrl-bottom-right,.stage.has-drawer .mapstack{right:306px}
   .rg-row{grid-template-columns:1.2fr .7fr .9fr}
 }
+
+.ty-flag.basis{background:#e8effb;color:#0f4a9e}

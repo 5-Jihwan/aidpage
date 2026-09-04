@@ -23,7 +23,8 @@ export function typeChips(ty, small) {
   if (!ty) return '';
   const t = ctx.t;
   const chip = (k, cls) => `<span class="ty-chip ${cls} ${small ? 'sm' : ''}" title="${esc(t('ty.' + k + '.d'))}">${TYPE_ICON[k] || ''} ${tn(k)}</span>`;
-  return `<span class="ty-pair">${chip(ty.primary, 'ty-p' + (ty.bold ? ' bold' : ''))}<i class="ty-dot">·</i>${ty.secondary ? chip(ty.secondary, 'ty-s') : `<span class="ty-chip ty-s ${small ? 'sm' : ''} none">—</span>`}${ty.complex ? `<span class="ty-flag" title="${esc(t('ty.complex.d'))}">${t('ty.complex')}</span>` : ''}${ty.edge && ty.edge.length ? `<span class="ty-flag edge" title="${esc(t('ty.edge.d'))}">?</span>` : ''}</span>`;
+  const basis = ty.primary === '물' && ty.basis === 'zone' ? `<span class="ty-flag basis" title="${esc(t('ty.basis.zone.d'))}">${t('ty.basis.zone')}</span>` : '';
+  return `<span class="ty-pair">${chip(ty.primary, 'ty-p' + (ty.bold ? ' bold' : ''))}${basis}<i class="ty-dot">·</i>${ty.secondary ? chip(ty.secondary, 'ty-s') : `<span class="ty-chip ty-s ${small ? 'sm' : ''} none">—</span>`}${ty.complex ? `<span class="ty-flag" title="${esc(t('ty.complex.d'))}">${t('ty.complex')}</span>` : ''}${ty.edge && ty.edge.length ? `<span class="ty-flag edge" title="${esc(t('ty.edge.d'))}">?</span>` : ''}</span>`;
 }
 
 function tier(v, q) { if (!q || v == null) return ''; return v >= q.p75 ? 'hi' : v >= q.p50 ? 'mid' : 'lo'; }

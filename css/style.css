@@ -745,3 +745,11 @@ body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
 .wf-regional{margin-top:8px;padding-top:6px;border-top:1px solid var(--line)}
 .wf-sub{font-size:.8rem;font-weight:700;color:var(--accent2);margin:2px 0 0}
 .wf-regional .item:first-of-type{border-top:0}
+
+/* 우리 동네 위험 — 방법·한계 펼침, 범례 상대등급 표기 (09-04) */
+.grid-how{margin-top:6px;font-size:.8rem;color:var(--text)}
+.grid-how summary{cursor:pointer;color:var(--accent);font-weight:600;list-style:none}
+.grid-how summary::before{content:"ⓘ ";font-weight:400}
+.grid-how ul.how{margin:6px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:4px;line-height:1.45}
+.grid-how ul.how b{color:var(--ink)}
+.lg-note{font-size:.68rem;color:var(--mute);font-family:var(--mono);margin-left:4px}

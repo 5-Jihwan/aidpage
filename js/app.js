@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260904a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260904a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260904b';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260904b';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -153,7 +153,9 @@ function set3D(on, ease = true) {
   ensureDem(); ensureBldg();
   map.setLayoutProperty('bldg-3d', 'visibility', on ? 'visible' : 'none');
   // ⚠ globe 투영에서는 지형 변위가 적용되지 않는다 — 3D 동안은 mercator로 전환 (08-31 사용자 확인)
-  try { map.setProjection({ type: on ? 'mercator' : 'globe' }); } catch (e) { /* 미지원 브라우저 */ }
+  // 3D(지형)는 globe 투영에서 변위가 안 붙어 mercator가 필요하지만, 멀리서 평면 mercator는 극 왜곡으로 "깨져" 보인다(09-04 보고).
+  // → 3D 모드에서도 줌 4까지는 구(vertical-perspective), 4~6에서 mercator로 넘어가는 표현식. 지형은 그 줌대에선 보이지 않아 손해 없음.
+  try { map.setProjection({ type: on ? ['interpolate', ['linear'], ['zoom'], 4, 'vertical-perspective', 6, 'mercator'] : 'globe' }); } catch (e) { /* 미지원 브라우저 */ }
   _terrEx = on ? terrainEx(map.getZoom()) : 1.7;
   map.setTerrain(on ? { source: 'dem', exaggeration: _terrEx } : null);
   map.setLayoutProperty('hillshade', 'visibility', on ? 'visible' : 'none');
@@ -547,7 +549,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260904a');
+      _simMod = await import('./sim.js?v=20260904b');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -575,11 +577,12 @@ async function syncGrid() {
   const legSpans = !leg ? '' : !leg.breaks.length
     ? `<span><i style="background:${leg.colors[0]}"></i>${gridFmt(leg.attr, leg.only)}</span>`  // 값이 전부 같은 속성
     : leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('');
-  state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: legSpans } : null;
+  state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: legSpans + `<span class="lg-note">${t('grid.rel')}</span>` } : null;
   renderLegend(activeShelterKinds());
   const html = `<div class="grid-attrs">${attrs.map(a => `<button type="button" class="chip ${a.id === gridAttr ? 'is-on' : ''}" data-a="${a.id}">${getLang() === 'en' ? a.en : a.ko}</button>`).join('')}</div>` +
     (leg ? `<div class="legend">${legSpans}<span><i style="background:#d9dee7"></i>${t('grid.nodata')}</span></div>` : '') +
-    `<div class="fine">${t('grid.note')}</div>`;
+    `<div class="fine">${t('grid.note')}</div>` +
+    `<details class="grid-how"><summary>${t('grid.how.t')}</summary>${t('grid.how')}</details>`;
   for (const el of [box, where]) { if (!el) continue; el.hidden = !mapOn; el.innerHTML = `<h3>${t('grid.title')}</h3>` + html; $$('.chip', el).forEach(b => b.addEventListener('click', () => { gridAttr = b.dataset.a; localStorage.setItem('safepic.gridAttr', gridAttr); syncGrid(); })); }
   $('#wherePending').hidden = true;
   renderPrepare(); applyFolds();
@@ -609,6 +612,18 @@ const PREP_ROWS = [
     val: cs => cs[0].elderly_alone_r ?? null,
     fmt: v => (v * 100).toFixed(1) + '%', act: () => null },
 ];
+/* 격자 출처 한 줄 — 격자 파일 meta에서 조립. 서울 25구(res 9)는 서울시 침수흔적도, 전국(res 8)은 행안부 침수흔적도·산사태 이력.
+   short=true(팝업 배지)면 침수·DEM·주민등록만. */
+function gridSrcText(gm, short) {
+  const en = getLang() === 'en';
+  const flood = gm.flood_src ? (en ? 'MOIS flood-trace maps (nationwide)' : '행안부 침수흔적도(전국)') : (en ? 'Seoul flood-trace maps 2010–2025' : '서울 침수흔적도 2010~2025');
+  const ls = gm.landslide_src ? (en ? ' · landslide: MOIS landslide records' : ' · 산사태: 행안부 산사태 발생이력') : '';
+  const dem = gm.dem ? String(gm.dem).replace(/\s*\(.*\)$/, '') : 'Copernicus GLO-30';
+  if (short) return en ? `${flood} · ${dem} · MOIS registration` : `${flood} · ${dem} · 행안부 주민등록`;
+  const res = gm.h3_res || 9;
+  return en ? `H3 (res ${res}) cell aggregates · flood: ${flood}${ls} · slope: ${dem} (surface model) · population: MOIS registration by dong${gm.jumin_basis ? ' ' + gm.jumin_basis : ''} · shelter walk: straight-line to civil-defence shelters at 67 m/min. No record does not mean safe.`
+            : `격자(H3 res ${res}) 집계 · 침수: ${flood}${ls} · 경사: ${dem}(지표모델) · 인구: 행안부 주민등록(행정동${gm.jumin_basis ? ', ' + gm.jumin_basis : ''}) · 대피소 도보: 민방위 대피소 직선거리(67m/분). 이력이 없다는 것이 안전을 뜻하지 않습니다.`;
+}
 function renderPrepare() {
   const box = $('#compareBox'); if (!box) return;
   const cs = gridCells(state.sgg); if (!cs.length) { box.hidden = true; return; }
@@ -631,7 +646,7 @@ function renderPrepare() {
   const rz = state._rz && state._rz.by_sgg && state._rz.by_sgg[String(state.sgg)];
   const rzHTML = rz ? `<div class="prep-row"><div class="prep-head"><span>${t('prep.r.rz')}</span><b>${t('prep.v.rz', { n: rz.n })}</b></div><div class="prep-act">→ ${rz.flood ? t('prep.a.rz.flood', { m: rz.flood }) : t('prep.a.rz')}</div></div>` : '';
   box.hidden = false;
-  box.innerHTML = `<h3>${t('prep.title')}</h3><div class="cmp-head"><select class="cmp-sel">${names.map(n => `<option value="${n}" ${n === sel ? 'selected' : ''}>${emdDisp(n)}</option>`).join('')}</select></div>${rows}${rzHTML}<div class="fine">${t('prep.src')}<br>${t('prob.lead')} ${probText(100)} · ${probText(30)}</div>`;
+  box.innerHTML = `<h3>${t('prep.title')}</h3><div class="cmp-head"><select class="cmp-sel">${names.map(n => `<option value="${n}" ${n === sel ? 'selected' : ''}>${emdDisp(n)}</option>`).join('')}</select></div>${rows}${rzHTML}<div class="fine">${gridSrcText(gridMeta(state.sgg) || {}, false)}<br>${t('prob.lead')} ${probText(100)} · ${probText(30)}</div>`;
   const s = $('.cmp-sel', box); if (s) s.addEventListener('change', () => { sessionStorage.setItem('safepic.prep', s.value); renderPrepare(); });
 }
 function initGridClick() {
@@ -640,7 +655,7 @@ function initGridClick() {
     const p = e.features[0].properties, attrs = gridAttrs(state.sgg);
     const rows = attrs.map(a => `<tr><td>${getLang() === 'en' ? a.en : a.ko}</td><td class="mono">${gridFmt(a, p[a.id] == null ? null : +p[a.id])}</td></tr>`).join('') + (p.flood_years ? `<tr><td>${getLang() === 'en' ? 'Flood years' : '침수 연도'}</td><td class="mono">${String(p.flood_years).replace(/[\[\]"]/g, '')}</td></tr>` : '');
     const gm = gridMeta(state.sgg) || {};
-    openPopup(e.lngLat, `<b>${p.emd_name || ''}</b> <small class="mono">${p.h3}</small><table class="cell-table">${rows}</table>${srcBadge(gm.src || (getLang() === 'en' ? 'Seoul flood-trace maps · ' + (gm.dem || 'DEM') + ' · MOIS registration' : '서울 침수흔적도 · ' + (gm.dem || 'DEM') + ' · 행안부 주민등록'), gm.jumin_basis)}`, { closeButton: true, offset: 6 });
+    openPopup(e.lngLat, `<b>${p.emd_name || ''}</b> <small class="mono">${p.h3}</small><table class="cell-table">${rows}</table>${srcBadge(gridSrcText(gm, true), gm.jumin_basis)}`, { closeButton: true, offset: 6 });
   });
 }
 async function initShelterUI() {
@@ -1485,7 +1500,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260904a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260904b').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });

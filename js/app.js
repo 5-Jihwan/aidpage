@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260904b';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260904b';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260904c';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260904c';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -152,6 +152,7 @@ function ensureBldg() {
 function set3D(on, ease = true) {
   ensureDem(); ensureBldg();
   map.setLayoutProperty('bldg-3d', 'visibility', on ? 'visible' : 'none');
+  applyDrawerFx();
   // ⚠ globe 투영에서는 지형 변위가 적용되지 않는다 — 3D 동안은 mercator로 전환 (08-31 사용자 확인)
   // 3D(지형)는 globe 투영에서 변위가 안 붙어 mercator가 필요하지만, 멀리서 평면 mercator는 극 왜곡으로 "깨져" 보인다(09-04 보고).
   // → 3D 모드에서도 줌 4까지는 구(vertical-perspective), 4~6에서 mercator로 넘어가는 표현식. 지형은 그 줌대에선 보이지 않아 손해 없음.
@@ -250,8 +251,12 @@ function localizeLabels() {
   const vecSrc = Object.keys(style.sources || {}).find(s => (style.sources[s] || {}).type === 'vector');
   const ko = ['coalesce', ['get', 'name:ko'], ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
   const enRaw = ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
-  const en = ['case', ['in', 'Japan', ['to-string', enRaw]], 'East Sea', ['in', 'Liancourt', ['to-string', enRaw]], 'Dokdo', enRaw];
-  const koFixed = ['case', ['in', 'Japan', ['to-string', ko]], '동해', ['in', '日本海', ['to-string', ko]], '동해', ['in', 'Liancourt', ['to-string', ko]], '독도', ['in', '竹島', ['to-string', ko]], '독도', ko];
+  // 동해·독도 표기는 바다·섬 이름에만. 예전엔 'Japan'이 들어간 모든 이름을 바꿔 국가명 '일본'의 영어 줄까지
+  // 'East Sea'가 되는 오류(09-04 영어 모드 보고)가 있었다 → 'Sea of Japan'/'Japan Sea'/'日本海'/'일본해'만 매칭.
+  const isSeaOfJapan = e => ['any', ['in', 'Sea of Japan', ['to-string', e]], ['in', 'Japan Sea', ['to-string', e]], ['in', '日本海', ['to-string', e]], ['in', '일본해', ['to-string', e]]];
+  const isDokdo = e => ['any', ['in', 'Liancourt', ['to-string', e]], ['in', '竹島', ['to-string', e]], ['in', 'Takeshima', ['to-string', e]]];
+  const en = ['case', isSeaOfJapan(enRaw), 'East Sea', isDokdo(enRaw), 'Dokdo', enRaw];
+  const koFixed = ['case', isSeaOfJapan(ko), '동해', isDokdo(ko), '독도', ko];
   const both = ['format', koFixed, {}, '\n', {}, en, { 'font-scale': 0.8, 'text-color': '#6b7a90' }];
   const base = getLang() === 'en' ? en : ['case', ['==', ['to-string', koFixed], ['to-string', en]], koFixed, both];
   const field = ['case', milMaskExpr(), '', base];  // 군사시설명은 빈 문자열로 마스킹
@@ -261,6 +266,10 @@ function localizeLabels() {
     if (['sgg-label', 'emd-label'].includes(l.id)) continue;
     if (!/name/.test(JSON.stringify(_origTextField.get(l.id) ?? ''))) continue;  // ref 방패·번지수 등은 그대로 둔다
     try { map.setLayoutProperty(l.id, 'text-field', field); } catch (e) { console.warn('localizeLabels', l.id, e); }
+    // 바다·호수 이름은 positron 기본색이 연해 안 읽힌다(09-04 보고) → 진한 청회색 + 흰 테두리
+    if (/water|marine|ocean|sea/i.test(l.id)) {
+      try { map.setPaintProperty(l.id, 'text-color', '#2f5d8f'); map.setPaintProperty(l.id, 'text-halo-color', 'rgba(255,255,255,.9)'); map.setPaintProperty(l.id, 'text-halo-width', 1.2); } catch (e) { /* paint 미지원 레이어 */ }
+    }
   }
 }
 /* 도로번호 방패(road_{ref_length} 상자)는 표시하지 않는다.
@@ -549,7 +558,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260904b');
+      _simMod = await import('./sim.js?v=20260904c');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1174,13 +1183,13 @@ function renderER() {
 }
 function renderRegion() {
   const landing = $('#nowLanding'), reg = $('#nowRegion');
-  if (state.level === 'nation') { landing.hidden = false; reg.hidden = true; applyAlertFx([]); return; }
+  if (state.level === 'nation') { landing.hidden = false; reg.hidden = true; applyAlertFx([]); closeRegionDrawer(); return; }
   landing.hidden = true; reg.hidden = false;
   const n = nameOf();
   $('#regionPath').textContent = [n.sidoName, state.level !== 'sido' && n.sggName].filter(Boolean).join(' › ');
   $('#regionName').textContent = state.level === 'emd' ? n.emdName : state.level === 'sgg' ? n.sggName : n.sidoName;
   $('#levelGuide').innerHTML = ['sido', 'sgg', 'emd'].map(l => `<span class="${state.level === l ? 'on' : ''}">${t('lv.' + l)}</span>`).join('');
-  renderTodo(); renderInsurance(); renderReports(); renderRiskLine(); renderER(); renderMsgs(); renderSitBar(); setTimeout(applyFolds, 0);
+  renderTodo(); renderInsurance(); renderReports(); renderRiskLine(); renderER(); renderMsgs(); renderSitBar(); renderRegionSummary(); if (state._drawerOpen) { regionMod().then(m => m.refresh()); applyDrawerFx(); } setTimeout(applyFolds, 0);
   // weather + air
   const wx = $('#wxCard');
   if (state.sgg) {
@@ -1500,7 +1509,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260904b').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260904c').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1760,6 +1769,37 @@ function initWelcome() {
   w.addEventListener('click', e => { if (e.target === w) close('sheet'); }); // 배경 탭 = 닫기 (시트 관례)
   if (!location.hash && !getHome()) open();
 }
+
+/* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
+let _regionMod = null;
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260904c'));
+const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
+function regionCtx() {
+  return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,
+    toggleKind: k => { state.shelters.active.add(k); saveShelterKinds(); syncShelterLayers(); renderLegend(activeShelterKinds()); },
+    goFind: () => { setTab('find'); syncWizardLoc(); },
+    onOpen: () => { applyDrawerFx(); }, onClose: () => { applyDrawerFx(); } };
+}
+async function openRegionDrawer() { if (matchMedia(MQ_MOBILE).matches || state.level === 'nation') return; const m = await regionMod(); m.init(regionCtx()); await m.open(regionCtx()); }
+function closeRegionDrawer() { if (_regionMod) _regionMod.then(m => m.close(false)); }
+/* 패널 상단 요약 줄: 타입 칩 + "이 지역 알아보기" (서랍 진입점). 시군구 타입은 data/ref/sgg_types.json(v0). */
+async function renderRegionSummary() {
+  const box = $('#rgSum'); if (!box) return;
+  if (state.level === 'nation' || HIDE_SUM_SIT.has(state.sit)) { box.hidden = true; return; }
+  const m = await regionMod(); m.init(regionCtx()); await m.ensureTypes();
+  const sig = `${state.level}|${state.sgg}|${state.sit}|${getLang()}`; if (box.dataset.sig === sig) return; box.dataset.sig = sig;
+  const ty = state.sgg ? m.typeOf(state.sgg) : null;
+  const chips = ty ? m.typeChips(ty, true) : '';
+  const scope = ty && state.level === 'emd' ? `<small class="muted">${t('rg.sum.sgg')}</small>` : '';
+  box.hidden = false;
+  box.innerHTML = `<span class="rg-sum-chips">${chips}${scope}</span><button type="button" class="btn btn-ghost btn-sm desktop-only" id="rgOpen">${t('rg.open')} →</button>`;
+  const b = $('#rgOpen'); if (b) b.addEventListener('click', openRegionDrawer);
+}
+/* 서랍 열림 효과: 바깥 옅어짐은 기존 focus-mask(applyFocus)가 이미 담당 → 여기선 3D 건물만 낮춘다(포커스 모드에서 바깥 건물이 선명한 문제, docs/10) */
+function applyDrawerFx() {
+  if (!map || !map.getLayer('bldg-3d')) return;
+  map.setPaintProperty('bldg-3d', 'fill-extrusion-opacity', state._drawerOpen ? 0.35 : 0.85);
+}
 /* 상황 바: 지금 고른 상황을 보여주고 한 번에 바꾼다 */
 function renderSitBar() {
   const bar = $('#sitBar'); if (!bar) return;
@@ -1817,6 +1857,7 @@ async function applyShare(hash) {
     if (p.get('l') && p.get('l') !== getLang()) applyLangParam(p.get('l'));
     if (p.get('emd') && state.idx.byEmd.has(p.get('emd'))) await selectEmd(p.get('emd')); else if (p.get('sgg') && state.idx.bySgg.has(p.get('sgg'))) await selectSgg(p.get('sgg')); else if (p.get('sido') && state.idx.sggBySido.has(p.get('sido'))) selectSido(p.get('sido'));
     const tab = p.get('tab'); if (tab && ['now', 'find', 'where', 'about'].includes(tab)) setTab(tab);
+    if (p.get('view') === 'region') setTimeout(openRegionDrawer, 400);
     if (p.get('sgg') || p.get('emd') || p.get('sido')) { const w = $('#welcome'); if (w) w.hidden = true; }
     return;
   }

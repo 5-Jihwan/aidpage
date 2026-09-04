@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260904b">
+<link rel="stylesheet" href="css/style.css?v=20260904c">
 </head>
 <body>
 
@@ -121,6 +121,7 @@
   <section class="drawer-sec"><h4 data-i18n="drawer.more">더 보기</h4><button type="button" class="drawer-link" data-tab="about" data-i18n="tab.about">방법·한계</button><a class="drawer-link kakao-link" data-kakao="friend" href="#" target="_blank" rel="noopener" hidden data-i18n="kakao.add">💬 카카오톡 채널 추가</a><a class="drawer-link" href="https://github.com/5-Jihwan/aidpage" target="_blank" rel="noopener">GitHub</a><div class="fine" data-i18n="drawer.note">입력은 서버로 가지 않고 이 브라우저 안에서만 계산됩니다.</div><div class="fine mono" id="appVer"></div></section>
 </aside>
 <main class="stage">
+  <aside class="drawer-r" id="regionDrawer" hidden aria-label="이 지역은 / About this area"></aside>
   <aside class="panel" id="panel">
     <div class="panel-grip" aria-hidden="true"></div>
     <div class="panel-scroll" id="panelScroll">
@@ -150,6 +151,7 @@
             <div><div class="eyebrow mono" id="regionPath"></div><h2 class="h2" id="regionName"></h2></div>
             <button class="btn btn-primary" id="btnFindHere" data-i18n="region.find">이 위치로 지원 찾기 →</button>
           </div>
+          <div class="rg-sum" id="rgSum" hidden></div>
           <div class="region-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSaveHome"></button><button type="button" class="btn btn-ghost btn-sm" id="btnResetSel" data-i18n="sel.reset">선택 초기화</button></div>
           <div class="level-guide" id="levelGuide"></div>
           <div class="sit-bar" id="sitBar"></div>
@@ -302,6 +304,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260904b"></script>
+<script type="module" src="js/app.js?v=20260904c"></script>
 </body>
 </html>

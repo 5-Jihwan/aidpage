@@ -753,3 +753,45 @@ body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
 .grid-how ul.how{margin:6px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:4px;line-height:1.45}
 .grid-how ul.how b{color:var(--ink)}
 .lg-note{font-size:.68rem;color:var(--mute);font-family:var(--mono);margin-left:4px}
+
+/* ---------- "이 지역은" 서랍 + 타입 칩 + 포커스 (09-04, docs/08·10·14) ---------- */
+.drawer-r{position:absolute;right:16px;top:16px;bottom:16px;width:330px;background:linear-gradient(180deg,rgba(255,255,255,.985),rgba(255,255,255,.955));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(219,227,238,.95);border-bottom-color:#c9d3e1;border-radius:18px;z-index:10;overflow:auto;padding:16px 16px 28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 0 0 1px rgba(20,32,46,.05),0 2px 4px rgba(20,32,46,.06),-4px 14px 30px -8px rgba(20,32,46,.16),-14px 44px 64px -26px rgba(20,32,46,.4);font-size:.86rem}
+.stage.has-drawer .maplibregl-ctrl-bottom-right{right:346px}
+.stage.has-drawer .mapstack{right:346px}
+.stage.has-drawer .maplibregl-ctrl-bottom-left,.stage.has-drawer .maplibregl-ctrl-attrib{right:auto}
+.rg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.rg-head h3{font-size:1.1rem;font-weight:900;letter-spacing:-.01em;margin:0}
+.rg-head .eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.rg-x{width:26px;height:26px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--mute);display:grid;place-items:center;font-size:.8rem;flex:none}
+.rg-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 10px}
+.rg-tags .tag{font-size:.7rem;padding:2px 8px;border-radius:999px;background:var(--bg2);color:var(--text)}
+.rg-tags .tag.teal{background:#e4f5ef;color:var(--teal)} .rg-tags .tag.danger{background:#fbe9e5;color:var(--danger);font-weight:700}
+.rg-filters{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 8px} .rg-filters .chip{padding:3px 9px;font-size:.74rem}
+.rg-blk{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+.rg-blk h4{margin:0 0 4px;font-size:.88rem;font-weight:700;color:var(--ink);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.rg-blk h4 small{font-family:var(--mono);font-size:.64rem;color:var(--mute);font-weight:400}
+.rg-row{display:grid;grid-template-columns:1.25fr .7fr 1fr;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:.8rem;align-items:baseline}
+.rg-row b{font-family:var(--mono);font-weight:500;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.rg-row small{font-size:.66rem;color:var(--mute);display:flex;flex-wrap:wrap;gap:4px;align-items:center} .rg-row small.mute{color:#9aa7b7}
+.rg-row.sido{grid-template-columns:1fr auto 1.3fr} .rg-row.sido em{font-style:normal;color:#9aa7b7}
+.rg-band{display:inline-block;font-size:.62rem;padding:1px 6px;border-radius:999px;background:var(--bg2);color:var(--mute);font-family:var(--mono);white-space:nowrap}
+.rg-band.hi{background:#fbf3e4;color:var(--gold)} .rg-band.mid{background:#e8effb;color:var(--accent2)}
+.rg-note{font-size:.7rem;color:var(--mute);margin:6px 0 0;line-height:1.45} .rg-note.warn{color:var(--text)}
+.rg-map{border:1px solid var(--line);background:#fff;border-radius:999px;padding:1px 8px;font-size:.64rem;color:var(--accent);cursor:pointer}
+.rg-link{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;color:var(--accent);padding:5px 0;border-bottom:1px dashed var(--line);text-decoration:none} .rg-link small{color:var(--mute);font-size:.66rem;white-space:nowrap}
+.rg-find{margin-top:8px;width:100%}
+.rg-src{font-size:.66rem;color:var(--mute);margin:12px 0 0;line-height:1.45}
+.rg-sido{margin:0 0 8px;font-size:.76rem} .rg-sido small{color:var(--mute);display:block;margin-bottom:3px}
+.rg-dist{display:inline-flex;align-items:center;gap:3px;margin-right:8px} .rg-dist i{font-style:normal} .rg-dist b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+/* 패널 상단 요약 줄 */
+.rg-sum{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 8px;flex-wrap:wrap}
+.rg-sum-chips{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+/* 타입 칩 — 포켓몬식 이중 타입. 서열 없음 */
+.ty-pair{display:inline-flex;align-items:center;gap:2px}
+.ty-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:.8rem;font-weight:700;border:1px solid transparent}
+.ty-chip.sm{padding:2px 8px;font-size:.74rem}
+.ty-chip.ty-p{background:#e8effb;color:var(--accent2);border-color:#cfdcf4} .ty-chip.ty-p.bold{box-shadow:0 0 0 2px rgba(26,95,196,.25)}
+.ty-chip.ty-s{background:#fbf3e4;color:var(--gold);border-color:#eadfc3} .ty-chip.ty-s.none{background:var(--bg2);color:var(--mute);font-weight:400}
+.ty-dot{font-style:normal;color:var(--mute);margin:0 2px}
+.ty-flag{font-family:var(--mono);font-size:.62rem;padding:1px 6px;border-radius:999px;background:var(--bg2);color:var(--mute);margin-left:2px} .ty-flag.edge{background:#fff3cd;color:#8a6d00}
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .drawer-r{display:none!important} .stage.has-drawer .maplibregl-ctrl-bottom-right,.stage.has-drawer .mapstack{right:8px} .rg-sum .desktop-only{display:none} }

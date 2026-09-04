@@ -17,6 +17,38 @@ const esc = s => ctx.escapeHTML(s);
 export function typeOf(sgg) { return _types && _types.sgg ? _types.sgg[String(sgg)] : null; }
 export function typesLoaded() { return !!_types; }
 export async function ensureTypes() { if (!_types) _types = await J('data/ref/sgg_types.json'); return _types; }
+export async function ensureDemo() { if (!_demo) _demo = await J('data/ref/sgg_demo.json'); return _demo; }
+export function demoOf(sgg) { return _demo && _demo.sgg ? _demo.sgg[String(sgg)] : null; }
+
+/* "왜 이 타입인가" — 규칙 v1.1을 값 대 임계로 그대로 보여준다(docs/14·16). 임계는 sgg_types.meta.thresholds(전국 p75, 경사·1인세대는 p80). */
+export function whyHTML(ty) {
+  if (!ty || !_types || !_types.meta) return '';
+  const t = ctx.t, th = _types.meta.thresholds || {}, m = ty.metrics || {};
+  const P = v => (v * 100).toFixed(1) + '%', D = v => v.toFixed(1) + '°', K = v => Number(v).toLocaleString() + '/km²', Z = v => Number(v).toFixed(1) + '/100km²';
+  const ge = (label, v, thv, q) => `<li><b>${label}</b> ${v} <span class="rg-ge">${t(q === 80 ? 'rg.why.ge80' : 'rg.why.ge', { v: thv })}</span></li>`;
+  const lt = (label, v, thv) => `<li class="calm"><b>${label}</b> ${v} <span class="rg-ge">${t('rg.why.lt', { v: thv })}</span></li>`;
+  const rows = [];
+  for (const h of ty.hazards || []) {
+    if (h === '물') {
+      if (m.flood_r >= th.flood_r) rows.push(ge(t('rg.m.flood'), P(m.flood_r), P(th.flood_r)));
+      if (th.rzf > 0 && m.rzf >= th.rzf) rows.push(ge(t('rg.m.rzf'), Z(m.rzf), Z(th.rzf)) + (ty.basis === 'zone' ? `<li class="tip">${t('ty.basis.zone.d')}</li>` : ''));
+    } else if (h === '산') {
+      if (m.ls_r >= th.ls_r) rows.push(ge(t('rg.m.ls'), P(m.ls_r), P(th.ls_r)));
+      if (th.slope80 && m.slope >= th.slope80) rows.push(ge(t('rg.m.slope'), D(m.slope), D(th.slope80), 80));
+    } else if (h === '바다') rows.push(`<li><b>${t('rg.m.coast')}</b> <span class="rg-ge">${t('ty.바다.d')}</span></li>`);
+  }
+  if (!rows.length) { // 평온: 무엇이 임계 아래였나
+    rows.push(lt(t('rg.m.flood'), P(m.flood_r || 0), P(th.flood_r)), lt(t('rg.m.ls'), P(m.ls_r || 0), P(th.ls_r)), lt(t('rg.m.slope'), D(m.slope || 0), D(th.slope80 || th.slope)));
+  }
+  const sec = ty.secondary;
+  if (sec === '노년') rows.push(ge(t('rg.m.e65'), P(m.e65), P(th.e65)), ge(t('rg.m.ealone'), P(m.ealone), P(th.ealone)));
+  else if (sec === '홀로') rows.push(ge(t('rg.m.single'), P(m.single), P(th.single80 || th.single), 80));
+  else if (sec === '도심') rows.push(ge(t('rg.m.dens'), K(Math.round(m.dens)), K(Math.round(th.dens))));
+  else if (sec === '들') rows.push(`<li><b>${t('rg.m.gun')}</b> <span class="rg-ge">${t('ty.들.d')}</span></li>`);
+  if (ty.bold) rows.push(`<li><b>${t('rg.why.bold')}</b> ${K(Math.round(m.dens))} <span class="rg-ge">${t('rg.why.ge', { v: K(Math.round(th.dens)) })}</span></li>`);
+  const edge = ty.edge && ty.edge.length ? `<li class="tip">${t('rg.why.edge', { l: ty.edge.map(tn).join(', ') })}</li>` : '';
+  return `<details class="rg-why" ${matchMedia('(min-width:901px)').matches ? 'open' : ''}><summary>${t('rg.why.t')}</summary><ul>${rows.join('')}${edge}</ul><small>${t('rg.why.foot', { v: _types.meta.version || '' })}</small></details>`;
+}
 
 /* 타입 칩 HTML — 요약 줄(패널)과 서랍 헤더가 공유. 서열 없음: 굵게=노출 상위 25%, [복합]=위해 2종 이상 */
 export function typeChips(ty, small) {
@@ -31,6 +63,15 @@ function tier(v, q) { if (!q || v == null) return ''; return v >= q.p75 ? 'hi' :
 function band(v, q, lv) { const tr = tier(v, q); return tr ? `<span class="rg-band ${tr}">${ctx.t(`demo.tier.${tr}.${lv}`)}</span>` : ''; }
 
 /* ---------- 블록들 ---------- */
+/* 패널 '지역 정보'(kv)에서 옮겨온 행 — 한 항목 한 집(docs/08 §3): 구조 정보는 서랍이 집 */
+function kvRows(s) {
+  const t = ctx.t, P = t('kv.places'), row = (k, v, extra) => `<div class="rg-row kv"><span>${k}</span><b>${v}</b><small>${extra || ''}</small></div>`;
+  const idx = ctx.state.idx; let out = '';
+  if (s.level === 'sido') out += row(t('kv.sggCount'), (idx.sggBySido.get(String(s.sido)) || []).length + P, t('kv.emdCount') + ' ' + ((idx.emdCountBySido && idx.emdCountBySido.get(String(s.sido))) || 0) + P);
+  if (s.level === 'sgg') out += row(t('kv.emdCount'), (idx.emdBySgg.get(String(s.sgg)) || []).length + P, `${t('kv.code')} ${esc(String(s.sgg))}`);
+  if (s.level === 'emd') { const e = idx.byEmd.get(s.emd); if (e) out += row(t('kv.code'), esc(String(e.code)), `${t('kv.grid')} ${e.nx}, ${e.ny}`); }
+  return out;
+}
 function blockPeople(s) {
   const t = ctx.t, lv = s.level, q = _demo && _demo.q;
   let r = null, nat = _demo && _demo.nation;
@@ -46,6 +87,7 @@ function blockPeople(s) {
   const cmp = k => lv === 'sgg' ? band(r[k], q && q[k], 'sgg') : (nat && nat[k] != null ? `<span class="rg-band nat">${t('demo.nat', { v: pct(nat[k]) })}</span>` : '');
   return `<section class="rg-blk" data-topic="people"><h4>${t('rg.people')} <small>${t('rg.people.s', { d: (_demo && _demo.basis) || '' })}</small></h4>
     ${row('pop', fmtN(r.pop), t('demo.hh', { n: fmtN(r.hh) }))}${row('e65', pct(r.e65), cmp('e65'))}${row('ealone', pct(r.ealone), cmp('ealone'))}${row('single', pct(r.single), cmp('single'))}
+    ${kvRows(s)}
     <p class="rg-note">${t('rg.people.n')}</p></section>`;
 }
 
@@ -137,7 +179,7 @@ async function renderInner() {
   const sidoDist = s.level === 'sido' && _types ? await sidoDistHTML(s.sido) : '';
   const [people, hist, fac, sup] = await Promise.all([blockPeople(s), blockHistory(s), blockFacilities(s), blockSupport(s, ty)]);
   root.innerHTML = `${mobile ? '' : `<div class="rg-head"><div><div class="eyebrow">${t('rg.eyebrow')}</div><h3>${esc(name)}</h3></div><button type="button" class="rg-x" aria-label="${t('rg.close')}">✕</button></div>`}
-    <div class="rg-tags">${ty ? typeChips(ty) : ''}${upper}${warnTag}</div>${sidoDist}
+    <div class="rg-tags">${ty ? typeChips(ty) : ''}${upper}${warnTag}</div>${ty ? whyHTML(ty) : ''}${sidoDist}
     <div class="rg-filters">${['all', 'people', 'history', 'facility', 'support'].map(k => `<button type="button" class="chip ${topic === k ? 'is-on' : ''}" data-topic="${k}">${t('rg.topic.' + k)}</button>`).join('')}</div>
     <div class="rg-body">${people}${hist}${fac}${sup}</div>
     <p class="rg-src">${t('rg.src')}</p>`;

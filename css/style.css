@@ -826,3 +826,15 @@ body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
 }
 
 .ty-flag.basis{background:#e8effb;color:#0f4a9e}
+
+/* 왜 이 타입인가 (규칙 v1.1 값 대 임계) */
+.rg-why{margin:2px 0 10px;font-size:.8rem;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:#fff}
+.rg-why summary{cursor:pointer;color:var(--accent);font-weight:700;list-style:none} .rg-why summary::before{content:"ⓘ ";font-weight:400}
+.rg-why ul{margin:6px 0 0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+.rg-why li{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;font-family:var(--mono);font-size:.76rem;color:var(--ink)} .rg-why li b{font-family:var(--font);font-weight:600;color:var(--text)}
+.rg-why li.calm{color:var(--mute)} .rg-why li.tip{font-family:var(--font);color:var(--mute);font-size:.72rem}
+.rg-ge{color:var(--gold);font-size:.7rem} .rg-why small{display:block;margin-top:6px;color:var(--mute);font-size:.68rem;line-height:1.4}
+.rg-row.kv b{font-weight:500}
+.linkish{border:0;background:none;padding:0;color:var(--accent);font-size:.84rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.rg-nums{margin-left:6px}
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .rg-why{font-size:.84rem} .rg-why li{font-size:.8rem} }

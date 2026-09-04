@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260904f';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260904f';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260904g';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260904g';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -558,7 +558,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260904f');
+      _simMod = await import('./sim.js?v=20260904g');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1052,9 +1052,10 @@ function renderInsurance() {
   const cells = gridCells(state.sgg), e = state.idx.byEmd.get(state.emd);
   const mine = e ? cells.map(f => f.properties).filter(p => p.emd_name === e.name) : [];
   const flood = mine.length ? mine.filter(p => p.flood_hist_n > 0).length : null;
-  const hist = flood == null ? '' : `<div class="ins-hist">${t('ins.hist', { n: flood, total: mine.length })}</div>`;
+  const hist = `<div class="ins-hist"><button type="button" class="linkish" id="insToRegion">${t('ins.hist.go')}</button></div>`; // 09-04: 침수 셀 수치는 서랍 재난 이력 블록이 집(격자 로딩 전에도 링크는 항상)
   box.hidden = false;
-  box.innerHTML = `<h3>${t('ins.title')}</h3>${hist}<div class="ins-rate"><b>${gen ? gen.amount_text : ''}</b><small class="muted"> · ${full ? full.amount_text : ''} (${t('ins.full.who')})</small></div><a class="btn btn-primary btn-sm ins-cta" href="https://www.mois.go.kr/frt/sub/a06/b08/pungsuhaeIns/screen.do" data-stat="ins_click" target="_blank" rel="noopener">☂ ${t('ins.cta')}</a><div class="fine">${t('ins.where')} · ${t('badge.asof')} ${(state.rules.insurance && state.rules.insurance.meta && state.rules.insurance.meta.asof) || '2026-08'}</div>`;
+  box.innerHTML = `<h3>${t('ins.title')}</h3><div class="ins-rate"><b>${gen ? gen.amount_text : ''}</b><small class="muted"> · ${full ? full.amount_text : ''} (${t('ins.full.who')})</small></div><a class="btn btn-primary btn-sm ins-cta" href="https://www.mois.go.kr/frt/sub/a06/b08/pungsuhaeIns/screen.do" data-stat="ins_click" target="_blank" rel="noopener">☂ ${t('ins.cta')}</a><div class="fine">${t('ins.where')} · ${t('badge.asof')} ${(state.rules.insurance && state.rules.insurance.meta && state.rules.insurance.meta.asof) || '2026-08'}</div>`;
+  if (hist) { box.insertAdjacentHTML('beforeend', hist); const b = $('#insToRegion'); if (b) b.addEventListener('click', openRegionDrawer); }
 }
 /* ---------- 주민 제보 (Worker KV, 텍스트만, 7일) ---------- */
 const REPORT_KINDS = ['shelter_closed', 'drain', 'road', 'water', 'other'];
@@ -1219,9 +1220,7 @@ function renderRegion() {
   // kv — 인덱스는 loadCore에서 만든 Map으로 조회 (renderRegion은 핫패스: 전수 filter 금지)
   const e = state.emd && state.idx.byEmd.get(state.emd), kv = [], P = t('kv.places');
   const sggOfSido = state.idx.sggBySido.get(String(state.sido)) || [], emdOfSgg = state.idx.emdBySgg.get(String(state.sgg)) || [];
-  if (state.level === 'sido') kv.push([t('kv.sggCount'), sggOfSido.length + P], [t('kv.emdCount'), (state.idx.emdCountBySido.get(String(state.sido)) || 0) + P]);
-  if (state.level === 'sgg') kv.push([t('kv.emdCount'), emdOfSgg.length + P], [t('kv.sido'), n.sidoName]);
-  if (e) kv.push([t('kv.sgg'), n.sggName], [t('kv.code'), e.code], [t('kv.grid'), `${e.nx}, ${e.ny}`]);
+  // 09-04: 지역 정보(kv) 행은 '이 지역은' 서랍의 취약 인구 블록으로 이동(docs/08 §3 한 항목 한 집). 패널엔 비움.
   $('#regionKv').innerHTML = kv.map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('');
   $('#regionKv').hidden = !kv.length;
   $('#regionNote').innerHTML = state.level === 'emd'
@@ -1509,7 +1508,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260904f').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260904g').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1772,7 +1771,7 @@ function initWelcome() {
 
 /* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
 let _regionMod = null;
-const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260904f'));
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260904g'));
 const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
 function regionCtx() {
   return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,
@@ -1804,13 +1803,15 @@ async function renderRegionSummary() {
     }
     paintRgTabs();
   } else if (tabs) tabs.hidden = true;
-  const m = await regionMod(); m.init(regionCtx()); await m.ensureTypes();
+  const m = await regionMod(); m.init(regionCtx()); await m.ensureTypes(); await m.ensureDemo();
   const sig = `${state.level}|${state.sgg}|${state.sit}|${getLang()}`; if (box.dataset.sig === sig) return; box.dataset.sig = sig;
   const ty = state.sgg ? m.typeOf(state.sgg) : null;
   const chips = ty ? m.typeChips(ty, true) : '';
   const scope = ty && state.level === 'emd' ? `<small class="muted">${t('rg.sum.sgg')}</small>` : '';
+  const dm = state.sgg ? m.demoOf(state.sgg) : null;
+  const nums = dm ? `<small class="muted desktop-only rg-nums">${t('demo.pop')} ${Number(dm.pop).toLocaleString(getLang() === 'en' ? 'en-US' : 'ko-KR')} · ${t('demo.e65')} ${(dm.e65 * 100).toFixed(1)}%</small>` : '';
   box.hidden = false;
-  box.innerHTML = `<span class="rg-sum-chips">${chips}${scope}</span><button type="button" class="btn btn-ghost btn-sm desktop-only" id="rgOpen">${t('rg.open')} →</button>`;
+  box.innerHTML = `<span class="rg-sum-chips">${chips}${scope}${nums}</span><button type="button" class="btn btn-ghost btn-sm desktop-only" id="rgOpen">${t('rg.open')} →</button>`;
   const b = $('#rgOpen'); if (b) b.addEventListener('click', openRegionDrawer);
 }
 /* 서랍 열림 효과: 바깥 옅어짐은 기존 focus-mask(applyFocus)가 이미 담당 → 여기선 3D 건물만 낮춘다(포커스 모드에서 바깥 건물이 선명한 문제, docs/10) */

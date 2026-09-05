@@ -7,7 +7,7 @@
 <meta name="description" content="출발지에서 목적지까지 격자 위에서 어떤 알려진 위험을 지나는지 계산하는 AidPage 시뮬레이터(독립 실행판)">
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
-<link rel="stylesheet" href="css/style.css?v=20260905a">
+<link rel="stylesheet" href="css/style.css?v=20260905b">
 <style>
   /* 독립 실행판 레이아웃 — 본 사이트 셸(.top/.panel) 없이 지도 + 패널 하나 */
   body{overflow:hidden}
@@ -36,9 +36,9 @@
 </aside>
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script type="module">
-import { initGrid, hasGrid, cells as gridCells, show as showGrid, hide as hideGrid } from './js/grid.js?v=20260905a';
-import { initShelters, collect as collectShelters, nearest as nearestShelters, KINDS } from './js/shelters.js?v=20260905a';
-import { initSim, openSim, closeSim } from './js/sim.js?v=20260905a';
+import { initGrid, hasGrid, cells as gridCells, show as showGrid, hide as hideGrid } from './js/grid.js?v=20260905b';
+import { initShelters, collect as collectShelters, nearest as nearestShelters, KINDS } from './js/shelters.js?v=20260905b';
+import { initSim, openSim, closeSim } from './js/sim.js?v=20260905b';
 const $ = (s, r = document) => r.querySelector(s);
 const state = { sgg: null, sido: null, gps: null, sim: null, simPick: null, shelters: { avail: [] }, _gridAvail: false, live: { alerts: null } };
 let idx = [], map;

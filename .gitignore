@@ -19,3 +19,6 @@ data/ref/sd/
 .progress_map.html
 .push_state.json
 .welfare_attempt
+
+# 공인 IP 기재 문서 — 로컬 전용
+docs/13_API신청_문안_IP_20260903.md

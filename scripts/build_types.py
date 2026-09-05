@@ -51,6 +51,10 @@ rz = json.load(open(P("data", "ref", "riskzone_by_sgg.json"), encoding="utf-8"))
 demo = json.load(open(P("data", "ref", "sgg_demo.json"), encoding="utf-8"))
 # v1.2: 취약 3종(외국인주민·등록장애인·기초수급, scripts/build_vuln.py) — 없는 시군구(2026 개편 인천·화성 등)는 None → 해당 부 타입 판정 생략
 vuln = json.load(open(P("data", "ref", "sgg_vuln.json"), encoding="utf-8")).get("sgg", {})
+# v1.3 초안: 사회 위해(교통·화재, scripts/build_social.py) — 두 번째 위해 슬롯 재료. 없으면 빈 dict
+try: social = json.load(open(P("data", "ref", "sgg_social.json"), encoding="utf-8")).get("sgg", {})
+except Exception: social = {}
+SOCIAL = [("traffic_r", "교통"), ("fire_r", "화재")]
 idx = {s["code"]: s for s in json.load(open(P("data", "admin", "sgg_index.json"), encoding="utf-8"))}
 labels = {r["code"]: r for r in csv.DictReader(io.open(P("docs", "lib", "sgg_typology_labels_20260904.csv"), encoding="utf-8"))}
 
@@ -132,7 +136,13 @@ def classify(m, th, sd, kind, coastal):
     # v1.1: 결과를 바꿀 수 없는 경계는 표시하지 않는다 — 부 타입 우선순위에서 이미 정해진 것보다 뒤에 오는 경계는 무의미
     ORDER = ["노년", "홀로", "이방", "돌봄", "살림", "도심", "들"]
     if secondary in ORDER: edge = [e for e in edge if e not in ORDER[ORDER.index(secondary) + 1:]]
-    return dict(primary=primary, secondary=secondary, complex=len(haz) >= 2, bold=(primary != "평온" and m["dens"] >= th["dens"]),
+    # v1.3 초안: 사회 위해 슬롯 — 같은 규칙(전국 p75, 표준화 초과치 최강, ±5% 경계)
+    soc = {}
+    for k, nm_ in SOCIAL:
+        if m.get(k) is not None and th.get(k) and m[k] >= th[k]: soc[nm_] = exceed(m[k], th[k], sd.get(k, 0))
+        if m.get(k) is not None and th.get(k) and near(m[k], th[k]): edge.append(nm_)
+    social_t = max(soc, key=soc.get) if soc else None
+    return dict(social=social_t, social_scores={k: round(v, 2) for k, v in soc.items()}, primary=primary, secondary=secondary, complex=len(haz) >= 2, bold=(primary != "평온" and m["dens"] >= th["dens"]),
                 edge=sorted(set(edge)), hazards=sorted(haz, key=haz.get, reverse=True), scores={k: round(v, 2) for k, v in haz.items()},
                 basis=(basis if primary == "물" else s_basis if primary == "산" else None))
 
@@ -145,13 +155,15 @@ def label(t):
 
 
 # ───────── 시군구 ─────────
-METRICS = ["flood_r", "ls_r", "slope", "e65", "ealone", "single", "dens", "rzf", "rzo", "rzc", "rzs", "rzd", "foreign_r", "disabled_r", "basic_r"]
+METRICS = ["flood_r", "ls_r", "slope", "e65", "ealone", "single", "dens", "rzf", "rzo", "rzc", "rzs", "rzd", "foreign_r", "disabled_r", "basic_r", "traffic_r", "fire_r"]
 for r in rows:  # 위험개선지구 밀도(/100km²) — 절대 개수는 면적 큰 군에 몰려 '물'을 과대 판정했다(v0 첫 실행 교훈)
     z = rz.get(r["code"], {}); fl = int(z.get("flood", 0)); area = max(float(r["area"]), 1.0)
     r["rzf"] = fl / area * 100; r["rzo"] = (int(z.get("n", 0)) - fl) / area * 100
     zt = z.get("t", {}); r["rzc"] = int(zt.get("002", 0)) / area * 100; r["rzs"] = int(zt.get("006", 0)) / area * 100; r["rzd"] = int(zt.get("007", 0)) / area * 100
     vv = vuln.get(r["code"], {})
     for k in ("foreign_r", "disabled_r", "basic_r"): r[k] = vv.get(k)
+    ss = social.get(r["code"], {})
+    for k in ("traffic_r", "fire_r"): r[k] = ss.get(k)
 M = {v: [float(r[v]) for r in rows if r[v] is not None] for v in METRICS}
 TH = {v: pct(M[v]) for v in METRICS}
 TH["slope80"] = pct(M["slope"], 80); TH["single80"] = pct(M["single"], 80)  # v1.1
@@ -166,7 +178,7 @@ for r in rows:
     t = classify(m, TH, SD, r["kind"], int(r["coastal"]))
     upper = f"{r['kind']}·{'해안' if int(r['coastal']) else '내륙'}"
     sgg_out[code] = dict(name=r["name"], sido=idx.get(code, {}).get("sido", r["sido"][:2] if r["sido"] else ""), kind=r["kind"], upper=upper, **t, label=label(t),
-                         metrics=dict(flood_r=m["flood_r"], ls_r=m["ls_r"], slope=round(m["slope"], 2), e65=m["e65"], ealone=m["ealone"], single=m["single"], dens=m["dens"], rz_flood=fl, rz_other=other, rzf=round(m["rzf"], 2), rzo=round(m["rzo"], 2), rz_t=z.get("t", {}), rzc=round(m["rzc"], 2), rzs=round(m["rzs"], 2), rzd=round(m["rzd"], 2), foreign_r=m["foreign_r"], disabled_r=m["disabled_r"], basic_r=m["basic_r"], pop=int(float(r["pop"]))))
+                         metrics=dict(flood_r=m["flood_r"], ls_r=m["ls_r"], slope=round(m["slope"], 2), e65=m["e65"], ealone=m["ealone"], single=m["single"], dens=m["dens"], rz_flood=fl, rz_other=other, rzf=round(m["rzf"], 2), rzo=round(m["rzo"], 2), rz_t=z.get("t", {}), rzc=round(m["rzc"], 2), rzs=round(m["rzs"], 2), rzd=round(m["rzd"], 2), foreign_r=m["foreign_r"], disabled_r=m["disabled_r"], basic_r=m["basic_r"], traffic_r=m.get("traffic_r"), fire_r=m.get("fire_r"), pop=int(float(r["pop"]))))
     pair[(t["primary"], t["secondary"] or "—")] += 1; prim_cnt[t["primary"]] += 1
     cross[t["primary"]][labels.get(code, {}).get("cluster_tag", "?")] += 1
 
@@ -203,7 +215,7 @@ for fn in sorted(os.listdir(GRID)):
                        flood_r=sum(1 for c in cells if (c.get("flood_hist_n") or 0) > 0) / n, ls_r=sum(1 for c in cells if (c.get("landslide_hist_n") or 0) > 0) / n,
                        slope=float(np.mean([c.get("slope_mean") or 0 for c in cells])), e65=float(c0.get("elderly65_r") or 0), ealone=float(c0.get("elderly_alone_r") or 0),
                        single=float(c0.get("single_hh_r") or 0), dens=int(c0["pop"]) / max(area, 0.05))
-for e in emd.values(): e["rzf"] = 0.0; e["rzo"] = 0.0; e["rzc"] = 0.0; e["rzs"] = 0.0; e["rzd"] = 0.0; e["foreign_r"] = None; e["disabled_r"] = None; e["basic_r"] = None  # 위험개선지구·취약 3종은 시군구 단위 자료 — 행정동 판정에 미사용
+for e in emd.values(): e["rzf"] = 0.0; e["rzo"] = 0.0; e["rzc"] = 0.0; e["rzs"] = 0.0; e["rzd"] = 0.0; e["foreign_r"] = None; e["disabled_r"] = None; e["basic_r"] = None; e["traffic_r"] = None; e["fire_r"] = None  # 위험개선지구·취약 3종은 시군구 단위 자료 — 행정동 판정에 미사용
 ME = {v: [e[v] for e in emd.values() if e[v] is not None] for v in METRICS}
 TH_E = {v: pct(ME[v]) for v in METRICS}; SD_E = {v: (float(np.std(ME[v])) if ME[v] else 0.0) for v in METRICS}
 TH_E["slope80"] = pct(ME["slope"], 80); TH_E["single80"] = pct(ME["single"], 80)  # v1.1
@@ -240,6 +252,8 @@ print("thresholds(p75 sgg):", {k: round(v, 3) for k, v in TH.items()})
 print("\n(a) 주×부 타입 쌍 빈도 (시군구)")
 for (p, s), c in pair.most_common(): print(f"  {p}·{s:<3s} {c:4d}")
 print("\n(b) 주 타입 개수:", dict(prim_cnt), "| 복합:", sum(1 for s in sgg_out.values() if s["complex"]), "| 굵게:", sum(1 for s in sgg_out.values() if s["bold"]), "| 경계 있음:", sum(1 for s in sgg_out.values() if s["edge"]))
+soc_cnt = Counter(v.get("social") or "—" for v in sgg_out.values()); soc_pair = Counter((v["primary"], v.get("social") or "—") for v in sgg_out.values())
+print("\n(b2) 사회 위해 슬롯(v1.3 초안):", dict(soc_cnt), "| 주×사회 상위:", soc_pair.most_common(8))
 print("\n(c) 주 타입 × k-means 군집(09-03)")
 tags = sorted({t for c in cross.values() for t in c})
 print("  " + " | ".join(f"{t[:14]:>14s}" for t in tags))

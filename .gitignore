@@ -22,3 +22,8 @@ data/ref/sd/
 
 # 공인 IP 기재 문서 — 로컬 전용
 docs/13_API신청_문안_IP_20260903.md
+
+# 취약 3종 원천의 설명자료(재배포 불필요)
+data/src/vuln/*.hwp
+data/src/vuln/*.pdf
+data/src/vuln/*.png

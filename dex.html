@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AidPage 도감 · 지자체 타입</title>
+<meta name="description" content="전국 시군구의 재난 타입(자연·사회), 특징, 제도·조례를 한 장씩 훑어보는 도감. 순위 없음.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="css/style.css?v=20260907a">
+<style>
+  body{overflow:auto;background:var(--bg2)}
+  .dx{max-width:1180px;margin:0 auto;padding:22px 18px 80px}
+  .dx-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .dx-head h1{font-family:var(--display);font-size:1.5rem;margin:0} .dx-head h1 small{font-family:var(--mono);font-weight:400;font-size:.72rem;color:var(--mute);margin-left:8px}
+  .dx-sum{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+  .dx-sum .chip b{font-family:var(--mono);font-weight:500;margin-left:4px;opacity:.8}
+  .dx-ctl{display:grid;grid-template-columns:1fr 160px;gap:8px;margin:12px 0 8px} .dx-ctl input,.dx-ctl select{height:40px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font:inherit;background:#fff}
+  .dx-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0} .dx-row .lbl{font-family:var(--mono);font-size:.7rem;color:var(--mute);min-width:44px;letter-spacing:.04em}
+  .dx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:14px}
+  .dx-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+  .dx-card .nm{display:flex;align-items:baseline;justify-content:space-between;gap:8px} .dx-card .nm b{font-family:var(--display);font-size:1.08rem} .dx-card .nm small{font-family:var(--mono);color:var(--mute);font-size:.7rem}
+  .dx-card .kv{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:.78rem;color:var(--mute)} .dx-card .kv span{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:2px 0} .dx-card .kv b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+  .dx-card .inst{font-size:.78rem;color:var(--mute)} .dx-card .inst b{color:var(--ink);font-weight:600}
+  .dx-card .go{display:flex;gap:10px;font-size:.78rem;margin-top:2px} .dx-card .go a{color:var(--accent)}
+  .dx-dict{margin:14px 0 0} .dx-dict summary{cursor:pointer;font-weight:700} .dx-dict table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px;background:#fff;border-radius:12px;overflow:hidden} .dx-dict td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top} .dx-dict td:first-child{white-space:nowrap;font-weight:700}
+  .dx-foot{margin-top:28px;font-size:.78rem;color:var(--mute);line-height:1.6}
+  .dx-empty{padding:30px;text-align:center;color:var(--mute)}
+  .ty-flag.edge{background:#fff3cd;color:#8a6d00} .ty-flag.basis{background:#e8effb;color:#0f4a9e}
+  .ty-chip.ty-t{background:#fbf3e4;color:var(--gold);border-color:#eadfc3}
+</style>
+</head>
+<body>
+<div class="dx">
+  <div class="dx-head"><h1>🧭 AidPage 도감 <small id="ver"></small></h1><a class="fine" href="./">← 본 사이트</a></div>
+  <p class="fine" style="margin:6px 0 0">시·군·구마다 <b>자연 위해 · 사회 위해</b> 두 타입과 <b>특징</b>(인구·구조), <b>제도·조례</b>를 한 장으로. 전국 같은 행정유형 안의 상위 25%가 기준이며 <b>순위가 아닙니다</b>. 이름순 정렬만 있습니다.</p>
+  <div class="dx-sum" id="sum"></div>
+  <details class="dx-dict"><summary>타입 사전 · 규칙 한 줄</summary><table id="dict"></table></details>
+  <div class="dx-ctl"><input id="q" type="search" placeholder="시·군·구 이름 검색 (예: 진안, 관악)"><select id="sido"><option value="">시·도 전체</option></select></div>
+  <div class="dx-row"><span class="lbl">자연</span><span id="fPrim"></span></div>
+  <div class="dx-row"><span class="lbl">사회</span><span id="fSoc"></span></div>
+  <div class="dx-row"><span class="lbl">특징</span><span id="fTrait"></span></div>
+  <div class="dx-row"><span class="lbl">제도</span><span id="fInst"></span><label class="chip" style="cursor:pointer"><input type="checkbox" id="fEdge" style="vertical-align:middle"> 경계 표시 있는 곳만</label><label class="chip" style="cursor:pointer"><input type="checkbox" id="fZone" style="vertical-align:middle"> 지정 근거만</label></div>
+  <div class="fine" id="count" style="margin-top:8px"></div>
+  <div class="dx-grid" id="grid"></div>
+  <div class="dx-foot" id="foot"></div>
+</div>
+<script type="module">
+import { t, DICT } from './js/i18n.js?v=20260907a';
+const ICON = { '물': '💧', '산': '⛰️', '바다': '🌊', '눈': '❄️', '볕': '☀️', '땅': '🪨', '마름': '🏜️', '평온': '◌', '노년': '🧓', '홀로': '🧍', '이방': '🌐', '돌봄': '♿', '살림': '🏚️', '도심': '🏙️', '들': '🌾', '섬': '🏝️', '접경': '🪖', '교통': '🚗', '화재': '🔥' };
+const INST = { insurance: '풍수해보험료 지원', relief: '구호·복구 지원', heat: '폭염 대책', cold: '한파 대책', safety_basic: '안전관리 기본', landslide: '산사태·급경사', fire: '화재·소방', traffic: '교통안전' };
+const $ = s => document.querySelector(s);
+const J = async u => (await fetch(u, { cache: 'no-cache' })).json();
+const [T, O, IDX] = await Promise.all([J('data/ref/sgg_types.json'), J('data/ref/sgg_ordin.json').catch(() => null), J('data/admin/sgg_index.json')]);
+const idx = Object.fromEntries(IDX.map(s => [s.code, s]));
+const short = n => /특별자치|광역시|특별시/.test(n) ? n.slice(0, 2) : n.endsWith('도') ? (n.length === 3 ? n.slice(0, 2) : n[0] + n[2]) : n.slice(0, 2);
+const rows = Object.entries(T.sgg).map(([code, s]) => ({ code, s, i: idx[code] || {}, o: O && O.sgg ? O.sgg[code] : null })).sort((a, b) => (a.i.sido_name || '').localeCompare(b.i.sido_name || '', 'ko') || (a.i.name || '').localeCompare(b.i.name || '', 'ko'));
+$('#ver').textContent = `규칙 ${T.meta.version} · ${rows.length}곳`;
+const chip = (k, cls, extra = '') => `<span class="ty-chip ${cls}" title="${(DICT.ko['ty.' + k + '.d'] || '').replace(/"/g, '&quot;')}">${ICON[k] || ''} ${k}${extra}</span>`;
+const F = { prim: new Set(), soc: new Set(), trait: new Set(), inst: new Set() };
+function count(fn) { const c = {}; rows.forEach(r => (fn(r) || []).forEach(k => { c[k] = (c[k] || 0) + 1; })); return c; }
+function filterChips(el, counts, set, cls) {
+  el.innerHTML = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button type="button" class="chip ${set.has(k) ? 'is-on' : ''}" data-k="${k}">${ICON[k] || ''} ${INST[k] || k}<b>${n}</b></button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { const k = b.dataset.k; set.has(k) ? set.delete(k) : set.add(k); b.classList.toggle('is-on'); render(); }));
+}
+filterChips($('#fPrim'), count(r => [r.s.primary]), F.prim);
+filterChips($('#fSoc'), count(r => [r.s.social || '—']), F.soc);
+filterChips($('#fTrait'), count(r => r.s.traits || []), F.trait);
+if (O) filterChips($('#fInst'), count(r => r.o ? Object.keys(r.o.ord).filter(k => r.o.ord[k] && ['insurance', 'relief', 'heat', 'cold', 'safety_basic'].includes(k)) : []), F.inst);
+const sc = count(r => [r.s.primary]), ss = count(r => [r.s.social || '—']);
+$('#sum').innerHTML = Object.entries(sc).map(([k, n]) => `<span class="chip">${ICON[k]} ${k}<b>${n}</b></span>`).join('') + `<span class="chip">🚗 교통<b>${ss['교통'] || 0}</b></span><span class="chip">특징 없음<b>${rows.filter(r => !(r.s.traits || []).length).length}</b></span>`;
+[...new Set(rows.map(r => r.i.sido_name).filter(Boolean))].forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; $('#sido').appendChild(o); });
+$('#dict').innerHTML = ['물', '산', '바다', '마름', '평온', '교통', '화재', '노년', '홀로', '이방', '돌봄', '살림', '도심', '들'].map(k => `<tr><td>${ICON[k]} ${k}</td><td>${DICT.ko['ty.' + k + '.d'] || ''}</td></tr>`).join('') + `<tr><td>(지정)</td><td>${DICT.ko['ty.basis.zone.d'] || ''}</td></tr><tr><td>복합</td><td>${DICT.ko['ty.complex.d'] || ''}</td></tr><tr><td>경계</td><td>${DICT.ko['ty.edge.d'] || ''}</td></tr>`;
+const P = v => v == null ? '—' : (v * 100).toFixed(1) + '%';
+function card(r) {
+  const s = r.s, m = s.metrics || {}, o = r.o;
+  const traits = (s.traits || []).map(k => chip(k, 'ty-t sm')).join('') || '<span class="ty-chip ty-t sm none">—</span>';
+  const flags = o ? Object.entries(o.ord).filter(([k, v]) => v && ['insurance', 'relief', 'heat', 'cold', 'safety_basic'].includes(k)).map(([k]) => INST[k]).join(' · ') : '';
+  return `<div class="dx-card">
+    <div class="nm"><b>${r.i.name || s.name}</b><small>${short(r.i.sido_name || '')} · ${s.upper || ''} · ${r.code}</small></div>
+    <div class="ty-pair">${chip(s.primary, 'ty-p' + (s.bold ? ' bold' : ''))}${s.basis === 'zone' ? '<span class="ty-flag basis">지정</span>' : ''}<i class="ty-dot">·</i>${s.social ? chip(s.social, 'ty-s2') : '<span class="ty-chip ty-s2 none">—</span>'}${s.complex ? '<span class="ty-flag">복합</span>' : ''}${s.edge && s.edge.length ? `<span class="ty-flag edge" title="${s.edge.join(', ')}">경계 ${s.edge.length}</span>` : ''}</div>
+    <div class="ty-traits"><span class="ty-feat-label">특징</span>${traits}</div>
+    <div class="kv"><span>침수 이력 셀 <b>${P(m.flood_r)}</b></span><span>산사태 이력 셀 <b>${P(m.ls_r)}</b></span><span>평균 경사 <b>${m.slope != null ? m.slope.toFixed(1) + '°' : '—'}</b></span><span>교통 사망+중상/10만 <b>${m.traffic_r != null ? m.traffic_r.toFixed(0) : '—'}</b></span><span>65세+ <b>${P(m.e65)}</b></span><span>1인세대 <b>${P(m.single)}</b></span></div>
+    ${o ? `<div class="inst">제도·조례 <b>${o.n}건</b>${flags ? ' · ' + flags : ' · 표식 조례 없음'}</div>` : ''}
+    <div class="go"><a href="./#g?sgg=${r.code}">지도에서 보기 →</a><a href="./#g?sgg=${r.code}&view=region">이 지역은 →</a></div>
+  </div>`;
+}
+function render() {
+  const q = $('#q').value.trim(), sido = $('#sido').value, edge = $('#fEdge').checked, zone = $('#fZone').checked;
+  const out = rows.filter(r => (!q || (r.i.name || '').includes(q)) && (!sido || r.i.sido_name === sido)
+    && (!F.prim.size || F.prim.has(r.s.primary)) && (!F.soc.size || F.soc.has(r.s.social || '—'))
+    && (!F.trait.size || [...F.trait].every(k => (r.s.traits || []).includes(k)))
+    && (!F.inst.size || (r.o && [...F.inst].every(k => r.o.ord[k])))
+    && (!edge || (r.s.edge && r.s.edge.length)) && (!zone || r.s.basis === 'zone'));
+  $('#count').textContent = `${out.length}곳 · 이름순`;
+  $('#grid').innerHTML = out.length ? out.map(card).join('') : '<div class="dx-empty">조건에 맞는 시·군·구가 없습니다.</div>';
+}
+['#q', '#sido', '#fEdge', '#fZone'].forEach(s => $(s).addEventListener('input', render));
+$('#foot').innerHTML = `규칙 ${T.meta.version} · 임계 = 같은 단위 전국 상위 25%(사회 위해는 같은 군·시·구 유형 안) · 자료: ${Object.values(T.meta.sources || {}).slice(0, 3).join(' / ')} · 조례: ${O ? O.meta.src : '미로드'}<br>이 도감은 지역을 서열화하지 않습니다. 기록이 없다는 것이 안전하다는 뜻은 아닙니다.`;
+render();
+</script>
+</body>
+</html>

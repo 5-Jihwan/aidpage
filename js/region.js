@@ -7,8 +7,8 @@ const J = u => fetch(u, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null)
 const load = async () => {
   [_types, _demo, _rz, _sidoDis] = await Promise.all([_types || J('data/ref/sgg_types.json'), _demo || J('data/ref/sgg_demo.json'), _rz || J('data/ref/riskzone_by_sgg.json'), _sidoDis || J('data/ref/sido_disaster.json')]);
 };
-const TYPE_ICON = { '물': '💧', '산': '⛰️', '바다': '🌊', '눈': '❄️', '볕': '☀️', '땅': '🪨', '마름': '🏜️', '평온': '◌', '노년': '🧓', '홀로': '🧍', '이방': '🌐', '돌봄': '♿', '살림': '🏚️', '도심': '🏙️', '들': '🌾', '섬': '🏝️', '접경': '🪖' };
-const TYPE_EN = { '물': 'Water', '산': 'Mountain', '바다': 'Sea', '눈': 'Snow', '볕': 'Heat', '땅': 'Quake', '마름': 'Drought', '평온': 'Calm', '노년': 'Elderly', '홀로': 'Solo', '이방': 'Migrant', '돌봄': 'Care', '살림': 'Low-income', '도심': 'Urban', '들': 'Rural', '섬': 'Island', '접경': 'Border' };
+const TYPE_ICON = { '물': '💧', '산': '⛰️', '바다': '🌊', '눈': '❄️', '볕': '☀️', '땅': '🪨', '마름': '🏜️', '평온': '◌', '노년': '🧓', '홀로': '🧍', '이방': '🌐', '돌봄': '♿', '살림': '🏚️', '도심': '🏙️', '들': '🌾', '섬': '🏝️', '접경': '🪖', '교통': '🚗', '화재': '🔥' };
+const TYPE_EN = { '물': 'Water', '산': 'Mountain', '바다': 'Sea', '눈': 'Snow', '볕': 'Heat', '땅': 'Quake', '마름': 'Drought', '평온': 'Calm', '노년': 'Elderly', '홀로': 'Solo', '이방': 'Migrant', '돌봄': 'Care', '살림': 'Low-income', '도심': 'Urban', '들': 'Rural', '섬': 'Island', '접경': 'Border', '교통': 'Traffic', '화재': 'Fire' };
 const tn = k => ctx.getLang() === 'en' ? (TYPE_EN[k] || k) : k;
 const pct = v => (v * 100).toFixed(1) + '%';
 const fmtN = n => Number(n || 0).toLocaleString(ctx.getLang() === 'en' ? 'en-US' : 'ko-KR');
@@ -42,14 +42,22 @@ export function whyHTML(ty) {
   if (!rows.length) { // 평온: 무엇이 임계 아래였나
     rows.push(lt(t('rg.m.flood'), P(m.flood_r || 0), P(th.flood_r)), lt(t('rg.m.ls'), P(m.ls_r || 0), P(th.ls_r)), lt(t('rg.m.slope'), D(m.slope || 0), D(th.slope80 || th.slope)));
   }
-  const sec = ty.secondary;
-  if (sec === '노년') rows.push(ge(t('rg.m.e65'), P(m.e65), P(th.e65)), ge(t('rg.m.ealone'), P(m.ealone), P(th.ealone)));
-  else if (sec === '홀로') rows.push(ge(t('rg.m.single'), P(m.single), P(th.single80 || th.single), 80));
-  else if (sec === '이방') rows.push(ge(t('rg.m.foreign'), P(m.foreign_r), P(th.foreign_r)));
-  else if (sec === '돌봄') rows.push(ge(t('rg.m.disabled'), P(m.disabled_r), P(th.disabled_r)));
-  else if (sec === '살림') rows.push(ge(t('rg.m.basic'), P(m.basic_r), P(th.basic_r)));
-  else if (sec === '도심') rows.push(ge(t('rg.m.dens'), K(Math.round(m.dens)), K(Math.round(th.dens))));
-  else if (sec === '들') rows.push(`<li><b>${t('rg.m.gun')}</b> <span class="rg-ge">${t('ty.들.d')}</span></li>`);
+  // 사회 위해(v1.3): 같은 행정유형 내 p75 — 임계는 시군구마다 다르므로 metrics에 실린 값(traffic_q)을 쓴다
+  if (ty.social === '교통' && m.traffic_r != null) rows.push(`<li><b>${t('rg.m.traffic')}</b> ${Number(m.traffic_r).toFixed(1)} <span class="rg-ge">${t('rg.why.ge.kind', { v: Number(m.traffic_q || 0).toFixed(1) })}</span></li>`);
+  else if (ty.social === '화재' && m.fire_r != null) rows.push(`<li><b>${t('rg.m.fire')}</b> ${Number(m.fire_r).toFixed(1)} <span class="rg-ge">${t('rg.why.ge.kind', { v: Number(m.fire_q || 0).toFixed(1) })}</span></li>`);
+  else if (m.traffic_r != null) rows.push(lt(t('rg.m.traffic'), Number(m.traffic_r).toFixed(1), Number(m.traffic_q || 0).toFixed(1)));
+  // 특징(v1.3): 해당하는 것 전부, 서열 없음
+  const traits = ty.traits || (ty.secondary ? [ty.secondary] : []);
+  if (traits.length) rows.push(`<li class="rg-feat-h"><b>${t('rg.feat')}</b></li>`);
+  for (const sec of traits) {
+    if (sec === '노년') rows.push(ge(t('rg.m.e65'), P(m.e65), P(th.e65)), ge(t('rg.m.ealone'), P(m.ealone), P(th.ealone)));
+    else if (sec === '홀로') rows.push(ge(t('rg.m.single'), P(m.single), P(th.single80 || th.single), 80));
+    else if (sec === '이방') rows.push(ge(t('rg.m.foreign'), P(m.foreign_r), P(th.foreign_r)));
+    else if (sec === '돌봄') rows.push(ge(t('rg.m.disabled'), P(m.disabled_r), P(th.disabled_r)));
+    else if (sec === '살림') rows.push(ge(t('rg.m.basic'), P(m.basic_r), P(th.basic_r)));
+    else if (sec === '도심') rows.push(ge(t('rg.m.dens'), K(Math.round(m.dens)), K(Math.round(th.dens))));
+    else if (sec === '들') rows.push(`<li><b>${t('rg.m.gun')}</b> <span class="rg-ge">${t('ty.들.d')}</span></li>`);
+  }
   if (ty.bold) rows.push(`<li><b>${t('rg.why.bold')}</b> ${K(Math.round(m.dens))} <span class="rg-ge">${t('rg.why.ge', { v: K(Math.round(th.dens)) })}</span></li>`);
   const edge = ty.edge && ty.edge.length ? `<li class="tip">${t('rg.why.edge', { l: ty.edge.map(tn).join(', ') })}</li>` : '';
   return `<details class="rg-why" ${matchMedia('(min-width:901px)').matches ? 'open' : ''}><summary>${t('rg.why.t')}</summary><ul>${rows.join('')}${edge}</ul><small>${t('rg.why.foot', { v: _types.meta.version || '' })}</small></details>`;
@@ -61,7 +69,10 @@ export function typeChips(ty, small) {
   const t = ctx.t;
   const chip = (k, cls) => `<span class="ty-chip ${cls} ${small ? 'sm' : ''}" title="${esc(t('ty.' + k + '.d'))}">${TYPE_ICON[k] || ''} ${tn(k)}</span>`;
   const basis = (ty.primary === '물' || ty.primary === '산') && ty.basis === 'zone' ? `<span class="ty-flag basis" title="${esc(t('ty.basis.zone.d'))}">${t('ty.basis.zone')}</span>` : '';
-  return `<span class="ty-pair">${chip(ty.primary, 'ty-p' + (ty.bold ? ' bold' : ''))}${basis}<i class="ty-dot">·</i>${ty.secondary ? chip(ty.secondary, 'ty-s') : `<span class="ty-chip ty-s ${small ? 'sm' : ''} none">—</span>`}${ty.complex ? `<span class="ty-flag" title="${esc(t('ty.complex.d'))}">${t('ty.complex')}</span>` : ''}${ty.edge && ty.edge.length ? `<span class="ty-flag edge" title="${esc(t('ty.edge.d'))}">?</span>` : ''}</span>`;
+  const traits = ty.traits || (ty.secondary ? [ty.secondary] : []);
+  const shown = small ? traits.slice(0, 3) : traits, more = traits.length - shown.length;
+  const featHTML = traits.length ? `<span class="ty-traits"><span class="ty-feat-label">${t('rg.feat')}</span>${shown.map(k => chip(k, 'ty-t')).join('')}${more > 0 ? `<span class="ty-chip ty-t ${small ? 'sm' : ''} none">+${more}</span>` : ''}</span>` : '';
+  return `<span class="ty-pair">${chip(ty.primary, 'ty-p' + (ty.bold ? ' bold' : ''))}${basis}<i class="ty-dot">·</i>${ty.social ? chip(ty.social, 'ty-s2') : `<span class="ty-chip ty-s2 ${small ? 'sm' : ''} none" title="${esc(t('rg.social.none'))}">—</span>`}${featHTML}${ty.complex ? `<span class="ty-flag" title="${esc(t('ty.complex.d'))}">${t('ty.complex')}</span>` : ''}${ty.edge && ty.edge.length ? `<span class="ty-flag edge" title="${esc(t('ty.edge.d'))}">?</span>` : ''}</span>`;
 }
 
 function tier(v, q) { if (!q || v == null) return ''; return v >= q.p75 ? 'hi' : v >= q.p50 ? 'mid' : 'lo'; }
@@ -141,13 +152,13 @@ async function blockFacilities(s) {
 }
 
 /* 지원 미리보기: 타입 → 키워드 → 복지 3건 (집은 '지원 찾기' 탭) */
-const TY_KW = { '물': ['풍수해', '침수', '재난'], '산': ['산사태', '재난', '재해'], '바다': ['어선', '어업', '풍수해'], '마름': ['가뭄', '농업', '급수'], '이방': ['외국인', '다문화', '이주'], '돌봄': ['장애', '돌봄', '활동지원'], '살림': ['기초생활', '저소득', '긴급복지'], '평온': ['재난', '풍수해'], '노년': ['노인', '독거', '어르신'], '홀로': ['1인', '긴급복지', '돌봄'], '들': ['농업', '농어'], '도심': ['긴급복지'] };
+const TY_KW = { '물': ['풍수해', '침수', '재난'], '산': ['산사태', '재난', '재해'], '바다': ['어선', '어업', '풍수해'], '마름': ['가뭄', '농업', '급수'], '교통': ['교통', '보행', '안전'], '화재': ['화재', '소방', '주택'], '이방': ['외국인', '다문화', '이주'], '돌봄': ['장애', '돌봄', '활동지원'], '살림': ['기초생활', '저소득', '긴급복지'], '평온': ['재난', '풍수해'], '노년': ['노인', '독거', '어르신'], '홀로': ['1인', '긴급복지', '돌봄'], '들': ['농업', '농어'], '도심': ['긴급복지'] };
 async function blockSupport(s, ty) {
   const t = ctx.t; if (!ty) return '';
   if (!_welfare) _welfare = await J('data/ref/welfare.json');
   if (ctx.getLang() === 'en' && !_welfareEn) _welfareEn = await J('data/ref/welfare_en.json');
   if (!_welfare || !_welfare.items) return '';
-  const kws = [...new Set([...(TY_KW[ty.primary] || []), ...(TY_KW[ty.secondary] || [])])];
+  const kws = [...new Set([...(TY_KW[ty.primary] || []), ...(TY_KW[ty.social] || []), ...((ty.traits || [ty.secondary]).flatMap(k => TY_KW[k] || []))])];
   const scored = [];
   for (const it of _welfare.items) { const name = it['서비스명'] || '', sum = it['서비스요약'] || ''; let sc = 0; for (const k of kws) { if (name.includes(k)) sc += 3; else if (sum.includes(k)) sc += 1; } if (sc) scored.push([sc, it]); }
   const top = scored.sort((a, b) => b[0] - a[0]).slice(0, 3).map(x => x[1]);
@@ -198,7 +209,7 @@ function applyTopic() { root.querySelectorAll('.rg-blk').forEach(b => { b.hidden
 async function sidoDistHTML(sido) {
   const st = await J('data/ref/sido_types.json'); const d = st && st.sido && st.sido[String(sido)]; if (!d) return '';
   const bar = (obj) => Object.entries(obj).filter(([k]) => k !== '—').sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, v]) => `<span class="rg-dist"><i>${TYPE_ICON[k] || ''}</i>${tn(k)} <b>${v.toFixed(0)}%</b></span>`).join('');
-  return `<div class="rg-sido"><small>${ctx.t('rg.sido.dist', { n: d.n_sgg })}</small><div>${bar(d.primary_pct)}</div><div>${bar(d.secondary_pct)}</div></div>`;
+  return `<div class="rg-sido"><small>${ctx.t('rg.sido.dist', { n: d.n_sgg })}</small><div>${bar(d.primary_pct)}</div>${d.social_pct ? `<div>${bar(d.social_pct)}</div>` : ''}<div>${bar(d.secondary_pct)}</div></div>`;
 }
 
 export function init(c) { ctx = c; if (!init._esc) { init._esc = true; addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen()) close(true); }); } }

@@ -66,9 +66,19 @@ def pct(vals, q):
     v = sorted(x for x in vals if x is not None); return v[min(len(v) - 1, int(round(q / 100 * (len(v) - 1))))] if v else None
 keys = ["traffic_r", "traffic_acc_r", "fire_r"]
 th = {k: {"p75": pct([d.get(k) for d in out.values()], 75), "p80": pct([d.get(k) for d in out.values()], 80), "median": pct([d.get(k) for d in out.values()], 50)} for k in keys}
+# (e) 같은 행정유형(군/시/구) 안의 p75 — KIPA 2017 동일유형 내 상대등급. 타입 판정은 이 임계를 쓴다(docs/14 §8)
+import statistics
+kind_of = {s["code"]: s["name"][-1] for s in idx}
+th_kind = {}
+for k in ("traffic_r", "fire_r"):
+    th_kind[k] = {}
+    for kd in ("군", "시", "구"):
+        vals = [d[k] for c, d in out.items() if d.get(k) is not None and kind_of.get(c) == kd]
+        th_kind[k][kd] = {"p75": pct(vals, 75), "sd": round(statistics.pstdev(vals), 3) if len(vals) > 1 else None, "n": len(vals)}
+for c, d in out.items(): d["kind"] = kind_of.get(c)
 meta = {"built": "2026-09-05", "unit": "sgg", "n": len(out), "asof": {"traffic": f"{traffic_asof} (한국도로교통공단 시도 시군구별 교통사고 통계, 경찰 접수 인적피해 사고)", "fire": fire_asof},
         "definitions": {"traffic_r": "(사망자+중상자)/주민등록 인구(2026-07)×10만 — 통합시는 시 단위 값을 소속 구에 공유, 분모도 시 전체 인구", "traffic_acc_r": "사고건수/인구×10만", "fire_r": "미확보"},
-        "thresholds": th, "unmatched": unmatched[:40]}
+        "thresholds": th, "thresholds_kind": th_kind, "rule": "타입 판정 = 같은 행정유형(군/시/구) 내 p75 이상 (e)", "unmatched": unmatched[:40]}
 json.dump({"meta": meta, "sgg": out}, open(P("data", "ref", "sgg_social.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 print("thresholds", json.dumps(th, ensure_ascii=False)); print("n", len(out))
 top = sorted(((d["traffic_r"], c) for c, d in out.items() if d.get("traffic_r")), reverse=True)[:12]

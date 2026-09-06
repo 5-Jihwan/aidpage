@@ -43,7 +43,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 RZ_MODE = os.environ.get("RZ_MODE", "pos")  # all | pos | tag (docs/14 §7)
-VERSION = "v1.2-20260905-" + RZ_MODE
+VERSION = "v1.3-20260905-" + RZ_MODE
 EDGE = 0.05  # 임계 ±5%
 
 rows = list(csv.DictReader(io.open(P("docs", "lib", "sgg_typology_explore_20260903.csv"), encoding="utf-8")))
@@ -52,8 +52,9 @@ demo = json.load(open(P("data", "ref", "sgg_demo.json"), encoding="utf-8"))
 # v1.2: 취약 3종(외국인주민·등록장애인·기초수급, scripts/build_vuln.py) — 없는 시군구(2026 개편 인천·화성 등)는 None → 해당 부 타입 판정 생략
 vuln = json.load(open(P("data", "ref", "sgg_vuln.json"), encoding="utf-8")).get("sgg", {})
 # v1.3 초안: 사회 위해(교통·화재, scripts/build_social.py) — 두 번째 위해 슬롯 재료. 없으면 빈 dict
-try: social = json.load(open(P("data", "ref", "sgg_social.json"), encoding="utf-8")).get("sgg", {})
-except Exception: social = {}
+try:
+    _soc = json.load(open(P("data", "ref", "sgg_social.json"), encoding="utf-8")); social = _soc.get("sgg", {}); SOC_TH = _soc.get("meta", {}).get("thresholds_kind", {})
+except Exception: social = {}; SOC_TH = {}
 SOCIAL = [("traffic_r", "교통"), ("fire_r", "화재")]
 idx = {s["code"]: s for s in json.load(open(P("data", "admin", "sgg_index.json"), encoding="utf-8"))}
 labels = {r["code"]: r for r in csv.DictReader(io.open(P("docs", "lib", "sgg_typology_labels_20260904.csv"), encoding="utf-8"))}
@@ -61,7 +62,7 @@ labels = {r["code"]: r for r in csv.DictReader(io.open(P("docs", "lib", "sgg_typ
 
 def pct(vals, q=75):
     v = [float(x) for x in vals if x is not None]
-    return float(np.percentile(v, q)) if v else float("nan")
+    return float(np.percentile(v, q)) if v else None  # 빈 지표(예: 화재 미확보)는 None — NaN은 JSON을 깨뜨려 앱이 타입 전체를 잃는다(09-06)
 
 
 def near(v, thr, rel=EDGE):
@@ -137,12 +138,24 @@ def classify(m, th, sd, kind, coastal):
     ORDER = ["노년", "홀로", "이방", "돌봄", "살림", "도심", "들"]
     if secondary in ORDER: edge = [e for e in edge if e not in ORDER[ORDER.index(secondary) + 1:]]
     # v1.3 초안: 사회 위해 슬롯 — 같은 규칙(전국 p75, 표준화 초과치 최강, ±5% 경계)
-    soc = {}
+    # v1.3: 임계 = 같은 행정유형(군/시/구) 내 p75 (docs/14 §8 (e), KIPA 2017 동일유형 내 상대등급)
+    soc = {}; soc_q = {}
     for k, nm_ in SOCIAL:
-        if m.get(k) is not None and th.get(k) and m[k] >= th[k]: soc[nm_] = exceed(m[k], th[k], sd.get(k, 0))
-        if m.get(k) is not None and th.get(k) and near(m[k], th[k]): edge.append(nm_)
+        q = (SOC_TH.get(k) or {}).get(kind) or {}
+        if m.get(k) is None or not q.get("p75"): continue
+        soc_q[k] = q["p75"]
+        if m[k] >= q["p75"]: soc[nm_] = (m[k] - q["p75"]) / (q.get("sd") or 1.0)
+        if near(m[k], q["p75"]): edge.append(nm_)
     social_t = max(soc, key=soc.get) if soc else None
-    return dict(social=social_t, social_scores={k: round(v, 2) for k, v in soc.items()}, primary=primary, secondary=secondary, complex=len(haz) >= 2, bold=(primary != "평온" and m["dens"] >= th["dens"]),
+    # v1.3: '특징' = 임계를 넘는 인구사회·구조 요소 전부(서열 없음). secondary는 그중 첫째(우선순위 고정, 호환용)
+    traits = []
+    if m["e65"] >= th["e65"] and m["ealone"] >= th["ealone"]: traits.append("노년")
+    if m["single"] >= th["single80"]: traits.append("홀로")
+    for k, nm_ in (("foreign_r", "이방"), ("disabled_r", "돌봄"), ("basic_r", "살림")):
+        if vq(k): traits.append(nm_)
+    if m["dens"] >= th["dens"]: traits.append("도심")
+    if kind == "군": traits.append("들")
+    return dict(social=social_t, social_scores={k: round(v, 2) for k, v in soc.items()}, social_q=soc_q, traits=traits, primary=primary, secondary=secondary, complex=len(haz) >= 2, bold=(primary != "평온" and m["dens"] >= th["dens"]),
                 edge=sorted(set(edge)), hazards=sorted(haz, key=haz.get, reverse=True), scores={k: round(v, 2) for k, v in haz.items()},
                 basis=(basis if primary == "물" else s_basis if primary == "산" else None))
 
@@ -178,14 +191,16 @@ for r in rows:
     t = classify(m, TH, SD, r["kind"], int(r["coastal"]))
     upper = f"{r['kind']}·{'해안' if int(r['coastal']) else '내륙'}"
     sgg_out[code] = dict(name=r["name"], sido=idx.get(code, {}).get("sido", r["sido"][:2] if r["sido"] else ""), kind=r["kind"], upper=upper, **t, label=label(t),
-                         metrics=dict(flood_r=m["flood_r"], ls_r=m["ls_r"], slope=round(m["slope"], 2), e65=m["e65"], ealone=m["ealone"], single=m["single"], dens=m["dens"], rz_flood=fl, rz_other=other, rzf=round(m["rzf"], 2), rzo=round(m["rzo"], 2), rz_t=z.get("t", {}), rzc=round(m["rzc"], 2), rzs=round(m["rzs"], 2), rzd=round(m["rzd"], 2), foreign_r=m["foreign_r"], disabled_r=m["disabled_r"], basic_r=m["basic_r"], traffic_r=m.get("traffic_r"), fire_r=m.get("fire_r"), pop=int(float(r["pop"]))))
+                         metrics=dict(flood_r=m["flood_r"], ls_r=m["ls_r"], slope=round(m["slope"], 2), e65=m["e65"], ealone=m["ealone"], single=m["single"], dens=m["dens"], rz_flood=fl, rz_other=other, rzf=round(m["rzf"], 2), rzo=round(m["rzo"], 2), rz_t=z.get("t", {}), rzc=round(m["rzc"], 2), rzs=round(m["rzs"], 2), rzd=round(m["rzd"], 2), foreign_r=m["foreign_r"], disabled_r=m["disabled_r"], basic_r=m["basic_r"], traffic_r=m.get("traffic_r"), fire_r=m.get("fire_r"), traffic_q=t.get("social_q", {}).get("traffic_r"), fire_q=t.get("social_q", {}).get("fire_r"), pop=int(float(r["pop"]))))
     pair[(t["primary"], t["secondary"] or "—")] += 1; prim_cnt[t["primary"]] += 1
     cross[t["primary"]][labels.get(code, {}).get("cluster_tag", "?")] += 1
 
 meta = dict(version=VERSION, built=_dt.date.today().isoformat(), unit="sgg", n=len(sgg_out),
-            thresholds={k: round(v, 4) for k, v in TH.items()}, fixed_thresholds={"edge_rel": EDGE, "emd_ls_r_floor": 0.02},
+            thresholds={k: (round(v, 4) if v is not None else None) for k, v in TH.items()}, fixed_thresholds={"edge_rel": EDGE, "emd_ls_r_floor": 0.02},
             rules={"primary": f"[v1.2/{RZ_MODE}] 물: flood_r≥p75 or 침수위험개선지구밀도(rzf,/100km²)≥p75 (basis=history|zone) / 산: ls_r≥p75 or slope≥p80 or 붕괴위험개선지구(rzc, 모드 규칙) (basis=history|zone) / 바다: coastal==1, 강도=해일위험개선지구(rzs, 모드 규칙; 없으면 0=접촉만) / 마름: 상습가뭄재해지구(rzd, 모드 규칙) — 모드: all=전국p75·z/SD, pos=보유지 p75 초과분만, tag=주 타입 미반영 / 없음→평온; 둘 이상→complex; 표준화 초과치 최강이 주 타입 — 근거: ECRT(Hincks 2023) V9·V12·V13·V14·V18·V22, ESPON-TITAN(Klein 2024), 구주영 2026(위험개선지구=노출), 장경은 2023(경사), Chang 2018(해안)",
-                   "secondary": "[v1.2] 노년: e65≥p75 & ealone≥p75 / 홀로: single≥p80 / 이방: foreign_r≥p75 / 돌봄: disabled_r≥p75 / 살림: basic_r≥p75 / 도심: dens≥p75 / 들: kind=='군'[proxy] / 없음→null — 우선순위 고정(취약→구조), 취약 3종 근거: 구주영·김강민·KIPA 공통 표준(docs/16) — 근거: 김강민·황철수 2024·KIPA 2017 재난약자(노년), 박현수·권설아 2024(1인가구), Tocchi 2025 1단 범주(도심·농촌)",
+                   "social": "[v1.3] 두 번째 위해 슬롯 — 교통: (사망+중상)/10만 명 ≥ 같은 행정유형(군/시/구) 내 p75, 강도=(값-p75)/유형 내 sd / 화재: 자료 확보 시 동일 / 둘 이상→최강 — 근거: KIPA 2017 동일유형 내 상대등급, docs/14 §8 정규화 비교",
+                   "traits": "[v1.3] '특징' = 서열 없는 묶음: 노년(e65≥p75 & ealone≥p75)·홀로(single≥p80)·이방(foreign_r≥p75)·돌봄(disabled_r≥p75)·살림(basic_r≥p75)·도심(dens≥p75)·들(kind=='군') 중 해당 전부. 낙인 완화를 위해 '취약·약점'이라 부르지 않는다(사용자 결정 09-05)",
+                   "secondary": "[v1.2, 호환용] traits의 첫째(노년→홀로→이방→돌봄→살림→도심→들 고정 순) — 근거: 김강민·황철수 2024·KIPA 2017 재난약자(노년), 박현수·권설아 2024(1인가구), Tocchi 2025 1단 범주(도심·농촌)",
                    "bold": "dens≥p75 (노출 대리) — 주 타입이 평온이면 미적용 — 근거: ECRT 노출 축, Chang 2018 해안 거주 %, Lee 2019 빈도×규모", "edge": "임계 ±5% 이내 타입 — 근거: Tate 2012 임계 민감도", "upper": "행정유형(구/시/군) × 해안/내륙 — 근거: Tocchi 2025 상위=범주형 구조, KIPA 2017 5그룹 상대평가",
                    "threshold_basis": "같은 단위 전국 p75 — 근거: 장경은 외 2023 등분위 5등급, KIPA 2017 동일유형 내 상대등급; 순위·가중합 금지 — Spielman 2020, Greco 2019, Cutter 2003",
                    "literature": "docs/16_타입기준_v1_문헌근거_20260904.md"},
@@ -229,26 +244,27 @@ for ec, e in emd.items():
     t = classify({v: e[v] for v in METRICS}, TH_E, SD_E, s["kind"], 1 if s["upper"].endswith("해안") else 0)
     emd_rows.append([ec, e["sgg"], e["name"], e["pop"], t["primary"], t["secondary"], int(t["bold"]), int(t["complex"]), "|".join(t["edge"]), label(t)])
     emd_prim[t["primary"]] += 1
-emd_meta = dict(version=VERSION, built=meta["built"], unit="emd", n=len(emd_rows), thresholds={k: round(v, 4) for k, v in TH_E.items()},
+emd_meta = dict(version=VERSION, built=meta["built"], unit="emd", n=len(emd_rows), thresholds={k: (round(v, 4) if v is not None else None) for k, v in TH_E.items()},
                 note="행정동 위해 = 해당 행정동 격자 셀 중 이력>0 셀 비율·평균 경사(격자 있는 시군구만). 위험개선지구·굵기 분모는 시군구 상속 없음(dens는 행정동 인구/격자 면적). 해안·행정유형은 시군구 상속.",
                 caveats=meta["caveats"])
 json.dump({"meta": emd_meta, "cols": COLS, "rows": emd_rows}, open(P("data", "ref", "emd_types.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 
 # ───────── 시도 분포 ─────────
-sido = defaultdict(lambda: {"pop": 0, "primary": Counter(), "secondary": Counter(), "n": 0, "names": set()})
+sido = defaultdict(lambda: {"pop": 0, "primary": Counter(), "secondary": Counter(), "social": Counter(), "n": 0, "names": set()})
 for code, s in sgg_out.items():
     sd = str(s["sido"]); pop = s["metrics"]["pop"]
-    d = sido[sd]; d["pop"] += pop; d["n"] += 1; d["primary"][s["primary"]] += pop; d["secondary"][s["secondary"] or "—"] += pop
+    d = sido[sd]; d["pop"] += pop; d["n"] += 1; d["primary"][s["primary"]] += pop; d["secondary"][s["secondary"] or "—"] += pop; d.setdefault("social", Counter())[s.get("social") or "—"] += pop
     d["names"].add(idx.get(code, {}).get("sido_name", ""))
 sido_out = {k: dict(name=sorted(x for x in v["names"] if x), n_sgg=v["n"], pop=v["pop"],
                     primary_pct={t: round(c / v["pop"] * 100, 1) for t, c in v["primary"].most_common()},
-                    secondary_pct={t: round(c / v["pop"] * 100, 1) for t, c in v["secondary"].most_common()}) for k, v in sido.items()}
+                    secondary_pct={t: round(c / v["pop"] * 100, 1) for t, c in v["secondary"].most_common()},
+                    social_pct={t: round(c / v["pop"] * 100, 1) for t, c in v.get("social", Counter()).most_common()}) for k, v in sido.items()}
 json.dump({"meta": dict(version=VERSION, built=meta["built"], unit="sido", note="시군구 타입의 인구 가중 분포(%). 시도에 단일 타입을 붙이지 않는다.", caveats=meta["caveats"]), "sido": sido_out},
           open(P("data", "ref", "sido_types.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 
 # ───────── 리포트 ─────────
 print(f"[types] {VERSION} sgg={len(sgg_out)} emd={len(emd_rows)} sido={len(sido_out)}")
-print("thresholds(p75 sgg):", {k: round(v, 3) for k, v in TH.items()})
+print("thresholds(p75 sgg):", {k: (round(v, 3) if v is not None else None) for k, v in TH.items()})
 print("\n(a) 주×부 타입 쌍 빈도 (시군구)")
 for (p, s), c in pair.most_common(): print(f"  {p}·{s:<3s} {c:4d}")
 print("\n(b) 주 타입 개수:", dict(prim_cnt), "| 복합:", sum(1 for s in sgg_out.values() if s["complex"]), "| 굵게:", sum(1 for s in sgg_out.values() if s["bold"]), "| 경계 있음:", sum(1 for s in sgg_out.values() if s["edge"]))
@@ -263,5 +279,5 @@ print("\n(d) 예시")
 ex = ["52720", "11500", "11620", "41115", "48860", "12850", "51820", "26350", "47130", "36110", "11680", "41111"]
 for c in ex:
     if c in sgg_out: s = sgg_out[c]; print(f"  {s['name']:<10s} {s['label']:<16s} upper={s['upper']} edge={s['edge']} hz={s['scores']}")
-print("\n행정동 주 타입 개수:", dict(emd_prim), "| 읍면동 p75:", {k: round(v, 3) for k, v in TH_E.items()})
+print("\n행정동 주 타입 개수:", dict(emd_prim), "| 읍면동 p75:", {k: (round(v, 3) if v is not None else None) for k, v in TH_E.items()})
 for f in ("sgg_types.json", "emd_types.json", "sido_types.json"): print(f"  {f}: {os.path.getsize(P('data', 'ref', f)) // 1024} KB")

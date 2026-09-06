@@ -840,3 +840,10 @@ body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
 .linkish{border:0;background:none;padding:0;color:var(--accent);font-size:.84rem;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .rg-nums{margin-left:6px}
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .rg-why{font-size:.84rem} .rg-why li{font-size:.8rem} }
+
+/* v1.3 타입 칩: 자연·사회 위해 2슬롯 + '특징' 묶음 */
+.ty-chip.ty-s2{background:#e4f5ef;color:#0b7a5e;border-color:#c6e8db} .ty-chip.ty-s2.none{background:var(--bg2);color:var(--mute);font-weight:400}
+.ty-traits{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px;margin-left:8px}
+.ty-feat-label{font-family:var(--mono);font-size:.64rem;color:var(--mute);letter-spacing:.04em}
+.ty-chip.ty-t{background:#fbf3e4;color:var(--gold);border-color:#eadfc3} .ty-chip.ty-t.none{background:var(--bg2);color:var(--mute);font-weight:400}
+.rg-why li.rg-feat-h{list-style:none;margin:6px 0 0 -18px;color:var(--mute);font-size:.8rem}

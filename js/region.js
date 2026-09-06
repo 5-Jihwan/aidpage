@@ -2,10 +2,10 @@
    역할 분리: 왼쪽 패널 = 지금(특보·대피소·할 일), 이 서랍 = 이 지역은(구조·이력·시설 총량·지원 미리보기).
    한 항목 한 집: 특보는 태그 1개만, 가까운 대피소는 총량 행만. 순위 숫자 없음, 사분위 띠까지만.
    lazy import — 평소 0바이트. app.js가 open(ctx) 호출 시 ctx로 상태·도우미를 넘긴다(전역 import 없음). */
-let ctx = null, root = null, mobile = false, topic = 'all', _types = null, _demo = null, _rz = null, _sidoDis = null, _welfare = null, _welfareEn = null;
+let ctx = null, root = null, mobile = false, topic = 'all', _types = null, _demo = null, _rz = null, _sidoDis = null, _welfare = null, _welfareEn = null, _ordin = null;
 const J = u => fetch(u, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null);
 const load = async () => {
-  [_types, _demo, _rz, _sidoDis] = await Promise.all([_types || J('data/ref/sgg_types.json'), _demo || J('data/ref/sgg_demo.json'), _rz || J('data/ref/riskzone_by_sgg.json'), _sidoDis || J('data/ref/sido_disaster.json')]);
+  [_types, _demo, _rz, _sidoDis, _ordin] = await Promise.all([_types || J('data/ref/sgg_types.json'), _demo || J('data/ref/sgg_demo.json'), _rz || J('data/ref/riskzone_by_sgg.json'), _sidoDis || J('data/ref/sido_disaster.json'), _ordin || J('data/ref/sgg_ordin.json')]);
 };
 const TYPE_ICON = { '물': '💧', '산': '⛰️', '바다': '🌊', '눈': '❄️', '볕': '☀️', '땅': '🪨', '마름': '🏜️', '평온': '◌', '노년': '🧓', '홀로': '🧍', '이방': '🌐', '돌봄': '♿', '살림': '🏚️', '도심': '🏙️', '들': '🌾', '섬': '🏝️', '접경': '🪖', '교통': '🚗', '화재': '🔥' };
 const TYPE_EN = { '물': 'Water', '산': 'Mountain', '바다': 'Sea', '눈': 'Snow', '볕': 'Heat', '땅': 'Quake', '마름': 'Drought', '평온': 'Calm', '노년': 'Elderly', '홀로': 'Solo', '이방': 'Migrant', '돌봄': 'Care', '살림': 'Low-income', '도심': 'Urban', '들': 'Rural', '섬': 'Island', '접경': 'Border', '교통': 'Traffic', '화재': 'Fire' };
@@ -136,6 +136,18 @@ function blockHistory(s) {
   return `<section class="rg-blk" data-topic="history"><h4>${t('rg.hist')} <small>${t('rg.hist.s')}</small></h4>${rows}${sidoLine}<p class="rg-note warn">${t('rg.hist.n')}</p></section>`;
 }
 
+/* 제도·조례(v1.3): 국가법령정보 자치법규 집계(sgg_ordin.json). 건수·보유 여부만 — 순위 없음. 시·도 조례 제외, 통합시는 시 조례 공유 */
+function blockInstitutions(s) {
+  const t = ctx.t; if (!s.sgg || s.level === 'emd' || !_ordin || !_ordin.sgg) return '';
+  const o = _ordin.sgg[String(s.sgg)]; if (!o) return '';
+  const d = v => v ? `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}` : '';
+  const flag = (k, label) => `<div class="rg-row"><span>${label}</span><b>${o.ord[k] ? '○' : '—'}</b><small class="${o.ord[k] ? '' : 'mute'}">${o.ord[k] ? t('rg.i.yes', { d: d(o.ord[k]) }) : t('rg.i.no')}</small></div>`;
+  return `<section class="rg-blk" data-topic="history"><h4>${t('rg.inst')} <small>${t('rg.inst.s')}</small></h4>
+    <div class="rg-row"><span>${t('rg.i.n')}</span><b>${fmtN(o.n)}</b><small>${t('rg.i.n.s', { c: fmtN(o.n_ordin) })}${o.shared ? ' · ' + t('rg.i.shared') : ''}</small></div>
+    ${flag('insurance', t('rg.i.insurance'))}${flag('relief', t('rg.i.relief'))}${flag('heat', t('rg.i.heat'))}${flag('cold', t('rg.i.cold'))}${flag('safety_basic', t('rg.i.basic'))}
+    <p class="rg-note">${t('rg.inst.n')}</p></section>`;
+}
+
 async function blockFacilities(s) {
   const t = ctx.t; if (!s.sido) return '';
   const kinds = ['civil_defense', 'heat', 'cold', 'quake', 'steep'];
@@ -193,7 +205,8 @@ async function renderInner() {
   const upperTxt = ty && ty.upper ? (ctx.getLang() === 'en' ? ty.upper.split('·').map(x => UP_EN[x] || x).join(' · ') : ty.upper) : '';
   const upper = upperTxt ? `<span class="tag" title="${esc(t('rg.upper.d'))}">${esc(upperTxt)}</span>` : '';
   const sidoDist = s.level === 'sido' && _types ? await sidoDistHTML(s.sido) : '';
-  const [people, hist, fac, sup] = await Promise.all([blockPeople(s), blockHistory(s), blockFacilities(s), blockSupport(s, ty)]);
+  const [people, hist0, fac, sup] = await Promise.all([blockPeople(s), blockHistory(s), blockFacilities(s), blockSupport(s, ty)]);
+  const hist = hist0 + blockInstitutions(s);
   root.innerHTML = `${mobile ? '' : `<div class="rg-head"><div><div class="eyebrow">${t('rg.eyebrow')}</div><h3>${esc(name)}</h3></div><button type="button" class="rg-x" aria-label="${t('rg.close')}">✕</button></div>`}
     <div class="rg-tags">${ty ? typeChips(ty) : ''}${upper}${warnTag}</div>${ty ? whyHTML(ty) : ''}${sidoDist}
     <div class="rg-filters">${['all', 'people', 'history', 'facility', 'support'].map(k => `<button type="button" class="chip ${topic === k ? 'is-on' : ''}" data-topic="${k}">${t('rg.topic.' + k)}</button>`).join('')}</div>

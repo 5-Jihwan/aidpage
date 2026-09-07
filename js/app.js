@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907d';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907d';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907e';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907e';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -514,7 +514,8 @@ async function selectEmd(code) {
   const fs = featuresWhere(state.geo.emd, 'code', code); if (fs.length) fitTo(fs); else map.flyTo({ center: [e.lon, e.lat], zoom: 13 });
   pushRecent(String(code)); if (state.wxmap === 'wind') applyWindArrows(true);
   renderAll(); syncWizardLoc();
-  if (matchMedia(MQ_MOBILE).matches) { $('#panel').classList.remove('is-collapsed'); }
+  // 자동 이동(홈 복원·공유 링크)은 사용자가 내려 둔 시트를 다시 올리지 않는다 (09-07: "내려도 올라온다")
+  if (matchMedia(MQ_MOBILE).matches && !state._autoNav) { $('#panel').classList.remove('is-collapsed'); }
 }
 /* 최근 본 동네 3개 (저장한 내 동네 제외) */
 function pushRecent(code) { const r = JSON.parse(localStorage.getItem('safepic.recent') || '[]').filter(c => c !== code); r.unshift(code); localStorage.setItem('safepic.recent', JSON.stringify(r.slice(0, 4))); }
@@ -558,7 +559,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260907d');
+      _simMod = await import('./sim.js?v=20260907e');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1088,7 +1089,8 @@ async function renderReports() {
   if (res.status !== 'ok') { list.innerHTML = `<div class="muted">${t(res.status === 'offline' ? 'rep.offline' : 'rep.err')}</div>`; } else paint(res.items);
   $('#repForm').addEventListener('submit', async e => {
     e.preventDefault(); const f = e.target, btn = f.querySelector('button'); btn.disabled = true;
-    const gps = state.gps && state.gps.emd === state.emd ? { lon: state.gps.lon, lat: state.gps.lat } : {};
+    // 지오프라이버시(docs/18 §5): 제보 핀 좌표는 약 100 m(소수 3자리)로 뭉개서 보낸다 — 집 위치가 특정되지 않게
+    const gps = state.gps && state.gps.emd === state.emd ? { lon: +state.gps.lon.toFixed(3), lat: +state.gps.lat.toFixed(3) } : {};
     const r = await postReport({ sgg, emd: state.emd, kind: f.kind.value, text: f.text.value, ...gps });
     btn.disabled = false;
     if (r.status === 'ok') { f.reset(); const again = await getReports(sgg); if (again.status === 'ok') paint(again.items); }
@@ -1439,7 +1441,7 @@ function setTab(tab) {
   $$('.tab').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tab));
   const at = $('.tab.is-active'); if (at && at.scrollIntoView) at.scrollIntoView({ block: 'nearest', inline: 'nearest' }); // 폰: 활성 탭이 절단면에 걸치지 않게
   $$('.view').forEach(v => v.classList.toggle('is-active', v.dataset.view === tab));
-  $('#panel').classList.remove('is-collapsed'); $('#panelScroll').scrollTop = 0;
+  if (!state._autoNav) $('#panel').classList.remove('is-collapsed'); $('#panelScroll').scrollTop = 0;
   if (tab === 'about') renderRulesTable();
   setTimeout(() => map && map.resize(), 260);
 }
@@ -1535,7 +1537,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907d').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907e').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1799,7 +1801,7 @@ function initWelcome() {
 
 /* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
 let _regionMod = null;
-const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907d'));
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907e'));
 const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
 function regionCtx() {
   return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,
@@ -2190,6 +2192,6 @@ function renderRulesTable() {
   state._coreP = loadCore();
   initMap();
   await state._coreP; renderCrumb();
-  map.once('idle', async () => { await state._coreP; if (location.hash) applyShare(location.hash); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => selectEmd(getHome()), 1200); });
+  map.once('idle', async () => { await state._coreP; const auto = async fn => { state._autoNav = true; try { await fn(); } finally { state._autoNav = false; } }; if (location.hash) auto(() => applyShare(location.hash)); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => auto(() => selectEmd(getHome())), 1200); });
   renderHome();
 })();

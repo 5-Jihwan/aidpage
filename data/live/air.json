@@ -1,1 +1,1 @@
-{"by_sgg":{},"calls":37,"data_time":null,"errors":{"net":17},"source":"https://www.data.go.kr/data/15073861/openapi.do","status":"error:net","updated":"2026-09-06T18:10:31+09:00"}
+{"by_sgg":{},"calls":12,"data_time":null,"errors":{"403":17},"source":"https://www.data.go.kr/data/15073861/openapi.do","status":"error:403","updated":"2026-09-07T10:09:57+09:00"}

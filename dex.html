@@ -3,100 +3,466 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AidPage 도감 · 지자체 타입</title>
-<meta name="description" content="전국 시군구의 재난 타입(자연·사회), 특징, 제도·조례를 한 장씩 훑어보는 도감. 순위 없음.">
+<title>AidPage 도감 · 시군구 타입</title>
+<meta name="description" content="전국 시군구를 한 장씩 넘겨 보는 재난 타입 도감. 자연·사회 위해, 특징, 제도·조례를 지도에도 펼쳐 봅니다. 순위 없음.">
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="css/style.css?v=20260907a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%231a5fc4'/%3E%3Cg transform='translate(72 72) scale(0.7200)'%3E%3Cpath d='M256 40 96 104v152c0 108 68 176 160 216 92-40 160-108 160-216V104z' fill='%23fff'/%3E%3Ccircle cx='256' cy='176' r='30' fill='%231a5fc4'/%3E%3Crect x='228' y='228' width='56' height='150' rx='16' fill='%231a5fc4'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="css/style.css?v=20260907b">
 <style>
-  body{overflow:auto;background:var(--bg2)}
-  .dx{max-width:1180px;margin:0 auto;padding:22px 18px 80px}
-  .dx-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
-  .dx-head h1{font-family:var(--display);font-size:1.5rem;margin:0} .dx-head h1 small{font-family:var(--mono);font-weight:400;font-size:.72rem;color:var(--mute);margin-left:8px}
-  .dx-sum{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
-  .dx-sum .chip b{font-family:var(--mono);font-weight:500;margin-left:4px;opacity:.8}
-  .dx-ctl{display:grid;grid-template-columns:1fr 160px;gap:8px;margin:12px 0 8px} .dx-ctl input,.dx-ctl select{height:40px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font:inherit;background:#fff}
-  .dx-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0} .dx-row .lbl{font-family:var(--mono);font-size:.7rem;color:var(--mute);min-width:44px;letter-spacing:.04em}
-  .dx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:14px}
-  .dx-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
-  .dx-card .nm{display:flex;align-items:baseline;justify-content:space-between;gap:8px} .dx-card .nm b{font-family:var(--display);font-size:1.08rem} .dx-card .nm small{font-family:var(--mono);color:var(--mute);font-size:.7rem}
-  .dx-card .kv{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;font-size:.78rem;color:var(--mute)} .dx-card .kv span{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:2px 0} .dx-card .kv b{font-family:var(--mono);font-weight:500;color:var(--ink)}
-  .dx-card .inst{font-size:.78rem;color:var(--mute)} .dx-card .inst b{color:var(--ink);font-weight:600}
-  .dx-card .go{display:flex;gap:10px;font-size:.78rem;margin-top:2px} .dx-card .go a{color:var(--accent)}
-  .dx-dict{margin:14px 0 0} .dx-dict summary{cursor:pointer;font-weight:700} .dx-dict table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px;background:#fff;border-radius:12px;overflow:hidden} .dx-dict td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top} .dx-dict td:first-child{white-space:nowrap;font-weight:700}
-  .dx-foot{margin-top:28px;font-size:.78rem;color:var(--mute);line-height:1.6}
-  .dx-empty{padding:30px;text-align:center;color:var(--mute)}
-  .ty-flag.edge{background:#fff3cd;color:#8a6d00} .ty-flag.basis{background:#e8effb;color:#0f4a9e}
-  .ty-chip.ty-t{background:#fbf3e4;color:var(--gold);border-color:#eadfc3}
+  :root{--c-물:#2a67cf;--c-산:#66872a;--c-바다:#0f95a8;--c-마름:#c47f22;--c-평온:#b9c2cf;--c-교통:#c2447e;--c-trait:#9a7328;--c-inst:#0f4a9e;
+    --rail-w:300px;--top-h:56px}
+  html,body{height:100%}
+  body{overflow:hidden;background:var(--bg2);font-size:15.5px}
+  .dx-app{display:grid;grid-template-rows:var(--top-h) 1fr;grid-template-columns:var(--rail-w) 1fr;height:100vh;height:100dvh}
+  /* ── top bar ── */
+  .dx-top{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff;border-bottom:1px solid var(--line);z-index:5}
+  .dx-top h1{font-family:var(--display);font-size:1.15rem;margin:0;white-space:nowrap}
+  .dx-top h1 small{font-family:var(--mono);font-weight:400;font-size:.66rem;color:var(--mute);margin-left:8px}
+  .dx-top .sp{flex:1}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--bg)}
+  .seg button{white-space:nowrap;border:0;background:none;padding:5px 12px;border-radius:999px;font:inherit;font-size:.84rem;color:var(--mute);cursor:pointer}
+  .seg button.is-on{background:var(--ink);color:#fff}
+  .prog{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.7rem;color:var(--mute);white-space:nowrap}
+  .prog i{display:block;width:90px;height:6px;border-radius:3px;background:var(--bg2);overflow:hidden;position:relative}
+  .prog i::after{content:'';position:absolute;inset:0;width:var(--p,0%);background:var(--gold);border-radius:3px}
+  .tbtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font:inherit;font-size:.82rem;color:var(--text);cursor:pointer;white-space:nowrap}
+  .tbtn:hover{background:var(--bg)}
+  .tbtn.rail-toggle{display:none}
+  /* ── rail ── */
+  .dx-rail{background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .dx-rail .dxq{margin:10px 12px 6px}
+  .dx-rail input[type=search]{width:100%;height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font:inherit;font-size:.9rem;background:var(--bg)}
+  .flt{padding:0 12px 6px;border-bottom:1px solid var(--line)}
+  .flt details{margin:0} .flt summary{cursor:pointer;font-family:var(--mono);font-size:.68rem;color:var(--mute);letter-spacing:.05em;padding:4px 0;list-style:none;display:flex;justify-content:space-between}
+  .flt summary::-webkit-details-marker{display:none}
+  .flt summary b{font-weight:500;color:var(--accent)}
+  .flt .row{display:flex;flex-wrap:wrap;gap:4px;padding:2px 0 8px}
+  .flt .chip{padding:3px 9px;font-size:.76rem;cursor:pointer;border-radius:999px} .flt .chip b{font-family:var(--mono);font-weight:400;margin-left:3px;opacity:.7}
+  .flt .chip.is-on b{opacity:.9}
+  .toc{overflow:auto;flex:1;padding:6px 0 30px;scroll-behavior:smooth}
+  .toc .ch{margin:0}
+  .toc .ch > button{width:100%;text-align:left;border:0;background:none;font:inherit;padding:8px 14px 4px;display:flex;align-items:baseline;gap:8px;cursor:pointer;font-family:var(--label);font-weight:700;font-size:.9rem;color:var(--ink)}
+  .toc .ch > button small{font-family:var(--mono);font-weight:400;font-size:.66rem;color:var(--mute);margin-left:auto}
+  .toc .ch > button.is-cur{color:var(--accent)}
+  .toc ul{list-style:none;margin:0;padding:0}
+  .toc li{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 18px;cursor:pointer;font-size:.86rem;color:var(--text);border-left:3px solid transparent}
+  .toc li:hover{background:var(--bg)} .toc li.is-cur{background:#eef3fc;border-left-color:var(--accent);color:var(--ink);font-weight:600}
+  .toc li .sw{width:10px;height:10px;border-radius:3px;flex:none;background:var(--c,var(--c-평온))}
+  .toc li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .toc li .ic{font-size:.8rem;opacity:.9} .toc li .seen{width:6px;height:6px;border-radius:50%;background:var(--gold);flex:none;opacity:0} .toc li.is-seen .seen{opacity:1}
+  .toc li.dim{opacity:.35}
+  .toc .empty{padding:20px 14px;color:var(--mute);font-size:.85rem}
+  /* ── main ── */
+  .dx-main{min-height:0;position:relative}
+  .dx-book{height:100%;overflow:auto;padding:22px 26px 60px}
+  /* spread */
+  .sp{max-width:1080px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 1px 0 rgba(255,255,255,.9),0 12px 36px -18px rgba(20,32,46,.25);display:grid;grid-template-columns:300px 1fr;overflow:hidden;position:relative}
+  .sp::before{content:'';position:absolute;left:300px;top:0;bottom:0;width:1px;background:linear-gradient(var(--line),transparent 30%,transparent 70%,var(--line))}
+  .sp-l{padding:26px 22px;background:linear-gradient(180deg,#fbfcfe,#f3f6fb);display:flex;flex-direction:column;align-items:center;gap:14px}
+  .sp-l .sil{width:100%;aspect-ratio:1;display:block;filter:drop-shadow(0 8px 14px rgba(20,32,46,.15))}
+  .sp-l .sil path{fill:var(--tc);stroke:#fff;stroke-width:1.2;stroke-linejoin:round}
+  .sp-l .sil path.hatch{fill:url(#hatch)}
+  .sp-loc{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:14px}
+  .sp-loc svg{width:70px;height:92px;flex:none} .sp-loc .kr{fill:#e6ecf5;stroke:#cdd8e8;stroke-width:.6} .sp-loc .me{fill:var(--tc);stroke:var(--tc);stroke-width:2;stroke-linejoin:round} .sp-loc .ring{fill:none;stroke:var(--tc);stroke-width:1.5;opacity:.6}
+  .sp-loc .txt{font-size:.78rem;color:var(--mute);line-height:1.5} .sp-loc .txt b{display:block;font-family:var(--label);color:var(--ink);font-size:.9rem}
+  .sp-code{font-family:var(--mono);font-size:.68rem;color:var(--mute);letter-spacing:.06em;text-align:center}
+  .sp-r{padding:26px 30px 24px;min-width:0}
+  .eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--mute);letter-spacing:.05em;display:flex;gap:10px;flex-wrap:wrap}
+  .sp-r h2{font-family:var(--display);font-size:2.4rem;line-height:1.05;margin:4px 0 2px;letter-spacing:-.02em;color:var(--ink)}
+  .sp-r h2 small{font-family:var(--mono);font-weight:400;font-size:.75rem;color:var(--mute);margin-left:10px;letter-spacing:0}
+  .sp-lab{font-family:var(--mono);font-size:.8rem;color:var(--mute);margin-bottom:14px}
+  .types{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 14px}
+  .tybox{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--bg);position:relative;overflow:hidden}
+  .tybox::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--tc,var(--c-평온))}
+  .tybox .k{font-family:var(--mono);font-size:.64rem;color:var(--mute);letter-spacing:.06em;margin-bottom:4px}
+  .tybox .v{display:flex;align-items:center;gap:8px;flex-wrap:wrap} .tybox .v .big{font-family:var(--display);font-size:1.35rem;color:var(--ink)} .tybox .v .big i{font-style:normal;margin-right:4px}
+  .tybox .d{font-size:.78rem;color:var(--mute);margin-top:4px;line-height:1.45}
+  .tybox .none .big{color:var(--mute);font-weight:500}
+  .ty-flag.basis{background:#e8effb;color:#0f4a9e} .ty-flag.edge{background:#fff3cd;color:#8a6d00} .ty-flag.bold{background:#14202e;color:#fff}
+  .hz{font-family:var(--mono);font-size:.7rem;color:var(--mute);margin-top:6px} .hz b{font-weight:500;color:var(--ink)}
+  .traits{margin:0 0 12px}
+  .traits .k{font-family:var(--mono);font-size:.64rem;color:var(--mute);letter-spacing:.06em;margin-bottom:6px}
+  .trait{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline;padding:5px 0;border-top:1px dashed var(--line);font-size:.84rem;color:var(--mute)}
+  .trait:last-child{border-bottom:1px dashed var(--line)}
+  .trait .ty-chip{justify-self:start}
+  .trait .none{color:var(--mute);font-size:.82rem}
+  .sp-r h3{font-family:var(--label);font-size:.92rem;margin:16px 0 8px;padding-left:9px;border-left:3px solid var(--gold);display:flex;align-items:baseline;gap:8px}
+  .sp-r h3 small{font-family:var(--mono);font-weight:400;font-size:.66rem;color:var(--mute)}
+  .dxbars{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px}
+  .bar{display:grid;grid-template-columns:1fr auto;gap:0 8px;font-size:.78rem;color:var(--mute);padding:3px 0}
+  .bar .l{white-space:nowrap} .bar .l small{font-family:var(--mono);font-size:.6rem;color:var(--gold);margin-left:6px} .bar .n{font-family:var(--mono);color:var(--ink);font-weight:500;text-align:right;white-space:nowrap} .bar .n.over{color:var(--accent2)}
+  .bar .t{grid-column:1/-1;height:7px;border-radius:4px;background:var(--bg2);position:relative;margin-top:3px}
+  .bar .t i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:#c7d3e6;width:var(--w)} .bar.over .t i{background:var(--accent)}
+  .bar .t em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--gold);left:50%;border-radius:1px}
+  .bar .t b.of{position:absolute;right:-12px;top:-4px;font-size:.7rem;color:var(--accent)}
+  .bar.na .t i{width:0} .bar.na .n{color:var(--mute);font-weight:400}
+  .dxbars .grp{grid-column:1/-1;font-family:var(--mono);font-size:.62rem;color:var(--mute);letter-spacing:.06em;margin-top:8px}
+  .inst{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .it{border:1px solid var(--line);border-radius:12px;padding:8px 8px;font-size:.74rem;color:var(--mute);background:#fff;display:flex;flex-direction:column;gap:2px;min-height:56px}
+  .it b{color:var(--ink);font-weight:600;font-size:.8rem;display:flex;gap:5px;align-items:center}
+  .it small{font-family:var(--mono);font-size:.62rem} .it.has{background:#f2f6fd;border-color:#cfdcf4} .it.has b{color:var(--c-inst)} .it:not(.has){opacity:.55}
+  .inst-sum{font-size:.82rem;color:var(--mute);margin-bottom:8px} .inst-sum b{color:var(--ink)}
+  .sp-nav{display:flex;align-items:center;gap:8px;margin-top:22px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .sp-nav .nb{border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 12px;font:inherit;font-size:.84rem;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;align-items:flex-start;min-width:120px}
+  .sp-nav .nb small{font-family:var(--mono);font-size:.6rem;color:var(--mute);letter-spacing:.05em} .sp-nav .nb:hover{background:var(--bg)} .sp-nav .nb.next{align-items:flex-end;margin-left:auto}
+  .sp-nav .lk{display:flex;gap:12px;font-size:.82rem;width:100%;justify-content:center;margin-top:8px} .sp-nav .lk a,.sp-nav .lk button{color:var(--accent);background:none;border:0;font:inherit;font-size:.82rem;cursor:pointer;padding:0}
+  .sp-foot{max-width:1080px;margin:14px auto 0;font-size:.74rem;color:var(--mute);line-height:1.6;text-align:center}
+  /* chapter cover */
+  .cov{max-width:1080px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:22px;padding:30px 34px}
+  .cov h2{font-family:var(--display);font-size:2rem;margin:2px 0 4px} .cov .eyebrow{margin-bottom:2px}
+  .cov .stat{display:flex;gap:26px;margin:10px 0 18px;font-size:.84rem;color:var(--mute)} .cov .stat b{display:block;font-family:var(--mono);font-size:1.3rem;color:var(--ink);font-weight:500}
+  .stk{margin:10px 0 4px} .stk .k{font-family:var(--mono);font-size:.64rem;color:var(--mute);letter-spacing:.06em;margin-bottom:5px}
+  .stk .bar2{display:flex;height:30px;border-radius:8px;overflow:hidden;gap:2px;background:var(--bg2)}
+  .stk .bar2 span{display:flex;align-items:center;justify-content:center;font-size:.72rem;color:#fff;font-weight:600;background:var(--c,#c7d3e6);min-width:0;overflow:hidden;white-space:nowrap}
+  .stk .bar2 span.lt{color:var(--ink)}
+  .stk .lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.76rem;color:var(--mute);margin-top:6px} .stk .lg i{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c);margin-right:4px;vertical-align:-1px}
+  .cov .dxcards{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px}
+  .cov .dxcards button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font:inherit;font-size:.8rem;cursor:pointer;color:var(--ink);display:flex;align-items:center;gap:5px} .cov .dxcards button i{width:8px;height:8px;border-radius:2px;background:var(--c)} .cov .dxcards button:hover{background:var(--bg)}
+  .cov .cav{font-size:.76rem;color:var(--mute);margin-top:18px;line-height:1.6}
+  /* ── map ── */
+  .dx-map{height:100%;position:relative}
+  #map{position:absolute;inset:0}
+  .mp-ctl{position:absolute;top:12px;left:12px;z-index:2;display:flex;flex-direction:column;gap:8px;max-width:min(360px,calc(100% - 24px))}
+  .mp-box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:var(--float-sm,0 6px 20px -10px rgba(20,32,46,.3))}
+  .mp-box .k{font-family:var(--mono);font-size:.64rem;color:var(--mute);letter-spacing:.06em;margin-bottom:6px}
+  .mp-box .seg{flex-wrap:wrap} .mp-box select{height:30px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.8rem;padding:0 8px;background:#fff;margin-top:6px;max-width:100%}
+  .lg2{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.78rem;color:var(--text)} .lg2 span{display:inline-flex;align-items:center;gap:5px} .lg2 i{width:12px;height:12px;border-radius:3px;background:var(--c);display:inline-block;border:1px solid rgba(0,0,0,.08)} .lg2 i.hatch{background:repeating-linear-gradient(135deg,#fff 0 2px,#b9c2cf 2px 4px)}
+  .lg2 .n{font-family:var(--mono);font-size:.68rem;color:var(--mute)}
+  .mp-card{position:absolute;left:12px;bottom:12px;z-index:2;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-width:240px;max-width:320px;box-shadow:0 12px 30px -14px rgba(20,32,46,.35)}
+  .mp-card h4{font-family:var(--display);font-size:1.2rem;margin:0} .mp-card h4 small{font-family:var(--mono);font-weight:400;font-size:.66rem;color:var(--mute);margin-left:6px}
+  .mp-card .ty-pair{margin:6px 0} .mp-card .tr{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px}
+  .mp-card .go{display:flex;gap:10px;font-size:.8rem} .mp-card .go button,.mp-card .go a{color:var(--accent);background:none;border:0;font:inherit;font-size:.8rem;cursor:pointer;padding:0}
+  .mp-card .x{position:absolute;right:8px;top:6px;border:0;background:none;font-size:1rem;color:var(--mute);cursor:pointer}
+  .mp-note{position:absolute;right:12px;bottom:12px;z-index:2;font-size:.7rem;color:var(--mute);background:rgba(255,255,255,.85);padding:4px 8px;border-radius:8px;max-width:280px;text-align:right}
+  .maplibregl-popup-content{font:inherit;font-size:.8rem;padding:6px 10px;border-radius:10px} .maplibregl-popup-content b{font-family:var(--label)}
+  /* dict dialog */
+  dialog{border:1px solid var(--line);border-radius:18px;padding:22px 24px;max-width:640px;width:calc(100% - 32px);box-shadow:0 20px 60px -20px rgba(20,32,46,.4)} dialog::backdrop{background:rgba(20,32,46,.35)}
+  dialog h3{font-family:var(--display);margin:0 0 10px;font-size:1.2rem}
+  dialog table{width:100%;border-collapse:collapse;font-size:.84rem} dialog td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top} dialog td:first-child{white-space:nowrap;font-weight:700}
+  dialog .x{position:absolute;right:12px;top:10px;border:0;background:none;font-size:1.1rem;cursor:pointer;color:var(--mute)}
+  .kbd{font-family:var(--mono);font-size:.64rem;border:1px solid var(--line);border-radius:5px;padding:0 5px;color:var(--mute)}
+  .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--mute);font-family:var(--mono);font-size:.8rem}
+  /* ── responsive ── */
+  @media (max-width:980px){ .sp{grid-template-columns:1fr} .sp::before{display:none} .sp-l{flex-direction:row;align-items:center;padding:16px} .sp-l .sil{width:150px;flex:none} .sp-loc{flex:1} .sp-code{display:none} .sp-r{padding:18px 18px 20px} .sp-r h2{font-size:1.9rem} .dxbars{grid-template-columns:1fr} .inst{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:760px){ .dx-app{grid-template-columns:1fr} .dx-rail{position:fixed;top:var(--top-h);left:0;bottom:0;width:min(88vw,340px);z-index:6;transform:translateX(-102%);transition:transform .2s;box-shadow:0 0 40px rgba(20,32,46,.25)} .dx-app.rail-open .dx-rail{transform:none} .tbtn.rail-toggle{display:inline-block} .prog span{display:none} .dx-top h1 small{display:none} .dx-top{gap:6px;padding:0 8px} .dx-top h1{font-size:1rem} .tbtn .lbl{display:none} .tbtn .ico{display:inline!important} .tbtn{padding:5px 9px} .seg button{padding:5px 8px} .dx-book{padding:12px 10px 60px} .types{grid-template-columns:1fr} #rnd span{display:none} .mp-ctl{max-width:calc(100% - 24px)} }
 </style>
 </head>
 <body>
-<div class="dx">
-  <div class="dx-head"><h1>🧭 AidPage 도감 <small id="ver"></small></h1><a class="fine" href="./">← 본 사이트</a></div>
-  <p class="fine" style="margin:6px 0 0">시·군·구마다 <b>자연 위해 · 사회 위해</b> 두 타입과 <b>특징</b>(인구·구조), <b>제도·조례</b>를 한 장으로. 전국 같은 행정유형 안의 상위 25%가 기준이며 <b>순위가 아닙니다</b>. 이름순 정렬만 있습니다.</p>
-  <div class="dx-sum" id="sum"></div>
-  <details class="dx-dict"><summary>타입 사전 · 규칙 한 줄</summary><table id="dict"></table></details>
-  <div class="dx-ctl"><input id="q" type="search" placeholder="시·군·구 이름 검색 (예: 진안, 관악)"><select id="sido"><option value="">시·도 전체</option></select></div>
-  <div class="dx-row"><span class="lbl">자연</span><span id="fPrim"></span></div>
-  <div class="dx-row"><span class="lbl">사회</span><span id="fSoc"></span></div>
-  <div class="dx-row"><span class="lbl">특징</span><span id="fTrait"></span></div>
-  <div class="dx-row"><span class="lbl">제도</span><span id="fInst"></span><label class="chip" style="cursor:pointer"><input type="checkbox" id="fEdge" style="vertical-align:middle"> 경계 표시 있는 곳만</label><label class="chip" style="cursor:pointer"><input type="checkbox" id="fZone" style="vertical-align:middle"> 지정 근거만</label></div>
-  <div class="fine" id="count" style="margin-top:8px"></div>
-  <div class="dx-grid" id="grid"></div>
-  <div class="dx-foot" id="foot"></div>
+<div class="dx-app" id="app">
+  <header class="dx-top">
+    <button class="tbtn rail-toggle" id="railBtn" aria-label="목록">☰ 목록</button>
+    <h1>🧭 AidPage 도감<small id="ver"></small></h1>
+    <div class="seg" id="viewSeg"><button data-view="book" class="is-on">📖 카드</button><button data-view="map">🗺️ 지도</button></div>
+    <button class="tbtn" id="rnd" title="아무 시·군·구나 한 장">🎲 <span>아무 장이나</span></button>
+    <span class="sp"></span>
+    <div class="prog" title="이 브라우저에서 펼쳐 본 카드 수"><i id="progBar"></i><span id="progTxt"></span></div>
+    <button class="tbtn" id="dictBtn"><span class="lbl">타입 사전</span><span class="ico" hidden>?</span></button>
+    <a class="tbtn" href="./" title="본 사이트"><span class="lbl">← 본 사이트</span><span class="ico" hidden>←</span></a>
+  </header>
+  <aside class="dx-rail" id="rail">
+    <div class="dxq"><input id="q" type="search" placeholder="시·군·구 검색 (예: 진안, 관악)" autocomplete="off"></div>
+    <div class="flt">
+      <details open><summary>자연 위해 <b id="nPrim"></b></summary><div class="row" id="fPrim"></div></details>
+      <details><summary>사회 위해 <b id="nSoc"></b></summary><div class="row" id="fSoc"></div></details>
+      <details><summary>특징 <b id="nTrait"></b></summary><div class="row" id="fTrait"></div></details>
+      <details><summary>제도·조례 <b id="nInst"></b></summary><div class="row" id="fInst"></div></details>
+      <details><summary>표식</summary><div class="row" id="fFlag"><button type="button" class="chip" data-k="edge">경계 표시</button><button type="button" class="chip" data-k="zone">지정 근거</button><button type="button" class="chip" data-k="complex">복합</button><button type="button" class="chip" data-k="unseen">아직 안 본 장</button></div></details>
+    </div>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+  <main class="dx-main">
+    <section class="dx-book" id="book"></section>
+    <section class="dx-map" id="mapWrap" hidden>
+      <div id="map"></div>
+      <div class="mp-ctl">
+        <div class="mp-box"><div class="k">색칠 기준</div>
+          <div class="seg" id="modeSeg"><button data-m="prim" class="is-on">자연 위해</button><button data-m="soc">사회 위해</button><button data-m="trait">특징</button><button data-m="inst">제도·조례</button></div>
+          <select id="modeSel" hidden></select>
+        </div>
+        <div class="mp-box"><div class="k">범례 <span id="lgNote"></span></div><div class="lg2" id="legend"></div></div>
+      </div>
+      <div class="mp-card" id="mpCard" hidden></div>
+      <div class="mp-note">색은 타입(범주)이지 위험 점수가 아닙니다 · 순위 없음<br>회색 빗금 = 기록 없음 ≠ 안전</div>
+    </section>
+  </main>
 </div>
+<dialog id="dict"><button class="x" id="dictX" aria-label="닫기">✕</button><h3>타입 사전 · 규칙 한 줄</h3><table id="dictT"></table><p class="fine" style="margin:12px 0 0">임계 = 같은 단위 전국 상위 25%(사회 위해는 같은 군·시·구 유형 안). 이 도감은 지역을 서열화하지 않습니다. 기록이 없다는 것이 안전하다는 뜻은 아닙니다.<br>키보드: <span class="kbd">←</span> <span class="kbd">→</span> 앞·뒤 장, <span class="kbd">R</span> 아무 장이나, <span class="kbd">M</span> 지도/카드</p></dialog>
+<svg width="0" height="0" style="position:absolute"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#eef2f8"/><rect width="2" height="6" fill="#b9c2cf"/></pattern></defs></svg>
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script type="module">
-import { t, DICT } from './js/i18n.js?v=20260907a';
+import { DICT } from './js/i18n.js?v=20260907b';
+const V = '20260907b';
 const ICON = { '물': '💧', '산': '⛰️', '바다': '🌊', '눈': '❄️', '볕': '☀️', '땅': '🪨', '마름': '🏜️', '평온': '◌', '노년': '🧓', '홀로': '🧍', '이방': '🌐', '돌봄': '♿', '살림': '🏚️', '도심': '🏙️', '들': '🌾', '섬': '🏝️', '접경': '🪖', '교통': '🚗', '화재': '🔥' };
-const INST = { insurance: '풍수해보험료 지원', relief: '구호·복구 지원', heat: '폭염 대책', cold: '한파 대책', safety_basic: '안전관리 기본', landslide: '산사태·급경사', fire: '화재·소방', traffic: '교통안전' };
-const $ = s => document.querySelector(s);
+const COL = { '물': '#2a67cf', '산': '#66872a', '바다': '#0f95a8', '마름': '#c47f22', '평온': '#b9c2cf', '교통': '#c2447e', trait: '#9a7328', inst: '#0f4a9e', none: '#e3e8f0' };
+const INST = { relief: ['구호·복구', '🧰'], insurance: ['풍수해보험료 지원', '🛡️'], heat: ['폭염 대책', '☀️'], cold: ['한파 대책', '❄️'], safety_basic: ['안전관리 기본', '📘'], landslide: ['산사태·급경사', '⛰️'], fire: ['화재·소방', '🔥'], traffic: ['교통안전', '🚗'] };
+const INST_MAIN = ['insurance', 'relief', 'heat', 'cold', 'safety_basic'];
+const TRAITS = ['노년', '홀로', '이방', '돌봄', '살림', '도심', '들'];
+const D = k => DICT.ko['ty.' + k + '.d'] || '';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const J = async u => (await fetch(u, { cache: 'no-cache' })).json();
-const [T, O, IDX] = await Promise.all([J('data/ref/sgg_types.json'), J('data/ref/sgg_ordin.json').catch(() => null), J('data/admin/sgg_index.json')]);
+const pct = v => v == null ? '—' : (v * 100).toFixed(1) + '%';
+const num = (v, d = 0) => v == null ? '—' : Number(v).toLocaleString('ko-KR', { maximumFractionDigits: d });
+
+/* ── data ── */
+const [T, O, IDX, SD] = await Promise.all([J('data/ref/sgg_types.json'), J('data/ref/sgg_ordin.json').catch(() => null), J('data/admin/sgg_index.json'), J('data/ref/sido_types.json').catch(() => null)]);
 const idx = Object.fromEntries(IDX.map(s => [s.code, s]));
-const short = n => /특별자치|광역시|특별시/.test(n) ? n.slice(0, 2) : n.endsWith('도') ? (n.length === 3 ? n.slice(0, 2) : n[0] + n[2]) : n.slice(0, 2);
-const rows = Object.entries(T.sgg).map(([code, s]) => ({ code, s, i: idx[code] || {}, o: O && O.sgg ? O.sgg[code] : null })).sort((a, b) => (a.i.sido_name || '').localeCompare(b.i.sido_name || '', 'ko') || (a.i.name || '').localeCompare(b.i.name || '', 'ko'));
+const rows = Object.entries(T.sgg).map(([code, s]) => ({ code, s, i: idx[code] || {}, o: O && O.sgg ? O.sgg[code] : null, m: s.metrics || {} }))
+  .sort((a, b) => (a.i.sido || a.s.sido).localeCompare(b.i.sido || b.s.sido) || (a.i.name || '').localeCompare(b.i.name || '', 'ko'));
+const byCode = Object.fromEntries(rows.map(r => [r.code, r]));
+const sidos = []; rows.forEach(r => { const k = r.i.sido || r.s.sido; let c = sidos.find(x => x.code === k); if (!c) { c = { code: k, name: r.i.sido_name || k, rows: [] }; sidos.push(c); } c.rows.push(r); });
+const TH = T.meta.thresholds || {};
 $('#ver').textContent = `규칙 ${T.meta.version} · ${rows.length}곳`;
-const chip = (k, cls, extra = '') => `<span class="ty-chip ${cls}" title="${(DICT.ko['ty.' + k + '.d'] || '').replace(/"/g, '&quot;')}">${ICON[k] || ''} ${k}${extra}</span>`;
-const F = { prim: new Set(), soc: new Set(), trait: new Set(), inst: new Set() };
+
+/* ── seen (this browser only) ── */
+const SEEN_KEY = 'aidpage-dex-seen';
+let seen = new Set(); try { seen = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]')); } catch { }
+function markSeen(code) { if (seen.has(code)) return; seen.add(code); try { localStorage.setItem(SEEN_KEY, JSON.stringify([...seen])); } catch { } paintProg(); const li = $(`#toc li[data-c="${code}"]`); if (li) li.classList.add('is-seen'); }
+function paintProg() { $('#progBar').style.setProperty('--p', (seen.size / rows.length * 100).toFixed(1) + '%'); $('#progTxt').textContent = `펼쳐 본 카드 ${seen.size}/${rows.length}`; }
+paintProg();
+
+/* ── filters ── */
+const F = { prim: new Set(), soc: new Set(), trait: new Set(), inst: new Set(), flag: new Set() };
 function count(fn) { const c = {}; rows.forEach(r => (fn(r) || []).forEach(k => { c[k] = (c[k] || 0) + 1; })); return c; }
-function filterChips(el, counts, set, cls) {
-  el.innerHTML = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button type="button" class="chip ${set.has(k) ? 'is-on' : ''}" data-k="${k}">${ICON[k] || ''} ${INST[k] || k}<b>${n}</b></button>`).join('');
-  el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { const k = b.dataset.k; set.has(k) ? set.delete(k) : set.add(k); b.classList.toggle('is-on'); render(); }));
+function chips(el, counts, set, labelOf = k => k, order = null) {
+  const ents = Object.entries(counts); if (order) ents.sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0])); else ents.sort((a, b) => b[1] - a[1]);
+  el.innerHTML = ents.map(([k, n]) => `<button type="button" class="chip" data-k="${esc(k)}">${ICON[k] || ''} ${esc(labelOf(k))}<b>${n}</b></button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { const k = b.dataset.k; set.has(k) ? set.delete(k) : set.add(k); b.classList.toggle('is-on'); applyFilters(); }));
 }
-filterChips($('#fPrim'), count(r => [r.s.primary]), F.prim);
-filterChips($('#fSoc'), count(r => [r.s.social || '—']), F.soc);
-filterChips($('#fTrait'), count(r => r.s.traits || []), F.trait);
-if (O) filterChips($('#fInst'), count(r => r.o ? Object.keys(r.o.ord).filter(k => r.o.ord[k] && ['insurance', 'relief', 'heat', 'cold', 'safety_basic'].includes(k)) : []), F.inst);
-const sc = count(r => [r.s.primary]), ss = count(r => [r.s.social || '—']);
-$('#sum').innerHTML = Object.entries(sc).map(([k, n]) => `<span class="chip">${ICON[k]} ${k}<b>${n}</b></span>`).join('') + `<span class="chip">🚗 교통<b>${ss['교통'] || 0}</b></span><span class="chip">특징 없음<b>${rows.filter(r => !(r.s.traits || []).length).length}</b></span>`;
-[...new Set(rows.map(r => r.i.sido_name).filter(Boolean))].forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; $('#sido').appendChild(o); });
-$('#dict').innerHTML = ['물', '산', '바다', '마름', '평온', '교통', '화재', '노년', '홀로', '이방', '돌봄', '살림', '도심', '들'].map(k => `<tr><td>${ICON[k]} ${k}</td><td>${DICT.ko['ty.' + k + '.d'] || ''}</td></tr>`).join('') + `<tr><td>(지정)</td><td>${DICT.ko['ty.basis.zone.d'] || ''}</td></tr><tr><td>복합</td><td>${DICT.ko['ty.complex.d'] || ''}</td></tr><tr><td>경계</td><td>${DICT.ko['ty.edge.d'] || ''}</td></tr>`;
-const P = v => v == null ? '—' : (v * 100).toFixed(1) + '%';
-function card(r) {
-  const s = r.s, m = s.metrics || {}, o = r.o;
-  const traits = (s.traits || []).map(k => chip(k, 'ty-t sm')).join('') || '<span class="ty-chip ty-t sm none">—</span>';
-  const flags = o ? Object.entries(o.ord).filter(([k, v]) => v && ['insurance', 'relief', 'heat', 'cold', 'safety_basic'].includes(k)).map(([k]) => INST[k]).join(' · ') : '';
-  return `<div class="dx-card">
-    <div class="nm"><b>${r.i.name || s.name}</b><small>${short(r.i.sido_name || '')} · ${s.upper || ''} · ${r.code}</small></div>
-    <div class="ty-pair">${chip(s.primary, 'ty-p' + (s.bold ? ' bold' : ''))}${s.basis === 'zone' ? '<span class="ty-flag basis">지정</span>' : ''}<i class="ty-dot">·</i>${s.social ? chip(s.social, 'ty-s2') : '<span class="ty-chip ty-s2 none">—</span>'}${s.complex ? '<span class="ty-flag">복합</span>' : ''}${s.edge && s.edge.length ? `<span class="ty-flag edge" title="${s.edge.join(', ')}">경계 ${s.edge.length}</span>` : ''}</div>
-    <div class="ty-traits"><span class="ty-feat-label">특징</span>${traits}</div>
-    <div class="kv"><span>침수 이력 셀 <b>${P(m.flood_r)}</b></span><span>산사태 이력 셀 <b>${P(m.ls_r)}</b></span><span>평균 경사 <b>${m.slope != null ? m.slope.toFixed(1) + '°' : '—'}</b></span><span>교통 사망+중상/10만 <b>${m.traffic_r != null ? m.traffic_r.toFixed(0) : '—'}</b></span><span>65세+ <b>${P(m.e65)}</b></span><span>1인세대 <b>${P(m.single)}</b></span></div>
-    ${o ? `<div class="inst">제도·조례 <b>${o.n}건</b>${flags ? ' · ' + flags : ' · 표식 조례 없음'}</div>` : ''}
-    <div class="go"><a href="./#g?sgg=${r.code}">지도에서 보기 →</a><a href="./#g?sgg=${r.code}&view=region">이 지역은 →</a></div>
-  </div>`;
-}
-function render() {
-  const q = $('#q').value.trim(), sido = $('#sido').value, edge = $('#fEdge').checked, zone = $('#fZone').checked;
-  const out = rows.filter(r => (!q || (r.i.name || '').includes(q)) && (!sido || r.i.sido_name === sido)
+chips($('#fPrim'), count(r => [r.s.primary]), F.prim, k => k, ['물', '산', '바다', '마름', '평온']);
+chips($('#fSoc'), count(r => [r.s.social || '—']), F.soc, k => k === '—' ? '없음' : k);
+chips($('#fTrait'), count(r => r.s.traits || []), F.trait, k => k, TRAITS);
+if (O) chips($('#fInst'), count(r => r.o ? Object.keys(r.o.ord).filter(k => r.o.ord[k]) : []), F.inst, k => INST[k][0], Object.keys(INST)); else $('#fInst').closest('details').hidden = true;
+$$('#fFlag button').forEach(b => b.addEventListener('click', () => { const k = b.dataset.k; F.flag.has(k) ? F.flag.delete(k) : F.flag.add(k); b.classList.toggle('is-on'); applyFilters(); }));
+$('#q').addEventListener('input', applyFilters);
+function match(r) {
+  const q = $('#q').value.trim();
+  return (!q || (r.i.name || '').includes(q) || (r.i.name_en || '').toLowerCase().includes(q.toLowerCase()) || (r.i.sido_name || '').includes(q))
     && (!F.prim.size || F.prim.has(r.s.primary)) && (!F.soc.size || F.soc.has(r.s.social || '—'))
     && (!F.trait.size || [...F.trait].every(k => (r.s.traits || []).includes(k)))
     && (!F.inst.size || (r.o && [...F.inst].every(k => r.o.ord[k])))
-    && (!edge || (r.s.edge && r.s.edge.length)) && (!zone || r.s.basis === 'zone'));
-  $('#count').textContent = `${out.length}곳 · 이름순`;
-  $('#grid').innerHTML = out.length ? out.map(card).join('') : '<div class="dx-empty">조건에 맞는 시·군·구가 없습니다.</div>';
+    && (!F.flag.has('edge') || (r.s.edge && r.s.edge.length)) && (!F.flag.has('zone') || r.s.basis === 'zone') && (!F.flag.has('complex') || r.s.complex) && (!F.flag.has('unseen') || !seen.has(r.code));
 }
-['#q', '#sido', '#fEdge', '#fZone'].forEach(s => $(s).addEventListener('input', render));
-$('#foot').innerHTML = `규칙 ${T.meta.version} · 임계 = 같은 단위 전국 상위 25%(사회 위해는 같은 군·시·구 유형 안) · 자료: ${Object.values(T.meta.sources || {}).slice(0, 3).join(' / ')} · 조례: ${O ? O.meta.src : '미로드'}<br>이 도감은 지역을 서열화하지 않습니다. 기록이 없다는 것이 안전하다는 뜻은 아닙니다.`;
-render();
+let visible = rows.slice();
+function applyFilters() {
+  visible = rows.filter(match); const vis = new Set(visible.map(r => r.code));
+  $$('#toc li').forEach(li => li.classList.toggle('dim', !vis.has(li.dataset.c)));
+  $$('#toc .ch').forEach(ch => { const n = ch.querySelectorAll('li:not(.dim)').length; ch.querySelector('button small').textContent = n === ch.querySelectorAll('li').length ? `${n}` : `${n}/${ch.querySelectorAll('li').length}`; });
+  const anyF = F.prim.size + F.soc.size + F.trait.size + F.inst.size + F.flag.size + ($('#q').value.trim() ? 1 : 0);
+  ['#nPrim', '#nSoc', '#nTrait', '#nInst'].forEach((s, i) => { const set = [F.prim, F.soc, F.trait, F.inst][i]; $(s).textContent = set.size ? [...set].map(k => INST[k] ? INST[k][0] : k).join('·') : ''; });
+  $('#toc .empty')?.remove(); if (!visible.length) $('#toc').insertAdjacentHTML('afterbegin', '<div class="empty">조건에 맞는 시·군·구가 없습니다.</div>');
+  $('#lgNote').textContent = anyF ? `· 필터 ${visible.length}곳` : '';
+  if (map) paintMap();
+}
+
+/* ── toc ── */
+$('#toc').innerHTML = sidos.map(c => `<div class="ch" data-s="${c.code}"><button type="button">${esc(c.name)}<small>${c.rows.length}</small></button><ul>${c.rows.map(r => `<li data-c="${r.code}" class="${seen.has(r.code) ? 'is-seen' : ''}" style="--c:${COL[r.s.primary]}"><span class="sw"></span><span class="nm">${esc(r.i.name || r.s.name)}</span><span class="ic">${ICON[r.s.primary]}${r.s.social ? ICON[r.s.social] : ''}</span><span class="seen"></span></li>`).join('')}</ul></div>`).join('');
+$$('#toc li').forEach(li => li.addEventListener('click', () => show(li.dataset.c)));
+$$('#toc .ch > button').forEach(b => b.addEventListener('click', () => showCover(b.parentElement.dataset.s)));
+
+/* ── geometry → svg ── */
+let GEO = null, SIDO = null, KR_PATH = '', KR_TF = null;
+function ringsOf(g) { return g.type === 'Polygon' ? [g.coordinates] : g.coordinates; }
+function fitTf(geoms, W, H, pad = 6) {
+  let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9, lat0 = 0, n = 0;
+  geoms.forEach(g => ringsOf(g).forEach(poly => poly[0].forEach(([x, y]) => { lat0 += y; n++; })));
+  const k = Math.cos((lat0 / n) * Math.PI / 180);
+  geoms.forEach(g => ringsOf(g).forEach(poly => poly[0].forEach(([x, y]) => { x *= k; minx = Math.min(minx, x); maxx = Math.max(maxx, x); miny = Math.min(miny, y); maxy = Math.max(maxy, y); })));
+  const s = Math.min((W - pad * 2) / (maxx - minx || 1), (H - pad * 2) / (maxy - miny || 1));
+  const ox = (W - (maxx - minx) * s) / 2, oy = (H - (maxy - miny) * s) / 2;
+  return { k, s, minx, maxy, ox, oy, px: ([x, y]) => [((x * k - minx) * s + ox), ((maxy - y) * s + oy)] };
+}
+function pathOf(g, tf, step = 1) {
+  let d = '';
+  ringsOf(g).forEach(poly => poly.forEach(ring => { const pts = ring.filter((_, i) => i % step === 0 || i === ring.length - 1); d += pts.map((p, i) => (i ? 'L' : 'M') + tf.px(p).map(v => v.toFixed(1)).join(',')).join('') + 'Z'; }));
+  return d;
+}
+async function loadGeo() {
+  if (GEO) return; [GEO, SIDO] = await Promise.all([J('data/admin/kr_sgg.geojson'), J('data/admin/kr_sido.geojson')]);
+  KR_TF = fitTf(SIDO.features.map(f => f.geometry), 70, 92, 3);
+  KR_PATH = SIDO.features.map(f => pathOf(f.geometry, KR_TF, 4)).join('');
+  GEO.features.forEach(f => { const r = byCode[f.properties.code]; if (r) r.g = f.geometry; });
+  if (cur) show(cur, true); if (map) mapAddData();
+}
+const geoP = loadGeo();
+function silhouette(r) {
+  if (!r.g) return '<svg class="sil" viewBox="0 0 220 220"><text x="110" y="115" text-anchor="middle" font-size="12" fill="#9aa5b5">모양 불러오는 중…</text></svg>';
+  const tf = fitTf([r.g], 220, 220, 12);
+  return `<svg class="sil" viewBox="0 0 220 220" aria-label="${esc(r.i.name)} 경계 모양"><path class="${r.s.primary === '평온' ? 'hatch' : ''}" d="${pathOf(r.g, tf)}"/></svg>`;
+}
+function locSticker(r) {
+  const c = r.i.lat != null ? KR_TF?.px([r.i.lon, r.i.lat]) : null;
+  const me = r.g && KR_TF ? `<path class="me" d="${pathOf(r.g, KR_TF, 3)}"/>` : '';
+  return `<svg viewBox="0 0 70 92"><path class="kr" d="${KR_PATH}"/>${me}${c ? `<circle class="ring" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="7"/>` : ''}</svg>`;
+}
+
+/* ── card (spread) ── */
+const bar = (l, v, thr, fmt, opts = {}) => {
+  const na = v == null; const w = na || !thr ? 0 : Math.min(v / (thr * 2), 1) * 100; const over = !na && thr != null && v >= thr;
+  return `<div class="bar ${over ? 'over' : ''} ${na ? 'na' : ''}"><span class="l">${l}${thr != null ? `<small>${opts.tl || '상위 25%'} ${fmt(thr)}</small>` : ''}</span><span class="n ${over ? 'over' : ''}">${fmt(v)}</span><span class="t"><i style="--w:${w.toFixed(1)}%"></i>${thr != null ? '<em></em>' : ''}${!na && thr && v > thr * 2 ? '<b class="of">▸</b>' : ''}</span></div>`;
+};
+function primaryWhy(s) {
+  const m = s.metrics || {};
+  if (s.primary === '물') return s.basis === 'zone' ? `침수 이력이 아니라 침수위험개선지구 밀도(${num(m.rzf, 1)}/100km²)로 성립` : `침수 이력 셀 비율 ${pct(m.flood_r)} — 전국 상위 25% 기준 ${pct(TH.flood_r)} 이상`;
+  if (s.primary === '산') return s.basis === 'zone' ? `산사태 이력이 아니라 붕괴위험개선지구 지정으로 성립` : `산사태 이력 ${pct(m.ls_r)} 또는 평균 경사 ${num(m.slope, 1)}° — 기준(${pct(TH.ls_r)} / ${num(TH.slope80, 1)}°) 이상`;
+  if (s.primary === '바다') return `해안 접촉 지역${m.rzs ? ` · 해일위험개선지구 ${num(m.rzs, 1)}/100km²` : ' (해일·태풍 강도 자료 대기 중인 부분 규칙)'}`;
+  if (s.primary === '마름') return `상습가뭄재해지구 지정(${num(m.rzd, 1)}/100km²)`;
+  return '위해 타입이 성립하지 않음 — 기록이 없다는 뜻이지 안전하다는 뜻은 아닙니다';
+}
+function card(r) {
+  const s = r.s, m = r.m, o = r.o, tc = COL[s.primary];
+  const hz = s.hazards && s.hazards.length ? `<div class="hz">성립 위해 · ${s.hazards.map(h => `${ICON[h]} <b>${h} ${s.scores?.[h] != null ? s.scores[h].toFixed(2) : ''}</b>`).join(' · ')} <span title="표준화 초과치(같은 단위 전국 p75 기준). 가장 큰 것이 주 타입">ⓘ</span></div>` : '';
+  const traits = (s.traits || []).length ? s.traits.map(k => `<div class="trait"><span class="ty-chip ty-t sm">${ICON[k]} ${k}</span><span>${esc(D(k))}</span></div>`).join('') : '<div class="trait"><span class="none">특징 없음 — 인구·구조 지표 중 전국 상위 25%에 드는 것이 없음</span></div>';
+  const instHtml = o ? `<div class="inst-sum">재난·안전 자치법규 <b>${o.n}건</b>${o.n_ordin != null ? ` (조례 ${o.n_ordin})` : ''} · 전국 중위 ${O.meta.thresholds?.n?.median ?? '—'}건${o.shared ? ' · 공유 조례' : ''}</div><div class="inst">${Object.entries(INST).map(([k, [l, ic]]) => { const v = o.ord[k]; return `<div class="it ${v ? 'has' : ''}"><b>${ic} ${l}</b><small>${v ? '보유 · ' + String(v).replace(/^(\d{4})(\d{2}).*$/, '$1.$2') : '표식 없음'}</small></div>`; }).join('')}</div>` : '<div class="inst-sum">조례 자료 없음</div>';
+  return `<article class="sp" style="--tc:${tc}">
+    <div class="sp-l">${silhouette(r)}
+      <div class="sp-loc">${locSticker(r)}<div class="txt"><b>${esc(r.i.sido_name || '')}</b>${esc(s.upper || '')}<br>${r.i.lat != null ? `${r.i.lat.toFixed(2)}N ${r.i.lon.toFixed(2)}E` : ''}</div></div>
+      <div class="sp-code">${r.code} · ${esc(r.i.name_en || '')}</div>
+    </div>
+    <div class="sp-r">
+      <div class="eyebrow"><span>${esc(r.i.sido_name || '')}</span><span>${esc(s.upper || '')}</span><span>규칙 ${esc(T.meta.version)}</span></div>
+      <h2>${esc(r.i.name || s.name)}<small>${esc(r.i.name_en || '')}</small></h2>
+      <div class="sp-lab">${esc(s.label || '')}</div>
+      <div class="types">
+        <div class="tybox" style="--tc:${tc}"><div class="k">자연 위해</div><div class="v ${s.primary === '평온' ? 'none' : ''}"><span class="big"><i>${ICON[s.primary]}</i>${s.primary}</span>${s.bold ? '<span class="ty-flag bold" title="인구밀도 상위 25% — 노출 큼">굵게</span>' : ''}${s.basis === 'zone' ? `<span class="ty-flag basis" title="${esc(D('basis.zone'))}">지정</span>` : ''}${s.complex ? `<span class="ty-flag" title="${esc(D('complex'))}">복합</span>` : ''}${s.edge && s.edge.length ? `<span class="ty-flag edge" title="임계 ±5% 안: ${esc(s.edge.join(', '))}">경계 ${s.edge.length}</span>` : ''}</div><div class="d">${primaryWhy(s)}</div>${hz}</div>
+        <div class="tybox" style="--tc:${s.social ? COL[s.social] : COL.none}"><div class="k">사회 위해</div><div class="v ${s.social ? '' : 'none'}"><span class="big">${s.social ? `<i>${ICON[s.social]}</i>${s.social}` : '해당 없음'}</span></div><div class="d">${s.social ? `교통 사망+중상 ${num(m.traffic_r)}명/10만 — 같은 ${s.kind} 유형 상위 25% 기준 ${num(s.social_q?.traffic_r)} 이상` : `교통 ${num(m.traffic_r)}명/10만 — 같은 ${s.kind} 유형 기준 ${num(s.social_q?.traffic_r)} 미만 · 화재는 자료 대기`}</div></div>
+      </div>
+      <div class="traits"><div class="k">특징 · 서열 없는 묶음</div>${traits}</div>
+      <h3>왜 이 타입인가 <small>금색 금 = 기준선(막대 절반) · 넘으면 파랑 · ▸ = 기준의 2배 초과</small></h3>
+      <div class="dxbars">
+        <div class="grp">자연 · 이력·지형</div>
+        ${bar('침수 이력 셀', m.flood_r, TH.flood_r, pct)}${bar('산사태 이력 셀', m.ls_r, TH.ls_r, pct)}${bar('평균 경사', m.slope, TH.slope80, v => v == null ? '—' : num(v, 1) + '°', { tl: '상위 20%' })}${bar('침수위험지구 밀도', m.rzf, TH.rzf, v => v == null ? '—' : num(v, 1) + '/100km²')}
+        <div class="grp">사람 · 주민등록</div>
+        ${bar('65세 이상', m.e65, TH.e65, pct)}${bar('65세 이상 1인세대', m.ealone, TH.ealone, pct)}${bar('1인세대', m.single, TH.single80, pct, { tl: '상위 20%' })}${bar('인구밀도', m.dens, TH.dens, v => v == null ? '—' : num(v) + '/km²')}${bar('외국인 주민', m.foreign_r, TH.foreign_r, pct)}${bar('장애·아동', m.disabled_r, TH.disabled_r, pct)}${bar('수급·주거취약', m.basic_r, TH.basic_r, pct)}
+        <div class="grp">사회 · 같은 ${esc(s.kind)} 유형 안 기준</div>
+        ${bar('교통 사망+중상/10만', m.traffic_r, s.social_q?.traffic_r, v => num(v))}<div class="bar na"><span class="l">화재</span><span class="n">자료 대기</span><span class="t"><i></i></span></div>
+      </div>
+      <h3>제도·조례 <small>국가법령정보센터 자치법규 · 보유 여부만</small></h3>
+      ${instHtml}
+      <div class="sp-nav" id="spNav"></div>
+    </div>
+  </article>
+  <div class="sp-foot">인구 ${num(m.pop)}명 · 자료: ${esc(Object.values(T.meta.sources || {}).slice(0, 3).join(' / '))}<br>같은 단위 전국 상위 25% 임계에 따른 설명형 분류입니다. 순위가 아니며, 기록이 없다는 것이 안전하다는 뜻은 아닙니다.</div>`;
+}
+let cur = null, curSido = null;
+function show(code, keep = false) {
+  const r = byCode[code]; if (!r) return; cur = code; curSido = null;
+  if (!keep) { $('#app').classList.remove('rail-open'); }
+  $('#book').innerHTML = card(r);
+  const list = visible.length ? visible : rows; const i = list.findIndex(x => x.code === code);
+  const prev = list[(i - 1 + list.length) % list.length], next = list[(i + 1) % list.length];
+  $('#spNav').innerHTML = `<button type="button" class="nb prev" data-c="${prev.code}"><small>◀ 이전</small>${ICON[prev.s.primary]} ${esc(prev.i.name)}</button><button type="button" class="nb next" data-c="${next.code}"><small>다음 ▶</small>${ICON[next.s.primary]} ${esc(next.i.name)}</button><div class="lk"><button type="button" id="toMap">🗺️ 도감 지도에서 위치 보기</button><a href="./#g?sgg=${r.code}">본 사이트 지도 →</a><a href="./#g?sgg=${r.code}&view=region">이 지역은 →</a></div>`;
+  $$('#spNav .nb').forEach(b => b.addEventListener('click', () => { show(b.dataset.c); $('#book').scrollTop = 0; }));
+  $('#toMap').addEventListener('click', () => { setView('map'); focusMap(code); });
+  $$('#toc li').forEach(li => li.classList.toggle('is-cur', li.dataset.c === code)); $$('#toc .ch > button').forEach(b => b.classList.remove('is-cur'));
+  if (!keep) { $(`#toc li[data-c="${code}"]`)?.scrollIntoView({ block: 'nearest' }); $('#book').scrollTop = 0; markSeen(code); history.replaceState(null, '', '#c=' + code); }
+  if (map && view === 'map') focusMap(code);
+}
+function showCover(sc) {
+  const c = sidos.find(x => x.code === sc); if (!c) return; cur = null; curSido = sc; $('#app').classList.remove('rail-open');
+  const sd = SD && SD.sido ? SD.sido[sc] : null;
+  const stack = (obj, lab, colOf) => { const ents = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]); return `<div class="stk"><div class="k">${lab}</div><div class="bar2">${ents.map(([k, v]) => `<span style="flex:${v};--c:${colOf(k)}" class="${colOf(k) === COL.none || k === '평온' ? 'lt' : ''}" title="${esc(k)} ${v}%">${v >= 9 ? `${ICON[k] || ''} ${k === '—' ? '없음' : k} ${Math.round(v)}%` : ''}</span>`).join('')}</div><div class="lg">${ents.map(([k, v]) => `<span><i style="--c:${colOf(k)}"></i>${ICON[k] || ''} ${k === '—' ? '없음' : k} ${v}%</span>`).join('')}</div></div>`; };
+  const goldRamp = ['#9a7328', '#b58f4a', '#c9a86e', '#d9c194', '#e8d8b8', '#f0e6d2', '#f6f0e4'];
+  const secCol = (() => { let i = 0; const m = {}; return k => k === '—' ? COL.none : (m[k] ??= goldRamp[Math.min(i++, goldRamp.length - 1)]); })();
+  $('#book').innerHTML = `<div class="cov"><div class="eyebrow"><span>챕터</span><span>${c.rows.length}개 시·군·구</span></div><h2>${esc(c.name)}</h2>
+    <div class="stat"><div><b>${c.rows.length}</b>시·군·구</div>${sd ? `<div><b>${num(sd.pop)}</b>인구(주민등록)</div>` : ''}<div><b>${c.rows.filter(r => seen.has(r.code)).length}/${c.rows.length}</b>펼쳐 본 장</div></div>
+    ${sd ? stack(sd.primary_pct, '자연 위해 타입 분포 · 인구 가중 %', k => COL[k] || COL.none) + stack(sd.social_pct, '사회 위해 분포 · 인구 가중 %', k => k === '—' ? COL.none : COL[k]) + stack(sd.secondary_pct, '특징(첫째) 분포 · 인구 가중 %', secCol) : '<p class="fine">시·도 분포 자료 없음</p>'}
+    <p class="fine" style="margin:12px 0 0">시·도에는 단일 타입을 붙이지 않습니다. 아래 카드는 이름순입니다.</p>
+    <div class="dxcards">${c.rows.map(r => `<button type="button" data-c="${r.code}" style="--c:${COL[r.s.primary]}"><i></i>${ICON[r.s.primary]} ${esc(r.i.name)}${r.s.social ? ' ' + ICON[r.s.social] : ''}</button>`).join('')}</div>
+    ${SD && SD.meta && SD.meta.caveats ? `<div class="cav">${SD.meta.caveats.map(x => '· ' + esc(x)).join('<br>')}</div>` : ''}</div>`;
+  $$('#book .dxcards button').forEach(b => b.addEventListener('click', () => show(b.dataset.c)));
+  $$('#toc li').forEach(li => li.classList.remove('is-cur')); $$('#toc .ch > button').forEach(b => b.classList.toggle('is-cur', b.parentElement.dataset.s === sc));
+  $('#book').scrollTop = 0; history.replaceState(null, '', '#s=' + sc);
+}
+function random() { const list = visible.length ? visible : rows; const pool = list.filter(r => !seen.has(r.code)); const pick = (pool.length ? pool : list)[Math.floor(Math.random() * (pool.length ? pool : list).length)]; show(pick.code); }
+$('#rnd').addEventListener('click', random);
+
+/* ── map ── */
+let map = null, view = 'book', mode = 'prim', modeArg = null, hoverCode = null;
+function setView(v) {
+  view = v; $$('#viewSeg button').forEach(b => b.classList.toggle('is-on', b.dataset.view === v));
+  $('#book').hidden = v !== 'book'; $('#mapWrap').hidden = v !== 'map';
+  if (v === 'map') { initMap(); requestAnimationFrame(() => map && map.resize()); if (cur) focusMap(cur); }
+}
+$$('#viewSeg button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+function initMap() {
+  if (map) return;
+  map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/positron', bounds: [[124.6, 33.0], [131.9, 38.7]], fitBoundsOptions: { padding: 30 }, attributionControl: { compact: true }, maxZoom: 12, minZoom: 5 });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+  map.on('load', () => { geoP.then(mapAddData); });
+}
+function mapAddData() {
+  if (!map || !GEO || map.getSource('sgg') || !map.isStyleLoaded()) { if (map && GEO && !map.getSource('sgg')) map.once('idle', mapAddData); return; }
+  map.addSource('sgg', { type: 'geojson', data: GEO, promoteId: 'code' });
+  map.addSource('sido', { type: 'geojson', data: SIDO });
+  const before = map.getStyle().layers.find(l => l.type === 'symbol')?.id;
+  map.addLayer({ id: 'sgg-fill', type: 'fill', source: 'sgg', paint: { 'fill-color': '#ccc', 'fill-opacity': 0.55 } }, before);
+  map.addLayer({ id: 'sgg-line', type: 'line', source: 'sgg', paint: { 'line-color': '#fff', 'line-width': 0.6, 'line-opacity': 0.8 } }, before);
+  map.addLayer({ id: 'sido-line', type: 'line', source: 'sido', paint: { 'line-color': '#14202e', 'line-width': 1, 'line-opacity': 0.35 } }, before);
+  map.addLayer({ id: 'sgg-hover', type: 'line', source: 'sgg', paint: { 'line-color': '#14202e', 'line-width': 2 }, filter: ['==', ['get', 'code'], '__none__'] }, before);
+  map.addLayer({ id: 'sgg-sel', type: 'line', source: 'sgg', paint: { 'line-color': '#1a5fc4', 'line-width': 3 }, filter: ['==', ['get', 'code'], '__none__'] }, before);
+  const pop = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
+  map.on('mousemove', 'sgg-fill', e => { const f = e.features[0]; const r = byCode[f.properties.code]; if (!r) return; map.getCanvas().style.cursor = 'pointer'; if (hoverCode !== r.code) { hoverCode = r.code; map.setFilter('sgg-hover', ['==', ['get', 'code'], r.code]); } pop.setLngLat(e.lngLat).setHTML(`<b>${esc(r.i.name)}</b> <span style="color:#566577">${esc(r.i.sido_name || '').slice(0, 2)}</span><br>${ICON[r.s.primary]} ${r.s.primary}${r.s.social ? ` · ${ICON[r.s.social]} ${r.s.social}` : ''}${(r.s.traits || []).length ? `<br><span style="color:#9a7328">${r.s.traits.map(t => ICON[t] + t).join(' ')}</span>` : ''}`).addTo(map); });
+  map.on('mouseleave', 'sgg-fill', () => { map.getCanvas().style.cursor = ''; hoverCode = null; map.setFilter('sgg-hover', ['==', ['get', 'code'], '__none__']); pop.remove(); });
+  map.on('click', 'sgg-fill', e => { const r = byCode[e.features[0].properties.code]; if (r) { cur = r.code; markSeen(r.code); $$('#toc li').forEach(li => li.classList.toggle('is-cur', li.dataset.c === r.code)); focusMap(r.code, true); history.replaceState(null, '', '#m=' + r.code); } });
+  paintMap(); if (cur) focusMap(cur);
+}
+function colorExpr() {
+  const vis = new Set(visible.map(r => r.code));
+  const pairs = []; rows.forEach(r => { let c = COL.none; if (mode === 'prim') c = COL[r.s.primary]; else if (mode === 'soc') c = r.s.social ? COL[r.s.social] : COL.none; else if (mode === 'trait') c = modeArg ? ((r.s.traits || []).includes(modeArg) ? COL.trait : COL.none) : COL.none; else if (mode === 'inst') c = modeArg && r.o && r.o.ord[modeArg] ? COL.inst : COL.none; pairs.push(r.code, c); });
+  const op = []; rows.forEach(r => op.push(r.code, vis.has(r.code) ? 0.6 : 0.06));
+  return { color: ['match', ['get', 'code'], ...pairs, COL.none], op: ['match', ['get', 'code'], ...op, 0.05] };
+}
+function paintMap() {
+  if (!map || !map.getLayer('sgg-fill')) return; const e = colorExpr(); map.setPaintProperty('sgg-fill', 'fill-color', e.color); map.setPaintProperty('sgg-fill', 'fill-opacity', e.op);
+  const vis = visible;
+  const cnt = fn => { const c = {}; vis.forEach(r => { const k = fn(r); if (k) c[k] = (c[k] || 0) + 1; }); return c; };
+  let lg = '';
+  if (mode === 'prim') { const c = cnt(r => r.s.primary); lg = ['물', '산', '바다', '마름', '평온'].map(k => `<span><i class="${k === '평온' ? 'hatch' : ''}" style="--c:${COL[k]}"></i>${ICON[k]} ${k}<span class="n">${c[k] || 0}</span></span>`).join(''); }
+  else if (mode === 'soc') { const c = cnt(r => r.s.social || '—'); lg = `<span><i style="--c:${COL['교통']}"></i>🚗 교통<span class="n">${c['교통'] || 0}</span></span><span><i style="--c:${COL.none}"></i>해당 없음<span class="n">${c['—'] || 0}</span></span>`; }
+  else if (mode === 'trait') { const n = modeArg ? vis.filter(r => (r.s.traits || []).includes(modeArg)).length : 0; lg = `<span><i style="--c:${COL.trait}"></i>${ICON[modeArg] || ''} ${modeArg || '특징 선택'}<span class="n">${n}</span></span><span><i style="--c:${COL.none}"></i>해당 없음<span class="n">${vis.length - n}</span></span>`; }
+  else { const n = modeArg ? vis.filter(r => r.o && r.o.ord[modeArg]).length : 0; lg = `<span><i style="--c:${COL.inst}"></i>${modeArg ? INST[modeArg][1] + ' ' + INST[modeArg][0] + ' 보유' : '표식 선택'}<span class="n">${n}</span></span><span><i style="--c:${COL.none}"></i>없음<span class="n">${vis.length - n}</span></span>`; }
+  $('#legend').innerHTML = lg;
+}
+$$('#modeSeg button').forEach(b => b.addEventListener('click', () => {
+  mode = b.dataset.m; $$('#modeSeg button').forEach(x => x.classList.toggle('is-on', x === b));
+  const sel = $('#modeSel');
+  if (mode === 'trait') { sel.hidden = false; sel.innerHTML = TRAITS.map(k => `<option value="${k}">${ICON[k]} ${k} — ${esc(D(k))}</option>`).join(''); modeArg = sel.value; }
+  else if (mode === 'inst') { sel.hidden = false; sel.innerHTML = Object.entries(INST).map(([k, [l, ic]]) => `<option value="${k}">${ic} ${l}</option>`).join(''); modeArg = sel.value; }
+  else { sel.hidden = true; modeArg = null; }
+  paintMap();
+}));
+$('#modeSel').addEventListener('change', e => { modeArg = e.target.value; paintMap(); });
+function focusMap(code, quiet = false) {
+  const r = byCode[code]; if (!map || !r) return;
+  if (map.getLayer('sgg-sel')) map.setFilter('sgg-sel', ['==', ['get', 'code'], code]);
+  if (r.i.lat != null && !quiet) map.flyTo({ center: [r.i.lon, r.i.lat], zoom: Math.max(map.getZoom(), 8.5), duration: 900 });
+  const c = $('#mpCard'); c.hidden = false;
+  c.innerHTML = `<button class="x" id="mpX" aria-label="닫기">✕</button><h4>${ICON[r.s.primary]} ${esc(r.i.name)}<small>${esc(r.i.sido_name || '')}</small></h4>
+    <div class="ty-pair"><span class="ty-chip ty-p${r.s.bold ? ' bold' : ''}">${ICON[r.s.primary]} ${r.s.primary}</span>${r.s.basis === 'zone' ? '<span class="ty-flag basis">지정</span>' : ''}${r.s.complex ? '<span class="ty-flag">복합</span>' : ''}<i class="ty-dot">·</i>${r.s.social ? `<span class="ty-chip ty-s2">${ICON[r.s.social]} ${r.s.social}</span>` : '<span class="ty-chip ty-s2 none">—</span>'}</div>
+    <div class="tr">${(r.s.traits || []).map(k => `<span class="ty-chip ty-t sm">${ICON[k]} ${k}</span>`).join('') || '<span class="ty-chip ty-t sm none">특징 없음</span>'}</div>
+    ${r.o ? `<div class="fine">자치법규 ${r.o.n}건 · ${INST_MAIN.filter(k => r.o.ord[k]).map(k => INST[k][1]).join(' ') || '표식 없음'}</div>` : ''}
+    <div class="go"><button type="button" id="mpOpen">📖 카드 펼치기 →</button><a href="./#g?sgg=${r.code}&view=region">이 지역은 →</a></div>`;
+  $('#mpX').addEventListener('click', () => { c.hidden = true; map.setFilter('sgg-sel', ['==', ['get', 'code'], '__none__']); });
+  $('#mpOpen').addEventListener('click', () => { setView('book'); show(r.code); });
+}
+
+/* ── dict, rail, keys, hash ── */
+$('#dictT').innerHTML = ['물', '산', '바다', '마름', '평온', '교통', '화재', ...TRAITS].map(k => `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${COL[k] || COL.trait};margin-right:6px;vertical-align:-1px"></span>${ICON[k]} ${k}</td><td>${esc(D(k))}</td></tr>`).join('') + `<tr><td>굵게</td><td>인구밀도 상위 25% — 노출이 큼 (주 타입이 평온이면 미적용)</td></tr><tr><td>지정</td><td>${esc(D('basis.zone'))}</td></tr><tr><td>복합</td><td>${esc(D('complex'))}</td></tr><tr><td>경계</td><td>${esc(D('edge'))}</td></tr>`;
+$('#dictBtn').addEventListener('click', () => $('#dict').showModal()); $('#dictX').addEventListener('click', () => $('#dict').close());
+$('#railBtn').addEventListener('click', () => $('#app').classList.toggle('rail-open'));
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,select,textarea') || $('#dict').open) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const list = visible.length ? visible : rows; const i = cur ? list.findIndex(x => x.code === cur) : -1; const n = list[((i < 0 ? 0 : i) + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length]; if (n) { if (view === 'map') { cur = n.code; focusMap(n.code); } else show(n.code); } }
+  else if (e.key === 'r' || e.key === 'R') random(); else if (e.key === 'm' || e.key === 'M') setView(view === 'map' ? 'book' : 'map');
+});
+applyFilters();
+const h = location.hash;
+if (h.startsWith('#c=') && byCode[h.slice(3)]) show(h.slice(3));
+else if (h.startsWith('#s=') && sidos.find(x => x.code === h.slice(3))) showCover(h.slice(3));
+else if (h.startsWith('#m=') && byCode[h.slice(3)]) { cur = h.slice(3); setView('map'); }
+else showCover(sidos[0].code);
 </script>
 </body>
 </html>

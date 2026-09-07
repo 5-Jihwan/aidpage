@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907e';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907e';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907f';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907f';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -368,7 +368,7 @@ function downloadICS(title, dateISO, desc) {
 /* open a popup and make sure it is not hidden behind the panel/controls */
 let _curPop = null; // 팝업 싱글턴 — 새로 열면 이전 것을 자동으로 닫는다 (마커 클릭은 지도 클릭이 아니라 자동 닫힘을 안 타므로)
 function openPopup(lngLat, html, opts = {}) {
-  if (matchMedia(MQ_MOBILE).matches && opts.fromPanel) { $('#panel').classList.add('is-collapsed'); $('#panel').classList.remove('is-tall'); setTimeout(() => map.resize(), 260); }
+  if (matchMedia(MQ_MOBILE).matches && opts.fromPanel) { const pn = $('#panel'); pn.classList.add('is-collapsed'); pn.classList.remove('is-tall'); pn.style.height = ''; setTimeout(() => map.resize(), 260); }
   if (_curPop) { try { _curPop.remove(); } catch (e) { /* already gone */ } }
   const pop = new maplibregl.Popup({ closeButton: !!opts.closeButton, offset: opts.offset || 8, maxWidth: opts.maxWidth || '280px' }).setLngLat(lngLat).setHTML(html).addTo(map);
   _curPop = pop; pop.on('close', () => { if (_curPop === pop) _curPop = null; });
@@ -559,12 +559,12 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260907e');
+      _simMod = await import('./sim.js?v=20260907f');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
         // 폰: 지도에서 지점을 찍는 동안 시트를 내려 지도를 보이게, 찍고 나면 다시 올린다
-        onPick: on => { if (!matchMedia(MQ_MOBILE).matches) return; const p = $('#panel'); p.classList.toggle('is-collapsed', on); if (!on) p.classList.remove('is-tall'); setTimeout(() => map.resize(), 260); },
+        onPick: on => { if (!matchMedia(MQ_MOBILE).matches) return; const p = $('#panel'); p.classList.toggle('is-collapsed', on); if (!on) p.classList.remove('is-tall'); p.style.height = ''; setTimeout(() => map.resize(), 260); },
       });
     }
     await _simMod.openSim();
@@ -1493,15 +1493,16 @@ function initPanel() {
     setSheet('', Math.round(h));
   };
   const shStart = e => { if (!matchMedia(MQ_MOBILE).matches) return; sheetDrag = true; moved = false; y0 = lastY = e.touches[0].clientY; h0 = p.getBoundingClientRect().height; p.style.transition = 'none'; };
-  const shMove = e => { if (!sheetDrag) return; lastY = e.touches[0].clientY; const dy = lastY - y0; if (Math.abs(dy) > 4) moved = true; const h = Math.max(64, Math.min(innerHeight - topH() - 8, h0 - dy)); p.style.height = h + 'px'; };
+  // 첫 실제 이동에서 상태 클래스를 떼고(접힘·전체 높이는 !important) 현재 높이를 인라인으로 옮긴다 — 손가락이 항상 이긴다
+  const beginMove = () => { if (moved) return; moved = true; const h = p.getBoundingClientRect().height; p.classList.remove('is-collapsed', 'is-tall'); p.style.height = h + 'px'; };
+  const shMove = e => { if (!sheetDrag) return; lastY = e.touches[0].clientY; const dy = lastY - y0; if (Math.abs(dy) > 4) beginMove(); if (!moved) return; const h = Math.max(64, Math.min(innerHeight - topH() - 8, h0 - dy)); p.style.height = h + 'px'; };
   const shEnd = e => { if (!sheetDrag) return; sheetDrag = false; p.style.transition = ''; const dy = e.changedTouches[0].clientY - y0;
     if (!moved) { snapTo(curState() === 'is-tall' ? '' : 'is-tall'); return; }   // 손잡이 탭 = 전체 ↔ 절반
     settle(p.getBoundingClientRect().height, dy); };
   // 알림창 쓸어내리기·뒤로가기 제스처·전화 수신 등은 touchend 없이 touchcancel로 끊긴다 — 같은 규칙으로 그 자리에 고정
   const shCancel = () => {
-    if (!sheetDrag && !p.style.height) { p.style.transition = ''; return; }
-    sheetDrag = false; p.style.transition = '';
-    settle(p.getBoundingClientRect().height, lastY - y0);
+    const was = sheetDrag; sheetDrag = false; p.style.transition = '';
+    if (was && moved) settle(p.getBoundingClientRect().height, lastY - y0);
   };
   const st = $('#sheetToggle');
   if (st) { st.addEventListener('click', e => { e.stopPropagation(); setSheet(curState() === 'is-collapsed' ? '' : 'is-collapsed'); }); ['touchstart', 'touchmove', 'touchend'].forEach(k => st.addEventListener(k, e => e.stopPropagation(), { passive: true })); }
@@ -1511,7 +1512,12 @@ function initPanel() {
   // also allow sheetDrag from the sheet header area when the list is scrolled to the top
   const ps = $('#panelScroll');
   // y0는 매 터치마다 갱신 — scrollTop>0에서 시작한 제스처가 이전 y0로 오판하지 않게
-  ps.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; if (ps.scrollTop <= 0 && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; } }, { passive: true });
+  // touch-action은 터치가 시작되는 순간 정해진다. 맨 위(scrollTop 0)에서는 'pan-up'(브라우저는 위로 스크롤만 처리, 아래로 당김은 JS 몫)으로,
+  // 접힘 상태에서는 'none'(콘텐츠가 숨겨져 있으니 위로 밀어 올리기도 JS 몫)으로 미리 바꿔 둔다.
+  // 09-07 갤럭시 태블릿(삼성 인터넷) 보고: 카드 영역에서 끌어내리면 도로 올라옴 — 브라우저가 당김 제스처를 먼저 가져간 것
+  const syncTA = () => { ps.style.touchAction = !matchMedia(MQ_MOBILE).matches ? '' : p.classList.contains('is-collapsed') ? 'none' : ps.scrollTop <= 0 ? 'pan-up' : 'pan-y'; };
+  ps.addEventListener('scroll', syncTA, { passive: true }); new MutationObserver(syncTA).observe(p, { attributes: true, attributeFilter: ['class'] }); addEventListener('resize', syncTA); syncTA();
+  ps.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; if ((ps.scrollTop <= 0 || p.classList.contains('is-collapsed')) && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; } }, { passive: true });
   // ⚠passive:false + "첫 touchmove부터" preventDefault가 핵심 — 안드로이드 크롬은 네이티브
   // 스크롤이 일단 시작되면 이후 touchmove의 cancelable이 false가 되어 preventDefault가 무력화된다.
   // 12px 문턱을 기다렸다 막으면 이미 늦는다(그 사이 브라우저가 제스처를 가져가 touchcancel).
@@ -1519,13 +1525,15 @@ function initPanel() {
   ps.addEventListener('touchmove', e => {
     const dy = e.touches[0].clientY - y0;
     // dy>4: 손가락 잔떨림(위로 스크롤 의도)은 통과시키되, 브라우저 터치 슬롭(~8px)보다 먼저 개입
-    const pullAtTop = ps.scrollTop <= 0 && dy > 4 && !p.classList.contains('is-collapsed') && matchMedia(MQ_MOBILE).matches;
-    if (!sheetDrag && pullAtTop && dy > 12) { sheetDrag = true; moved = true; h0 = p.getBoundingClientRect().height; y0 = lastY = e.touches[0].clientY; p.style.transition = 'none'; }
-    if ((sheetDrag || pullAtTop) && e.cancelable) e.preventDefault();
+    const collapsed = p.classList.contains('is-collapsed');
+    const pullAtTop = ps.scrollTop <= 0 && dy > 4 && !collapsed && matchMedia(MQ_MOBILE).matches;   // 맨 위에서 아래로 당김 = 시트 내리기
+    const pushUp = collapsed && dy < -4 && matchMedia(MQ_MOBILE).matches;                            // 접힘 상태에서 위로 밀기 = 시트 올리기
+    if (!sheetDrag && (pullAtTop || pushUp) && Math.abs(dy) > 12) { sheetDrag = true; h0 = p.getBoundingClientRect().height; y0 = lastY = e.touches[0].clientY; p.style.transition = 'none'; beginMove(); }
+    if ((sheetDrag || pullAtTop || pushUp) && e.cancelable) e.preventDefault();
     if (sheetDrag) shMove(e);
   }, { passive: false });
   // 드래그가 시작되지 않은 채 끝나면 touchstart가 걸어둔 transition:none을 되돌린다
-  ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); else if (p.style.transition) p.style.transition = ''; });
+  ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); else if (p.style.transition) p.style.transition = ''; syncTA(); });
   ps.addEventListener('touchcancel', shCancel);
 }
 /* 오류 계측: 기기군별 카운트만(js_error_m / js_error_d). 세션당 최대 3회, 내용 없음. */
@@ -1537,7 +1545,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907e').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907f').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1801,7 +1809,7 @@ function initWelcome() {
 
 /* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
 let _regionMod = null;
-const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907e'));
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907f'));
 const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
 function regionCtx() {
   return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,

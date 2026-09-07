@@ -47,7 +47,7 @@ h1,h2,h3{color:var(--ink)}
       --float-sm:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 1px rgba(20,32,46,.05),0 2px 4px rgba(20,32,46,.06),3px 12px 24px -8px rgba(20,32,46,.24)}
 .panel{position:absolute;left:16px;top:16px;bottom:16px;width:var(--panel-w);background:linear-gradient(180deg,rgba(255,255,255,.985),rgba(255,255,255,.955));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(219,227,238,.95);border-bottom-color:#c9d3e1;border-radius:18px;box-shadow:var(--float-sh);display:flex;flex-direction:column;z-index:10;transition:transform .25s ease,opacity .25s ease}
 .panel.is-collapsed{transform:translateX(calc(-100% - 24px));opacity:0;pointer-events:none}
-.panel-grip{display:none}
+.panel-grip{display:none} .sheet-toggle{display:none}
 .panel-resize{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;z-index:12}
 .panel-resize::after{content:"";position:absolute;top:50%;left:3px;width:2px;height:44px;margin-top:-22px;border-radius:2px;background:var(--line);transition:background .15s}
 .panel-resize:hover::after,body.is-resizing .panel-resize::after{background:var(--accent)}
@@ -191,9 +191,9 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
   /* floating controls: search full-width on top, pills beneath on the right */
   .search{left:10px!important;right:10px;top:10px;width:auto!important;transition:none}
   .search input{height:42px}
-  .map-hint{bottom:calc(52dvh + 10px);font-size:.8rem;max-width:92%}
+  .map-hint{bottom:calc(var(--sheet-h, 50dvh) + 2dvh + 10px);font-size:.8rem;max-width:92%}
   /* 폰: 3D와 +/-를 두 줄 쌓기 대신 한 줄로 — 세로 자리를 아끼고 버튼 사이 여백 확보 */
-  .maplibregl-ctrl-bottom-right{bottom:calc(50dvh + 10px);right:8px;display:flex;flex-direction:row;align-items:center;justify-content:flex-end} .maplibregl-ctrl-group{display:flex;flex-direction:row} .maplibregl-ctrl-group button{width:44px;height:44px} .maplibregl-ctrl-group button+button{border-top:0;border-left:1px solid #ddd} .maplibregl-ctrl-compass{display:none!important} .maplibregl-ctrl-attrib{display:none}
+  .maplibregl-ctrl-bottom-right{bottom:calc(var(--sheet-h, 50dvh) + 10px);right:8px;display:flex;flex-direction:row;align-items:center;justify-content:flex-end} .maplibregl-ctrl-group{display:flex;flex-direction:row} .maplibregl-ctrl-group button{width:44px;height:44px} .maplibregl-ctrl-group button+button{border-top:0;border-left:1px solid #ddd} .maplibregl-ctrl-compass{display:none!important} .maplibregl-ctrl-attrib{display:none}
   .maplibregl-ctrl-bottom-right .maplibregl-ctrl{margin:0 0 0 10px}
   /* bottom sheet */
   .panel{left:0;right:0;bottom:0;top:auto;width:100%;height:50dvh;border-radius:18px 18px 0 0;border-left:0;border-right:0;border-bottom:0;box-shadow:0 -8px 30px rgba(20,32,46,.14);transition:height .25s;transform:none!important;opacity:1!important;pointer-events:auto!important}
@@ -201,9 +201,12 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
   .panel.is-tall{height:calc(100dvh - var(--top-h) - 8px)}
   html,body{overscroll-behavior:none}
   .panel{touch-action:pan-y}
-  .panel-grip{display:block;width:100%;height:30px;margin:0;flex:none;position:relative;cursor:grab;touch-action:none}
+  .panel-grip{display:block;width:100%;height:34px;margin:0;flex:none;position:relative;cursor:grab;touch-action:none}
+  .sheet-toggle{display:flex}
+  .maplibregl-ctrl-bottom-right,.map-hint,.map-legend{transition:bottom .25s}
   .panel-grip::before{content:"";position:absolute;left:50%;top:12px;width:44px;height:5px;margin-left:-22px;border-radius:3px;background:#c9d2e0}
   .panel-resize{display:none}
+  .sheet-toggle{position:absolute;right:8px;top:2px;width:34px;height:30px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--mute);align-items:center;justify-content:center;padding:0;font-size:1.05rem;line-height:1;touch-action:manipulation} .sheet-toggle-ic{display:block;transform:translateY(-3px);transition:transform .2s} .panel.is-collapsed .sheet-toggle-ic{transform:translateY(2px) rotate(180deg)}
   /* overscroll none(≠contain): 맨 위 당김에 대한 브라우저 자체 동작(글로우·새로고침)을 완전 제거 —
      시트 드래그 JS가 제스처를 온전히 가진다(contain은 글로우가 남아 터치를 뺏길 수 있음) */
   .panel-scroll{padding:4px 14px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;overscroll-behavior:none}
@@ -223,7 +226,7 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
 /* 시트 모드(모바일·세로 태블릿)와 '터치 기기의 낮은 가로 화면'에만 적용.
    (max-height:500px) 단독이면 줌한 데스크톱까지 걸려 컨트롤이 pill 뒤로 숨는다 — pointer:coarse 필수 */
 @media (max-width:900px), (max-height:500px) and (pointer:coarse){
-  .panel{height:60dvh} .maplibregl-ctrl-bottom-right{bottom:calc(60dvh + 10px)} .map-hint{bottom:calc(62dvh + 10px)} .map-legend{bottom:calc(60dvh + 14px)}
+  .panel{height:60dvh} .maplibregl-ctrl-bottom-right{bottom:calc(var(--sheet-h, 60dvh) + 10px)} .map-hint{bottom:calc(var(--sheet-h, 60dvh) + 2dvh + 10px)} .map-legend{bottom:calc(var(--sheet-h, 60dvh) + 14px)}
 }
 @media print{
   @page{margin:14mm}
@@ -289,7 +292,7 @@ html.big .level-guide span{font-size:.9rem}
 html.big .total{font-size:2.6rem} html.big .deadline .d{font-size:1.9rem}
 html.big .timeline li,html.big .item-sum{font-size:1.05rem}
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){
-  html.big .panel{height:56dvh} html.big .map-hint{bottom:calc(58dvh + 10px)} html.big .maplibregl-ctrl-bottom-right{bottom:calc(56dvh + 10px)} html.big .map-legend{bottom:calc(56dvh + 14px)}
+  html.big .panel{height:56dvh} html.big .map-hint{bottom:calc(var(--sheet-h, 56dvh) + 2dvh + 10px)} html.big .maplibregl-ctrl-bottom-right{bottom:calc(var(--sheet-h, 56dvh) + 10px)} html.big .map-legend{bottom:calc(var(--sheet-h, 56dvh) + 14px)}
   html.big .cards{grid-template-columns:1fr 1fr} html.big .card{min-height:96px} html.big .card b{font-size:1.05rem}
   html.big .tab{font-size:.92rem}
 }
@@ -376,7 +379,7 @@ html.big .route-row a{font-size:.95rem;padding:7px 8px}
 .lg-off{color:var(--mute);font-family:var(--label)}
 .lg-grid{margin-top:4px;padding-top:4px;border-top:1px dashed var(--line)} .lg-grid i{border-radius:2px} .lg-grid b{margin-right:4px;color:var(--ink)}
 .lg-src{display:block;margin-top:4px;color:var(--mute);font-family:var(--label);font-size:.72rem}
-@media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .map-legend{left:10px;bottom:calc(50dvh + 40px);max-width:calc(100% - 20px);font-size:.72rem} .map-legend .lg-src{display:none} html.big .map-legend{bottom:calc(56dvh + 40px)} }
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .map-legend{left:10px;bottom:calc(var(--sheet-h, 50dvh) + 40px);max-width:calc(100% - 20px);font-size:.72rem} .map-legend .lg-src{display:none} html.big .map-legend{bottom:calc(var(--sheet-h, 56dvh) + 40px)} }
 html.big .map-legend{font-size:.92rem}
 /* data badge */
 .src-badge{margin-top:6px;font-family:var(--mono);font-size:.72rem;color:var(--mute);border-top:1px dashed var(--line);padding-top:4px}
@@ -415,11 +418,11 @@ html.big .drawer .pill button{font-size:1.1rem;min-height:48px} html.big .drawer
 .lg-toggle{display:none;border:0;background:none;font:inherit;font-weight:700;color:var(--ink);padding:0;align-items:center;gap:6px}
 .lg-dots{display:inline-flex;gap:2px} .lg-dots i{width:9px;height:9px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){
-  .map-legend{left:10px;bottom:calc(50dvh + 14px);max-width:calc(100% - 120px)} .lg-toggle{display:inline-flex}
+  .map-legend{left:10px;bottom:calc(var(--sheet-h, 50dvh) + 14px);max-width:calc(100% - 120px)} .lg-toggle{display:inline-flex}
   .map-legend.is-min{padding:6px 10px;border-radius:999px} .map-legend.is-min .lg-row,.map-legend.is-min .lg-src{display:none}
   .map-legend .lg-toggle::after{content:' ▴';color:var(--mute)} .map-legend.is-min .lg-toggle::after{content:' ▾'}
-  .mapstack{gap:6px} .map-hint{bottom:calc(50dvh + 14px);left:10px;transform:none;max-width:calc(100% - 120px);text-align:left;font-size:.78rem;padding:7px 11px}
-  .map-legend{bottom:calc(50dvh + 60px)}
+  .mapstack{gap:6px} .map-hint{bottom:calc(var(--sheet-h, 50dvh) + 14px);left:10px;transform:none;max-width:calc(100% - 120px);text-align:left;font-size:.78rem;padding:7px 11px}
+  .map-legend{bottom:calc(var(--sheet-h, 50dvh) + 60px)}
 }
 
 /* formulas (native MathML) */
@@ -482,12 +485,12 @@ html.big .risk-line{font-size:1.1rem}
 
 /* mobile: opened legend becomes a slim strip right above the sheet (never a box over the map centre) */
 @media (max-width:900px), (max-width:1200px) and (orientation:portrait){
-  .map-legend:not(.is-min){left:10px;right:10px;bottom:calc(50dvh + 60px);max-width:none;max-height:96px;overflow-y:auto;padding:6px 10px;border-radius:10px}
+  .map-legend:not(.is-min){left:10px;right:10px;bottom:calc(var(--sheet-h, 50dvh) + 60px);max-width:none;max-height:96px;overflow-y:auto;padding:6px 10px;border-radius:10px}
   .map-legend:not(.is-min) .lg-row{gap:2px 8px} .map-legend:not(.is-min) .lg-row span{font-size:.72rem}
   .map-legend:not(.is-min) .lg-toggle{position:sticky;top:0;background:rgba(255,255,255,.96);width:100%;justify-content:space-between}
-  html.big .map-legend:not(.is-min){bottom:calc(56dvh + 60px)}
+  html.big .map-legend:not(.is-min){bottom:calc(var(--sheet-h, 56dvh) + 60px)}
 }
-@media (max-width:900px) and (orientation:landscape), (max-height:500px) and (pointer:coarse){ .map-legend:not(.is-min){bottom:calc(60dvh + 60px);max-height:70px} }
+@media (max-width:900px) and (orientation:landscape), (max-height:500px) and (pointer:coarse){ .map-legend:not(.is-min){bottom:calc(var(--sheet-h, 60dvh) + 60px);max-height:70px} }
 
 /* one line for today */
 .tip-card{margin-top:14px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:10px 14px}

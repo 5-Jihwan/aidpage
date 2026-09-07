@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907c';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907c';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907d';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -308,7 +308,7 @@ function downloadBlob(blob, filename) {
 function visiblePadding() {
   const mobile = matchMedia(MQ_MOBILE).matches, p = $('#panel');
   if (mobile) {
-    const sheet = p.classList.contains('is-collapsed') ? 72 : p.classList.contains('is-tall') ? innerHeight * 0.9 : innerHeight * 0.5;
+    const sheet = p.getBoundingClientRect().height || (p.classList.contains('is-collapsed') ? 72 : p.classList.contains('is-tall') ? innerHeight * 0.9 : innerHeight * 0.5);
     return clampPad({ top: 120, bottom: Math.round(sheet) + 12, left: 12, right: 12 });
   }
   const pw = p.classList.contains('is-collapsed') ? 0 : panelW() + 32;
@@ -558,7 +558,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260907c');
+      _simMod = await import('./sim.js?v=20260907d');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1463,36 +1463,48 @@ function initPanel() {
   $('#btnPanelToggle').addEventListener('click', () => { togglePanel(); openDrawer(false); });
   $('#panelTab').addEventListener('click', togglePanel);
   if (!matchMedia(MQ_MOBILE).matches && localStorage.getItem('safepic.panelCollapsed') === '1') p.classList.add('is-collapsed');
-  // bottom sheet (mobile): the sheet follows the finger, then snaps to collapsed / half / tall
+  // bottom sheet (mobile): the sheet follows the finger and STAYS where it is released (09-07 사용자: "하단바가 고정이 안 된다").
+  // 아주 낮으면 접힘, 거의 끝까지 올리면 전체, 절반 근처면 절반으로만 스냅한다. 손잡이의 ⌄ 버튼은 접기/펼치기.
   const g = $('.panel-grip'); let y0 = 0, h0 = 0, lastY = 0, sheetDrag = false, moved = false;
-  const snapTo = cls => { p.classList.remove('is-collapsed', 'is-tall'); if (cls) p.classList.add(cls); p.style.height = ''; setTimeout(() => map && map.resize(), 280); };
+  const topH = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--top-h')) || 52;
+  const halfH = () => innerHeight * (document.documentElement.classList.contains('big') ? 0.56 : matchMedia('(max-width:900px) and (orientation:landscape), (max-height:500px) and (pointer:coarse)').matches ? 0.6 : 0.5);
+  const curState = () => p.classList.contains('is-collapsed') ? 'is-collapsed' : p.classList.contains('is-tall') ? 'is-tall' : '';
+  // 지도 컨트롤·힌트·범례가 시트 윗변을 따라가도록 --sheet-h를 유지한다(절반 상태는 CSS 기본값을 쓰므로 변수 제거)
+  const syncSheetVar = () => {
+    const r = document.documentElement.style;
+    if (!matchMedia(MQ_MOBILE).matches) { r.removeProperty('--sheet-h'); return; }
+    if (p.style.height) r.setProperty('--sheet-h', p.style.height);
+    else if (p.classList.contains('is-collapsed')) r.setProperty('--sheet-h', 'calc(64px + env(safe-area-inset-bottom))');
+    else if (p.classList.contains('is-tall')) r.setProperty('--sheet-h', 'calc(100dvh - var(--top-h) - 8px)');
+    else r.removeProperty('--sheet-h');
+  };
+  new MutationObserver(syncSheetVar).observe(p, { attributes: true, attributeFilter: ['class', 'style'] });
+  addEventListener('resize', syncSheetVar); syncSheetVar();
+  const setSheet = (cls, h) => { p.classList.remove('is-collapsed', 'is-tall'); if (cls) p.classList.add(cls); p.style.height = h ? h + 'px' : ''; try { sessionStorage.setItem('safepic.sheet', JSON.stringify({ cls, h: h || 0 })); } catch { } setTimeout(() => map && map.resize(), 280); };
+  const snapTo = cls => setSheet(cls);
+  // 손을 뗀 높이에 고정. 예외: 130px 미만(또는 내리는 중 160px 미만) → 접힘, 위쪽 40px 이내 → 전체, 절반 ±28px → 절반
+  const settle = (h, dy) => {
+    const maxH = innerHeight - topH() - 8;
+    if (h < 130 || (dy > 0 && h < 160)) return setSheet('is-collapsed');
+    if (h > maxH - 40) return setSheet('is-tall');
+    if (Math.abs(h - halfH()) < 28) return setSheet('');
+    setSheet('', Math.round(h));
+  };
   const shStart = e => { if (!matchMedia(MQ_MOBILE).matches) return; sheetDrag = true; moved = false; y0 = lastY = e.touches[0].clientY; h0 = p.getBoundingClientRect().height; p.style.transition = 'none'; };
-  const shMove = e => { if (!sheetDrag) return; lastY = e.touches[0].clientY; const dy = lastY - y0; if (Math.abs(dy) > 4) moved = true; const h = Math.max(64, Math.min(innerHeight - 60, h0 - dy)); p.style.height = h + 'px'; };
+  const shMove = e => { if (!sheetDrag) return; lastY = e.touches[0].clientY; const dy = lastY - y0; if (Math.abs(dy) > 4) moved = true; const h = Math.max(64, Math.min(innerHeight - topH() - 8, h0 - dy)); p.style.height = h + 'px'; };
   const shEnd = e => { if (!sheetDrag) return; sheetDrag = false; p.style.transition = ''; const dy = e.changedTouches[0].clientY - y0;
-    const cur = p.classList.contains('is-collapsed') ? 'is-collapsed' : p.classList.contains('is-tall') ? 'is-tall' : '';
-    if (!moved) { snapTo(cur === 'is-tall' ? '' : 'is-tall'); return; }
-    // direction + distance, one step at a time: a pull of 70px+ commits (no spring-back to where it was)
-    const STEP = 48; let target = cur;
-    if (dy > STEP) target = cur === 'is-tall' ? '' : 'is-collapsed';        // down: tall→half→collapsed
-    else if (dy < -STEP) target = cur === 'is-collapsed' ? '' : 'is-tall';  // up: collapsed→half→tall
-    if (Math.abs(dy) > innerHeight * 0.45) target = dy > 0 ? 'is-collapsed' : 'is-tall'; // long pull jumps to the end
-    snapTo(target); };
-  // 알림창 쓸어내리기·뒤로가기 제스처·전화 수신 등은 touchend 없이 touchcancel로 끊긴다 —
-  // 핸들러가 없으면 inline height + transition:none이 남아 시트가 그 높이에 굳고,
-  // sheetDrag=true 잔류로 이후 콘텐츠 스크롤이 시트를 끌고 다닌다. 최근접 상태로 스냅해 복구.
-  // ★09-05 "용수철" 수정: 취소 시 '최근접 상태'로 되돌리면 절반쯤 내린 시트가 도로 올라온다(실기기 보고 3회).
-  //   마지막 손가락 위치로 방향을 읽어, 40px 이상 내렸으면 아래 단계로 확정한다 — touchend와 같은 규칙.
+    if (!moved) { snapTo(curState() === 'is-tall' ? '' : 'is-tall'); return; }   // 손잡이 탭 = 전체 ↔ 절반
+    settle(p.getBoundingClientRect().height, dy); };
+  // 알림창 쓸어내리기·뒤로가기 제스처·전화 수신 등은 touchend 없이 touchcancel로 끊긴다 — 같은 규칙으로 그 자리에 고정
   const shCancel = () => {
     if (!sheetDrag && !p.style.height) { p.style.transition = ''; return; }
     sheetDrag = false; p.style.transition = '';
-    const dy = lastY - y0;
-    const cur = p.classList.contains('is-collapsed') ? 'is-collapsed' : p.classList.contains('is-tall') ? 'is-tall' : '';
-    let target = cur;
-    if (dy > 40) target = cur === 'is-tall' ? '' : 'is-collapsed';
-    else if (dy < -40) target = cur === 'is-collapsed' ? '' : 'is-tall';
-    else { const h = p.getBoundingClientRect().height; target = h < innerHeight * 0.3 ? 'is-collapsed' : h > innerHeight * 0.72 ? 'is-tall' : ''; }
-    snapTo(target);
+    settle(p.getBoundingClientRect().height, lastY - y0);
   };
+  const st = $('#sheetToggle');
+  if (st) { st.addEventListener('click', e => { e.stopPropagation(); setSheet(curState() === 'is-collapsed' ? '' : 'is-collapsed'); }); ['touchstart', 'touchmove', 'touchend'].forEach(k => st.addEventListener(k, e => e.stopPropagation(), { passive: true })); }
+  // 같은 세션 안에서는 마지막 시트 높이를 기억한다(전체·접힘은 복원하지 않음 — 첫 화면이 가려지지 않게)
+  try { const sv = JSON.parse(sessionStorage.getItem('safepic.sheet') || 'null'); if (sv && matchMedia(MQ_MOBILE).matches && !sv.cls && sv.h && sv.h < innerHeight - topH() - 48) { p.style.height = sv.h + 'px'; } } catch { }
   g.addEventListener('touchstart', shStart, { passive: true }); g.addEventListener('touchmove', shMove, { passive: true }); g.addEventListener('touchend', shEnd); g.addEventListener('touchcancel', shCancel);
   // also allow sheetDrag from the sheet header area when the list is scrolled to the top
   const ps = $('#panelScroll');
@@ -1523,7 +1535,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907c').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907d').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1787,7 +1799,7 @@ function initWelcome() {
 
 /* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
 let _regionMod = null;
-const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907c'));
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907d'));
 const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
 function regionCtx() {
   return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,

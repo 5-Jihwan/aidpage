@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260907c">
+<link rel="stylesheet" href="css/style.css?v=20260907d">
 </head>
 <body>
 
@@ -123,7 +123,7 @@
 <main class="stage">
   <aside class="drawer-r" id="regionDrawer" hidden aria-label="이 지역은 / About this area"></aside>
   <aside class="panel" id="panel">
-    <div class="panel-grip" aria-hidden="true"></div>
+    <div class="panel-grip"><button type="button" class="sheet-toggle" id="sheetToggle" data-i18n-title="sheet.toggle" title="시트 접기/펼치기" aria-label="시트 접기/펼치기"><span class="sheet-toggle-ic">⌄</span></button></div>
     <div class="panel-scroll" id="panelScroll">
 
       <section class="view is-active" data-view="now">
@@ -306,6 +306,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260907c"></script>
+<script type="module" src="js/app.js?v=20260907d"></script>
 </body>
 </html>

@@ -43,7 +43,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 RZ_MODE = os.environ.get("RZ_MODE", "pos")  # all | pos | tag (docs/14 §7)
-VERSION = "v1.3-20260905-" + RZ_MODE
+VERSION = "v1.4-20260907-" + RZ_MODE
 EDGE = 0.05  # 임계 ±5%
 
 rows = list(csv.DictReader(io.open(P("docs", "lib", "sgg_typology_explore_20260903.csv"), encoding="utf-8")))
@@ -105,6 +105,21 @@ def classify(m, th, sd, kind, coastal):
     zd = zone_strength("rzd")
     if zd is not None: haz["마름"] = zd
     primary = max(haz, key=haz.get) if haz else "평온"
+    # v1.4(사용자 09-07): 빈 범주('평온') 폐지 — 성립한 위해가 없으면 기준 대비 비율이 가장 큰 위해를 '근접'(≥50%)·'희미'(<50%)로 적는다.
+    #   hazards·scores는 비워 두어 "성립"과 구분하고, 굵게(노출)는 적용하지 않는다. 바다는 해안 접촉이 곧 성립이라 근접 후보에 없다.
+    lean = None
+    if not haz:
+        def ratio(v, thr):
+            return (float(v) / float(thr)) if (v is not None and thr) else None
+        def best(*xs):
+            xs = [x for x in xs if x is not None]
+            return max(xs) if xs else 0.0
+        cand = {"물": best(ratio(m.get("flood_r"), th.get("flood_r")), ratio(m.get("rzf"), th.get("rzf"))),
+                "산": best(ratio(m.get("ls_r"), th.get("ls_r")), ratio(m.get("slope"), th.get("slope80")), ratio(m.get("rzc"), th.get("rzc_pos"))),
+                "마름": best(ratio(m.get("rzd"), th.get("rzd_pos")))}
+        top = max(cand, key=cand.get); r = cand[top]
+        lean = dict(type=top, r=round(min(r, 0.999), 3), deg="근접" if r >= 0.5 else "희미", cand={k: round(min(v, 0.999), 3) for k, v in cand.items()})
+        primary = top
     # 부 타입: 취약 → 구조
     # v1.2: 이방(외국인주민 비율)·돌봄(등록장애인 비율)·살림(기초생활보장 수급권자 비율) 추가 — 국내 재난약자 표준 3종(docs/16). 우선순위는 고정(취약 → 구조)
     vq = lambda k: m.get(k) is not None and th.get(k) is not None and m[k] >= th[k]
@@ -155,13 +170,13 @@ def classify(m, th, sd, kind, coastal):
         if vq(k): traits.append(nm_)
     if m["dens"] >= th["dens"]: traits.append("도심")
     if kind == "군": traits.append("들")
-    return dict(social=social_t, social_scores={k: round(v, 2) for k, v in soc.items()}, social_q=soc_q, traits=traits, primary=primary, secondary=secondary, complex=len(haz) >= 2, bold=(primary != "평온" and m["dens"] >= th["dens"]),
+    return dict(social=social_t, social_scores={k: round(v, 2) for k, v in soc.items()}, social_q=soc_q, traits=traits, primary=primary, secondary=secondary, complex=len(haz) >= 2, bold=(lean is None and m["dens"] >= th["dens"]), lean=lean,
                 edge=sorted(set(edge)), hazards=sorted(haz, key=haz.get, reverse=True), scores={k: round(v, 2) for k, v in haz.items()},
-                basis=(basis if primary == "물" else s_basis if primary == "산" else None))
+                basis=("lean" if lean else (basis if primary == "물" else s_basis if primary == "산" else None)))
 
 
 def label(t):
-    s = t["primary"] + ("(지정)" if t.get("basis") == "zone" else "") + "·" + (t["secondary"] or "—")
+    s = t["primary"] + ("(지정)" if t.get("basis") == "zone" else f"({t['lean']['deg']})" if t.get("lean") else "") + "·" + (t["secondary"] or "—")
     if t["bold"]: s += "(굵게)"
     if t["complex"]: s += "[복합]"
     return s
@@ -201,7 +216,7 @@ meta = dict(version=VERSION, built=_dt.date.today().isoformat(), unit="sgg", n=l
                    "social": "[v1.3] 두 번째 위해 슬롯 — 교통: (사망+중상)/10만 명 ≥ 같은 행정유형(군/시/구) 내 p75, 강도=(값-p75)/유형 내 sd / 화재: 자료 확보 시 동일 / 둘 이상→최강 — 근거: KIPA 2017 동일유형 내 상대등급, docs/14 §8 정규화 비교",
                    "traits": "[v1.3] '특징' = 서열 없는 묶음: 노년(e65≥p75 & ealone≥p75)·홀로(single≥p80)·이방(foreign_r≥p75)·돌봄(disabled_r≥p75)·살림(basic_r≥p75)·도심(dens≥p75)·들(kind=='군') 중 해당 전부. 낙인 완화를 위해 '취약·약점'이라 부르지 않는다(사용자 결정 09-05)",
                    "secondary": "[v1.2, 호환용] traits의 첫째(노년→홀로→이방→돌봄→살림→도심→들 고정 순) — 근거: 김강민·황철수 2024·KIPA 2017 재난약자(노년), 박현수·권설아 2024(1인가구), Tocchi 2025 1단 범주(도심·농촌)",
-                   "bold": "dens≥p75 (노출 대리) — 주 타입이 평온이면 미적용 — 근거: ECRT 노출 축, Chang 2018 해안 거주 %, Lee 2019 빈도×규모", "edge": "임계 ±5% 이내 타입 — 근거: Tate 2012 임계 민감도", "upper": "행정유형(구/시/군) × 해안/내륙 — 근거: Tocchi 2025 상위=범주형 구조, KIPA 2017 5그룹 상대평가",
+                   "lean": "[v1.4] 위해 타입이 하나도 성립하지 않으면(구 평온) 기준 대비 비율(값/임계)이 가장 큰 위해를 주 타입으로 적고 근접(≥50%)·희미(<50%) 꼬리표를 붙인다. hazards·scores는 비움, 굵게 미적용 — 근거: 사용자 결정 09-07(빈 범주 금지·세분화), Tate 2012 임계 민감도(기준 근처 정보 보존)", "bold": "dens≥p75 (노출 대리) — 위해 타입이 근접·희미이면 미적용 — 근거: ECRT 노출 축, Chang 2018 해안 거주 %, Lee 2019 빈도×규모", "edge": "임계 ±5% 이내 타입 — 근거: Tate 2012 임계 민감도", "upper": "행정유형(구/시/군) × 해안/내륙 — 근거: Tocchi 2025 상위=범주형 구조, KIPA 2017 5그룹 상대평가",
                    "threshold_basis": "같은 단위 전국 p75 — 근거: 장경은 외 2023 등분위 5등급, KIPA 2017 동일유형 내 상대등급; 순위·가중합 금지 — Spielman 2020, Greco 2019, Cutter 2003",
                    "literature": "docs/16_타입기준_v1_문헌근거_20260904.md"},
             sources={"flood_r,ls_r,slope,dens,coastal": "data/grid(행안부 침수흔적도·산사태 발생이력, Copernicus GLO-30), kr_sgg 경계 접촉 판정 (docs/lib/sgg_typology_explore_20260903.csv)",
@@ -237,12 +252,12 @@ TH_E["slope80"] = pct(ME["slope"], 80); TH_E["single80"] = pct(ME["single"], 80)
 TH_E["ls_r"] = max(TH_E["ls_r"], 0.02)  # 행정동 산사태 이력 p75가 0이라 '셀 하나만 있어도 산'이 되는 것을 막는다(v0 첫 실행 교훈)
 TH_E["rzf"] = TH_E["rzo"] = TH_E["rzc"] = TH_E["rzs"] = TH_E["rzd"] = 0.0
 for k in ("rzc", "rzs", "rzd"): TH_E[k + "_pos"] = 0.0; SD_E[k + "_pos"] = 0.0
-COLS = ["code", "sgg", "name", "pop", "primary", "secondary", "bold", "complex", "edge", "label"]
+COLS = ["code", "sgg", "name", "pop", "primary", "secondary", "bold", "complex", "edge", "label", "basis", "lean_r"]
 emd_rows, emd_prim = [], Counter()
 for ec, e in emd.items():
     s = sgg_out[e["sgg"]]
     t = classify({v: e[v] for v in METRICS}, TH_E, SD_E, s["kind"], 1 if s["upper"].endswith("해안") else 0)
-    emd_rows.append([ec, e["sgg"], e["name"], e["pop"], t["primary"], t["secondary"], int(t["bold"]), int(t["complex"]), "|".join(t["edge"]), label(t)])
+    emd_rows.append([ec, e["sgg"], e["name"], e["pop"], t["primary"], t["secondary"], int(t["bold"]), int(t["complex"]), "|".join(t["edge"]), label(t), t.get("basis") or "", (t["lean"]["r"] if t.get("lean") else None)])
     emd_prim[t["primary"]] += 1
 emd_meta = dict(version=VERSION, built=meta["built"], unit="emd", n=len(emd_rows), thresholds={k: (round(v, 4) if v is not None else None) for k, v in TH_E.items()},
                 note="행정동 위해 = 해당 행정동 격자 셀 중 이력>0 셀 비율·평균 경사(격자 있는 시군구만). 위험개선지구·굵기 분모는 시군구 상속 없음(dens는 행정동 인구/격자 면적). 해안·행정유형은 시군구 상속.",
@@ -253,7 +268,7 @@ json.dump({"meta": emd_meta, "cols": COLS, "rows": emd_rows}, open(P("data", "re
 sido = defaultdict(lambda: {"pop": 0, "primary": Counter(), "secondary": Counter(), "social": Counter(), "n": 0, "names": set()})
 for code, s in sgg_out.items():
     sd = str(s["sido"]); pop = s["metrics"]["pop"]
-    d = sido[sd]; d["pop"] += pop; d["n"] += 1; d["primary"][s["primary"]] += pop; d["secondary"][s["secondary"] or "—"] += pop; d.setdefault("social", Counter())[s.get("social") or "—"] += pop
+    d = sido[sd]; d["pop"] += pop; d["n"] += 1; d["primary"][s["primary"] + (f"({s['lean']['deg']})" if s.get("lean") else "")] += pop; d["secondary"][s["secondary"] or "—"] += pop; d.setdefault("social", Counter())[s.get("social") or "—"] += pop
     d["names"].add(idx.get(code, {}).get("sido_name", ""))
 sido_out = {k: dict(name=sorted(x for x in v["names"] if x), n_sgg=v["n"], pop=v["pop"],
                     primary_pct={t: round(c / v["pop"] * 100, 1) for t, c in v["primary"].most_common()},
@@ -273,8 +288,9 @@ print("\n(b2) 사회 위해 슬롯(v1.3 초안):", dict(soc_cnt), "| 주×사회
 print("\n(c) 주 타입 × k-means 군집(09-03)")
 tags = sorted({t for c in cross.values() for t in c})
 print("  " + " | ".join(f"{t[:14]:>14s}" for t in tags))
-for p in ["물", "산", "바다", "마름", "평온"]:
+for p in ["물", "산", "바다", "마름"]:
     print(f"  {p:<4s}" + " | ".join(f"{cross[p].get(t, 0):14d}" for t in tags))
+print("\n(b3) v1.4 근접·희미(구 평온):", Counter(f"{v['primary']}({v['lean']['deg']})" for v in sgg_out.values() if v.get("lean")))
 print("\n(d) 예시")
 ex = ["52720", "11500", "11620", "41115", "48860", "12850", "51820", "26350", "47130", "36110", "11680", "41111"]
 for c in ex:

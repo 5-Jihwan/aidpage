@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907f';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907f';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907g';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907g';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -559,7 +559,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260907f');
+      _simMod = await import('./sim.js?v=20260907g');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -978,26 +978,33 @@ const ALERT_MAP = { // 특보 종류·단계 → 행동 문구 키 + 자동 시�
 };
 function todoItems() {
   const ws = warningsFor(state.sgg, state.sido), m = new Date().getMonth() + 1, out = [], seen = new Set();
-  const add = (key, kind, src) => { if (seen.has(key) || out.length >= 3) return; seen.add(key); out.push({ text: t('todo.' + key), kind, src: src || null }); };
-  const P = getProfile();
+  const add = (key, kind, src, why) => { if (seen.has(key) || out.length >= 3) return; seen.add(key); out.push({ text: t('todo.' + key), kind, src: src || null, why: why || null }); };
+  const P = getProfile(), n = nameOf(), here = n.emdName || n.sggName || '';
+  // "왜 이 안내가 뜨나"(docs/18 §3): 내 위치 + 발동 조건 + 이력. 효과는 가설 — 방법·한계에 명시
+  const cellsHere = state.emd ? gridCells(state.sgg).filter(f => String(f.properties.emd_code) === String(state.emd)) : [];
+  const histLine = k => { if (!cellsHere.length) return ''; if (k === 'rain' || k === 'typhoon') { const f = cellsHere.filter(c => c.properties.flood_hist_n > 0).length; return f ? ' · ' + t('todo.why.hist', { emd: here, p: Math.round(f / cellsHere.length * 100) }) : ''; } if (k === 'lslide') { const sl = cellsHere.reduce((a, c) => a + (c.properties.slope_mean || 0), 0) / cellsHere.length; return sl ? ' · ' + t('todo.why.slope', { emd: here, s: sl.toFixed(1) }) : ''; } return ''; };
+  const whyAlert = (w, k) => t('todo.why.alert', { w: warnName(w.type, w.level), area: here }) + histLine(k);
+  const whyProf = k => t('todo.why.prof', { p: t('todo.pf.' + k) });
+  const sitEl = state.sit && document.querySelector(`[data-sit="${state.sit}"]`); const whySit = t('todo.why.sit', { s: sitEl ? (sitEl.querySelector('b') || sitEl).textContent.trim() : state.sit });
+  const whySeason = t('todo.why.season', { m }), whyAlways = t('todo.why.always');
   for (const w of ws) { const a = ALERT_MAP[w.type]; if (!a) continue; let lv = /경보/.test(w.level) ? 'warn' : 'adv';
     if (P.floor === 'semi' && a.key === 'rain') lv = 'warn';                       // 반지하: 호우는 주의보도 경보 문구로
-    if (a.key === 'heat' && (P.senior || P.child)) add('prof.heat.senior', 'heat');  // 어르신·영유아: 폭염 우선 문구
-    if (a.key === 'wind' && P.floor === 'high') add('prof.wind.high');
-    add(`alert.${a.key}.${lv}`, a.kinds[0], 'kma'); }
-  if (P.floor === 'semi' && (m >= 6 && m <= 9)) add('prof.semi.summer', 'temp_housing');
-  if (P.mob) add('prof.mob', 'temp_housing');
-  if (P.pet && (state.sit === 'evacuating' || ws.length)) add('prof.pet');
-  if (P.car && ws.some(w => w.type === '호우' || w.type === '태풍')) add('prof.car');
-  if (state.sit === 'house_flood' || state.sit === 'shop_flood') { add('sit.photo'); add('sit.report10', 'townhall'); }
-  if (state.sit === 'evacuating') { add('sit.evac', 'civil_defense'); add('sit.meds', 'pharmacy'); }
-  if (state.sit === 'injury') { add('sit.er', 'er'); add('sit.psych'); }
-  if (state.sit === 'no_news') { add('sit.ask', 'townhall'); }
-  if (m >= 6 && m <= 9) { add('season.summer.water', 'heat'); add('season.summer.drain'); }
-  else if (m === 12 || m <= 2) { add('season.winter.taps', 'cold'); add('season.winter.ice'); }
-  else if (m >= 3 && m <= 5) { add('season.spring.fire'); add('season.spring.dust', 'dust'); }
-  else { add('season.autumn.typhoon', 'temp_housing'); }
-  add('always.shelter', 'civil_defense'); add('always.townhall', 'townhall');
+    if (a.key === 'heat' && (P.senior || P.child)) add('prof.heat.senior', 'heat', null, whyAlert(w, a.key) + ' · ' + whyProf(P.senior ? 'senior' : 'child'));  // 어르신·영유아: 폭염 우선 문구
+    if (a.key === 'wind' && P.floor === 'high') add('prof.wind.high', null, null, whyAlert(w, a.key) + ' · ' + whyProf('high'));
+    add(`alert.${a.key}.${lv}`, a.kinds[0], 'kma', whyAlert(w, a.key) + (P.floor === 'semi' && a.key === 'rain' ? ' · ' + whyProf('semi') : '')); }
+  if (P.floor === 'semi' && (m >= 6 && m <= 9)) add('prof.semi.summer', 'temp_housing', null, whyProf('semi') + ' · ' + whySeason);
+  if (P.mob) add('prof.mob', 'temp_housing', null, whyProf('mob'));
+  if (P.pet && (state.sit === 'evacuating' || ws.length)) add('prof.pet', null, null, whyProf('pet'));
+  if (P.car && ws.some(w => w.type === '호우' || w.type === '태풍')) add('prof.car', null, null, whyProf('car') + ' · ' + whyAlert(ws.find(w => w.type === '호우' || w.type === '태풍'), 'rain'));
+  if (state.sit === 'house_flood' || state.sit === 'shop_flood') { add('sit.photo', null, null, whySit); add('sit.report10', 'townhall', null, whySit); }
+  if (state.sit === 'evacuating') { add('sit.evac', 'civil_defense', null, whySit); add('sit.meds', 'pharmacy', null, whySit); }
+  if (state.sit === 'injury') { add('sit.er', 'er', null, whySit); add('sit.psych', null, null, whySit); }
+  if (state.sit === 'no_news') { add('sit.ask', 'townhall', null, whySit); }
+  if (m >= 6 && m <= 9) { add('season.summer.water', 'heat', null, whySeason); add('season.summer.drain', null, null, whySeason); }
+  else if (m === 12 || m <= 2) { add('season.winter.taps', 'cold', null, whySeason); add('season.winter.ice', null, null, whySeason); }
+  else if (m >= 3 && m <= 5) { add('season.spring.fire', null, null, whySeason); add('season.spring.dust', 'dust', null, whySeason); }
+  else { add('season.autumn.typhoon', 'temp_housing', null, whySeason); }
+  add('always.shelter', 'civil_defense', null, whyAlways); add('always.townhall', 'townhall', null, whyAlways);
   return out.slice(0, 3);
 }
 /* "내 동은 위험 구역 안/밖" — 지도 없이 글자로 판정 (PADM/지도 오인 연구) */
@@ -1047,7 +1054,7 @@ function renderTodo() {
   const items = todoItems(); box.hidden = !items.length;
   const n = nameOf(), place = [n.sggName, state.emd && n.emdName].filter(Boolean).join(' ');
   const SRC = { kma: t('src.kma'), mois: t('src.mois'), safepic: t('src.safepic') }; // 출처는 '특보 기준' 표기 — 문구 자체는 AidPage 안내
-  box.innerHTML = `<h3>${t('todo.title')} <small class="muted">${place}</small> <button type="button" class="speak-mini" id="todoSpeak" title="${t('tts.title')}">🔊</button></h3><ol class="todo-list">${items.map((x, i) => `<li><span>${x.src ? `<b class="todo-src">[${SRC[x.src] || x.src}]</b> ` : ''}${x.text}</span>${x.kind && state.shelters.avail.some(a => a.id === x.kind) ? `<button type="button" class="btn btn-ghost btn-sm" data-kind="${x.kind}">${t('todo.show')}</button>` : ''}</li>`).join('')}</ol>`;
+  box.innerHTML = `<h3>${t('todo.title')} <small class="muted">${place}</small> <button type="button" class="speak-mini" id="todoSpeak" title="${t('tts.title')}">🔊</button></h3><ol class="todo-list">${items.map((x, i) => `<li><span>${x.src ? `<b class="todo-src">[${SRC[x.src] || x.src}]</b> ` : ''}${x.text}${x.why ? `<small class="todo-why">${x.why}</small>` : ''}</span>${x.kind && state.shelters.avail.some(a => a.id === x.kind) ? `<button type="button" class="btn btn-ghost btn-sm" data-kind="${x.kind}">${t('todo.show')}</button>` : ''}</li>`).join('')}</ol>`;
   $('#todoSpeak').addEventListener('click', () => speak(items.map((x, i) => `${i + 1}. ${x.text}`).join('. '), $('#todoSpeak')));
   $$('button[data-kind]', box).forEach(b => b.addEventListener('click', () => { state.shelters.active.add(b.dataset.kind); saveShelterKinds(); renderNearest(); }));
 }
@@ -1397,7 +1404,8 @@ function applyAlertFx(ws) {
   if (sig === _fxDismissed) bn.hidden = true;
   else {
     bn.className = `fx-banner lv-${best.lv}`;
-    bn.innerHTML = `<b>${warnName(best.w.type, best.w.level)}</b><span>${t(`todo.alert.${best.k}.${best.lv}`).replace(/^[^—–-]*[—–-]\s*/, '')}</span>`
+    const nmB = nameOf();
+    bn.innerHTML = `<b>${warnName(best.w.type, best.w.level)}</b><span>${t(`todo.alert.${best.k}.${best.lv}`).replace(/^[^—–-]*[—–-]\s*/, '')}<small class="fx-why">${t('todo.why.alert', { w: warnName(best.w.type, best.w.level), area: nmB.emdName || nmB.sggName || '' })}</small></span>`
       + `<button type="button" class="fx-x" aria-label="${t('fx.close')}" title="${t('fx.close')}">×</button>`;
     bn.onclick = e => { if (e.target.closest('.fx-x')) { _fxDismissed = sig; bn.hidden = true; } };
     bn.hidden = false;
@@ -1545,7 +1553,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907f').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907g').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1809,7 +1817,7 @@ function initWelcome() {
 
 /* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
 let _regionMod = null;
-const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907f'));
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907g'));
 const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
 function regionCtx() {
   return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,

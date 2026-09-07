@@ -39,7 +39,8 @@ export function whyHTML(ty) {
     } else if (h === '바다') rows.push(`<li><b>${t('rg.m.coast')}</b> <span class="rg-ge">${t('ty.바다.d')}</span></li>` + (m.rzs > 0 ? `<li><b>${t('rg.m.rzs')}</b> ${Z(m.rzs)}</li>` : ''));
     else if (h === '마름') rows.push(`<li><b>${t('rg.m.rzd')}</b> ${Z(m.rzd)}</li>`);
   }
-  if (!rows.length) { // 평온: 무엇이 임계 아래였나
+  if (!rows.length) { // v1.4 근접·희미: 성립한 위해 없음 — 가장 가까운 위해와 기준 대비 비율, 그리고 무엇이 임계 아래였나
+    if (ty.lean && ty.lean.cand) rows.push(`<li class="tip">${t('rg.lean.line', { list: Object.entries(ty.lean.cand).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${TYPE_ICON[k] || ''} ${tn(k)} ${Math.round(v * 100)}%`).join(' · ') })}</li>`);
     rows.push(lt(t('rg.m.flood'), P(m.flood_r || 0), P(th.flood_r)), lt(t('rg.m.ls'), P(m.ls_r || 0), P(th.ls_r)), lt(t('rg.m.slope'), D(m.slope || 0), D(th.slope80 || th.slope)));
   }
   // 사회 위해(v1.3): 같은 행정유형 내 p75 — 임계는 시군구마다 다르므로 metrics에 실린 값(traffic_q)을 쓴다
@@ -68,11 +69,12 @@ export function typeChips(ty, small) {
   if (!ty) return '';
   const t = ctx.t;
   const chip = (k, cls) => `<span class="ty-chip ${cls} ${small ? 'sm' : ''}" title="${esc(t('ty.' + k + '.d'))}">${TYPE_ICON[k] || ''} ${tn(k)}</span>`;
-  const basis = (ty.primary === '물' || ty.primary === '산') && ty.basis === 'zone' ? `<span class="ty-flag basis" title="${esc(t('ty.basis.zone.d'))}">${t('ty.basis.zone')}</span>` : '';
+  const lean = ty.basis === 'lean' && ty.lean;
+  const basis = lean ? `<span class="ty-flag lean" title="${esc(t(ty.lean.deg === '근접' ? 'ty.basis.lean.d' : 'ty.basis.faint.d'))}">${t(ty.lean.deg === '근접' ? 'ty.basis.lean' : 'ty.basis.faint')} ${Math.round(ty.lean.r * 100)}%</span>` : (ty.primary === '물' || ty.primary === '산') && ty.basis === 'zone' ? `<span class="ty-flag basis" title="${esc(t('ty.basis.zone.d'))}">${t('ty.basis.zone')}</span>` : '';
   const traits = ty.traits || (ty.secondary ? [ty.secondary] : []);
   const shown = small ? traits.slice(0, 3) : traits, more = traits.length - shown.length;
   const featHTML = traits.length ? `<span class="ty-traits"><span class="ty-feat-label">${t('rg.feat')}</span>${shown.map(k => chip(k, 'ty-t')).join('')}${more > 0 ? `<span class="ty-chip ty-t ${small ? 'sm' : ''} none">+${more}</span>` : ''}</span>` : '';
-  return `<span class="ty-pair">${chip(ty.primary, 'ty-p' + (ty.bold ? ' bold' : ''))}${basis}<i class="ty-dot">·</i>${ty.social ? chip(ty.social, 'ty-s2') : `<span class="ty-chip ty-s2 ${small ? 'sm' : ''} none" title="${esc(t('rg.social.none'))}">—</span>`}${featHTML}${ty.complex ? `<span class="ty-flag" title="${esc(t('ty.complex.d'))}">${t('ty.complex')}</span>` : ''}${ty.edge && ty.edge.length ? `<span class="ty-flag edge" title="${esc(t('ty.edge.d'))}">?</span>` : ''}</span>`;
+  return `<span class="ty-pair">${chip(ty.primary, 'ty-p' + (ty.bold ? ' bold' : '') + (lean ? ' lean' : ''))}${basis}<i class="ty-dot">·</i>${ty.social ? chip(ty.social, 'ty-s2') : `<span class="ty-chip ty-s2 ${small ? 'sm' : ''} none" title="${esc(t('rg.social.none'))}">—</span>`}${featHTML}${ty.complex ? `<span class="ty-flag" title="${esc(t('ty.complex.d'))}">${t('ty.complex')}</span>` : ''}${ty.edge && ty.edge.length ? `<span class="ty-flag edge" title="${esc(t('ty.edge.d'))}">?</span>` : ''}</span>`;
 }
 
 function tier(v, q) { if (!q || v == null) return ''; return v >= q.p75 ? 'hi' : v >= q.p50 ? 'mid' : 'lo'; }
@@ -221,7 +223,7 @@ async function renderInner() {
 function applyTopic() { root.querySelectorAll('.rg-blk').forEach(b => { b.hidden = topic !== 'all' && b.dataset.topic !== topic; }); }
 async function sidoDistHTML(sido) {
   const st = await J('data/ref/sido_types.json'); const d = st && st.sido && st.sido[String(sido)]; if (!d) return '';
-  const bar = (obj) => Object.entries(obj).filter(([k]) => k !== '—').sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, v]) => `<span class="rg-dist"><i>${TYPE_ICON[k] || ''}</i>${tn(k)} <b>${v.toFixed(0)}%</b></span>`).join('');
+  const bar = (obj) => Object.entries(obj).filter(([k]) => k !== '—').sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, v]) => { const base = k.replace(/\(.*\)$/, ''), deg = (/\((.+)\)$/.exec(k) || [])[1]; return `<span class="rg-dist${deg ? ' lean' : ''}"><i>${TYPE_ICON[base] || ''}</i>${tn(base)}${deg ? ' ' + ctx.t(deg === '근접' ? 'ty.basis.lean' : 'ty.basis.faint') : ''} <b>${v.toFixed(0)}%</b></span>`; }).join('');
   return `<div class="rg-sido"><small>${ctx.t('rg.sido.dist', { n: d.n_sgg })}</small><div>${bar(d.primary_pct)}</div>${d.social_pct ? `<div>${bar(d.social_pct)}</div>` : ''}<div>${bar(d.secondary_pct)}</div></div>`;
 }
 

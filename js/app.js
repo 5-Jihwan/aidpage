@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260907c';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260907c';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -558,7 +558,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260907a');
+      _simMod = await import('./sim.js?v=20260907c');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -586,10 +586,18 @@ async function syncGrid() {
   const legSpans = !leg ? '' : !leg.breaks.length
     ? `<span><i style="background:${leg.colors[0]}"></i>${gridFmt(leg.attr, leg.only)}</span>`  // 값이 전부 같은 속성
     : leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('');
-  state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: legSpans + `<span class="lg-note">${t('grid.rel')}</span>` } : null;
+  state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: legSpans + `<span class="lg-note">${t('grid.rel')} · ${t('grid.d.dark')} ${getLang() === 'en' ? (leg.attr.dark_en || '') : (leg.attr.dark || '')}</span>` } : null;
   renderLegend(activeShelterKinds());
-  const html = `<div class="grid-attrs">${attrs.map(a => `<button type="button" class="chip ${a.id === gridAttr ? 'is-on' : ''}" data-a="${a.id}">${getLang() === 'en' ? a.en : a.ko}</button>`).join('')}</div>` +
-    (leg ? `<div class="legend">${legSpans}<span><i style="background:#d9dee7"></i>${t('grid.nodata')}</span></div>` : '') +
+  // 선택 지표의 정의·출처와 "색 읽는 법"을 접지 않고 바로 보여준다 (09-07: 기준·정의가 불명확하다는 지적)
+  const en = getLang() === 'en', A = attrs.find(a => a.id === gridAttr);
+  const vals = A ? gridCells(state.sgg).map(f => f.properties[A.id]).filter(x => x != null).sort((a, b) => a - b) : [];
+  const stat = A && vals.length ? t('grid.d.cells', { n: vals.length.toLocaleString(), m: gridFmt(A, vals[Math.floor(vals.length / 2)]), x: gridFmt(A, vals[vals.length - 1]) }) : '';
+  const scale = !leg ? '' : !leg.breaks.length
+    ? `<div class="grid-scale"><div class="gs-one"><i style="background:${leg.colors[0]}"></i>${t('grid.d.same', { v: gridFmt(leg.attr, leg.only) })}</div></div>`
+    : `<div class="grid-scale"><div class="gs-lab"><span>${t('grid.d.low')}</span><span>${t('grid.d.high')}</span></div><div class="gs-bar">${leg.colors.map(c => `<i style="background:${c}"></i>`).join('')}</div><div class="gs-vals">${leg.colors.map((_, i) => `<span>${i < leg.breaks.length ? gridFmt(leg.attr, leg.breaks[i]) : ''}</span>`).join('')}</div><div class="gs-dark"><b>${t('grid.d.dark')}</b> ${A ? (en ? A.dark_en : A.dark) : ''} <span class="gs-nd"><i style="background:#d9dee7"></i>${t('grid.nodata')}</span></div></div>`;
+  const defCard = A ? `<div class="grid-def"><p>${en ? A.def_en : A.def}</p><small>${t('grid.d.src')} ${en ? A.src_en : A.src}${stat ? ' · ' + stat : ''}</small></div>` : '';
+  const html = `<div class="grid-attrs">${attrs.map(a => `<button type="button" class="chip ${a.id === gridAttr ? 'is-on' : ''}" data-a="${a.id}">${en ? a.en : a.ko}</button>`).join('')}</div>` +
+    defCard + scale +
     `<div class="fine">${t('grid.note')}</div>` +
     `<details class="grid-how"><summary>${t('grid.how.t')}</summary>${t('grid.how')}</details>`;
   for (const el of [box, where]) { if (!el) continue; el.hidden = !mapOn; el.innerHTML = `<h3>${t('grid.title')}</h3>` + html; $$('.chip', el).forEach(b => b.addEventListener('click', () => { gridAttr = b.dataset.a; localStorage.setItem('safepic.gridAttr', gridAttr); syncGrid(); })); }
@@ -1515,7 +1523,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260907c').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1779,7 +1787,7 @@ function initWelcome() {
 
 /* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
 let _regionMod = null;
-const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907a'));
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260907c'));
 const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
 function regionCtx() {
   return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,

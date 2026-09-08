@@ -73,6 +73,10 @@ AIR_RLTM = "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMe
 AIR_STN = "https://apis.data.go.kr/B552584/MsrstnInfoInqireSvc/getMsrstnList"
 EGEN_BEDS = "https://apis.data.go.kr/B552657/ErmctInfoInqireService/getEmrrmRltmUsefulSckbdInfoInqire"
 ER_HOURS = {int(h) for h in os.environ.get("LIVE_ER_HOURS", "6,14,22").split(",") if h.strip().isdigit()}
+# E-Gen 재수집 최소 간격(시간). GitHub 크론이 2~5시간 간격으로 불규칙하게 돌아 시각 슬롯(ER_HOURS)을
+# 며칠씩 못 맞추는 일이 있었다(09-02~09-08 정체) → 마지막 갱신 후 이 시간이 지났으면 어느 실행에서든 수집.
+# 7h → 하루 최대 3회 × 250 시군구 = 750건 (일 한도 1,000).
+ER_GAP_H = float(os.environ.get("LIVE_ER_GAP_H", "7"))
 
 _calls = 0
 
@@ -824,8 +828,13 @@ def fetch_er(sgg, prev):
         sec["status"] = "no_key"
         return sec
     _n = now_kst()
-    if (_n.hour not in ER_HOURS or _n.minute >= 15) and isinstance(prev, dict) and prev.get("by_sgg"):  # 시각당 1회만 (30분 크론이 시간당 2번 돌므로)
-        return dict(prev, status=prev.get("status", "ok"), skipped="off-hour")
+    if isinstance(prev, dict) and prev.get("by_sgg"):
+        try:
+            _age_h = (_n - datetime.fromisoformat(str(prev.get("updated")))).total_seconds() / 3600
+        except (TypeError, ValueError):
+            _age_h = 1e9
+        if _age_h < ER_GAP_H:  # 마지막 성공 수집 후 ER_GAP_H 시간 안이면 이전 파일 유지
+            return dict(prev, status=prev.get("status", "ok"), skipped=f"fresh:{_age_h:.1f}h")
     errs = 0
     for s in sgg:
         try:
@@ -1063,6 +1072,25 @@ def fetch_air(sgg, prev):
     return out
 
 
+ALERT_SECTIONS = ("warnings", "prewarn", "messages", "river", "landslide", "quake", "typhoon")
+
+
+def keep_fresh_sections(alerts: dict, prev: dict) -> list[str]:
+    """실패(error:*)한 섹션이 직전 ok 데이터를 덮지 않게 되돌린다. 되돌린 섹션 이름 목록을 돌려준다.
+    화면 쪽 신선도 판정(3h)은 원래 updated 시각으로 그대로 이뤄지므로 오래된 데이터가 '최신'으로 보이진 않는다."""
+    kept = []
+    for k in ALERT_SECTIONS:
+        cur, old = alerts.get(k) or {}, (prev or {}).get(k) or {}
+        if not str(cur.get("status") or "").startswith("error") or str(old.get("status")) != "ok":
+            continue
+        if not (old.get("items") or old.get("text") or old.get("at") or old.get("updated")):
+            continue
+        alerts[k] = dict(old, last_error=cur.get("status"), last_error_at=alerts.get("updated"))
+        kept.append(k)
+        log(f"{k}: {cur.get('status')} → keeping previous ok data ({old.get('updated')})")
+    return kept
+
+
 # --------------------------------------------------------------------------- main
 def main():
     log(f"keys present: datago={bool(KEY_KMA)} hub={bool(KEY_HUB)} safety={bool(KEY_SAFETY)} hrfco={bool(KEY_HRFCO)} taas={bool(os.environ.get('TAAS_API'))} "
@@ -1102,6 +1130,10 @@ def main():
         "quake": safe(fetch_quake, prev_a.get("quake")),
         "typhoon": safe(fetch_typhoon, prev_a.get("typhoon")),
     }
+    # 실패(error:*)한 섹션이 기존 ok 데이터를 덮지 않게 한다 — 로컬 수집기(fetch_sd_live.py)와 같은 규칙.
+    # Actions는 safetydata IP 제한(sd32)으로 늘 실패하므로, 이 보호가 없으면 홈 PC가 올린 정상 특보를
+    # 'error' 상태로 바꿔 화면이 '특보 정보 없음'으로 떨어진다(09-08 확인).
+    keep_fresh_sections(alerts, prev_a)
     air = safe(fetch_air, sgg, prev_air)
     er = safe(fetch_er, sgg, prev_er)
     weather["calls"] = _calls

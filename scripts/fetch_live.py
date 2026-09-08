@@ -77,6 +77,8 @@ ER_HOURS = {int(h) for h in os.environ.get("LIVE_ER_HOURS", "6,14,22").split(","
 # 며칠씩 못 맞추는 일이 있었다(09-02~09-08 정체) → 마지막 갱신 후 이 시간이 지났으면 어느 실행에서든 수집.
 # 7h → 하루 최대 3회 × 250 시군구 = 750건 (일 한도 1,000).
 ER_GAP_H = float(os.environ.get("LIVE_ER_GAP_H", "7"))
+ER_BUDGET_S = float(os.environ.get("LIVE_ER_BUDGET_S", "300"))   # E-Gen 수집 벽시계 예산(초)
+ER_WORKERS = int(os.environ.get("LIVE_ER_WORKERS", "6"))
 
 _calls = 0
 
@@ -95,9 +97,19 @@ class HttpError(Exception):
         self.code = str(code)
 
 
+_DEAD = set()  # service base URLs that answered 403/401 (or kept timing out) this run — skip without spending call budget
+
+
+def _base(url):
+    return url.rsplit("/", 1)[0]
+
+
 def http_get(url: str, params: dict | None = None, raw_key: str | None = None) -> str:
     """GET with call budget. raw_key is appended un-encoded (data.go.kr keys may be pre-encoded)."""
     global _calls
+    base = _base(url)
+    if base in _DEAD:  # 403/연속 시간초과로 죽은 서비스 — 예산도 시간도 쓰지 않는다
+        raise HttpError(_DEAD_WHY.get(base, "403"))
     if _calls >= MAX_CALLS:
         raise HttpError("budget")
     _calls += 1
@@ -109,13 +121,32 @@ def http_get(url: str, params: dict | None = None, raw_key: str | None = None) -
     req = urllib.request.Request(url, headers={"User-Agent": "disaster-compass/1.0"})
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+            _TMO.pop(base, None)
             return r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
         raise HttpError(e.code)
-    except urllib.error.URLError:
-        raise HttpError("net")
-    except Exception as e:  # timeouts etc.
+    except urllib.error.URLError as e:
+        _note_slow(base, "timed out" in str(e))
         raise HttpError("timeout" if "timed out" in str(e) else "net")
+    except Exception as e:  # timeouts etc.
+        _note_slow(base, "timed out" in str(e))
+        raise HttpError("timeout" if "timed out" in str(e) else "net")
+
+
+_TMO: dict[str, int] = {}          # service base → consecutive timeouts this run
+_DEAD_WHY: dict[str, str] = {}     # service base → error code to report while dead
+DEAD_AFTER_TIMEOUTS = int(os.environ.get("LIVE_DEAD_AFTER_TIMEOUTS", "3"))
+
+
+def _note_slow(base: str, timed_out: bool):
+    """포털이 403 대신 무응답으로 늘어지면 256개 시군구 × 15초 = 1시간이 되어 Actions 15분 제한에 걸리고
+    그 실행은 아무것도 저장하지 못한다(09-03~09-08 취소 7회). 같은 서비스가 연속 3회 시간초과면 이번 실행에선 건너뛴다."""
+    if not timed_out:
+        return
+    _TMO[base] = _TMO.get(base, 0) + 1
+    if _TMO[base] >= DEAD_AFTER_TIMEOUTS and base not in _DEAD:
+        _DEAD.add(base); _DEAD_WHY[base] = "timeout"
+        log(f"circuit open: {base} timed out {DEAD_AFTER_TIMEOUTS}x in a row — skipping for this run")
 
 
 HUB_MAP = {  # data.go.kr 경로 → API허브 typ02 경로 (응답 형식 동일, 인증은 authKey)
@@ -124,16 +155,9 @@ HUB_MAP = {  # data.go.kr 경로 → API허브 typ02 경로 (응답 형식 동�
 }
 
 
-_DEAD = set()  # service base URLs that answered 403/401 this run — skip without spending call budget
-
-
-def _base(url):
-    return url.rsplit("/", 1)[0]
-
-
 def get_json(url, params=None, raw_key=None):
     if _base(url) in _DEAD:
-        raise HttpError("403")
+        raise HttpError(_DEAD_WHY.get(_base(url), "403"))
     try:
         txt = http_get(url, params, raw_key)
     except HttpError as e:
@@ -686,6 +710,9 @@ ASOS_SIDO = {"11": (108, "서울"), "26": (159, "부산"), "27": (143, "대구")
 def _hub_text(url, params):
     """API허브 typ01 텍스트(EUC-KR) — '#' 주석 제외한 데이터 행을 공백 분리 리스트로."""
     global _calls
+    base = _base(url)
+    if base in _DEAD:  # 403/연속 시간초과로 죽은 서비스 — 예산도 시간도 쓰지 않는다
+        raise HttpError(_DEAD_WHY.get(base, "403"))
     if _calls >= MAX_CALLS:
         raise HttpError("budget")
     _calls += 1
@@ -833,34 +860,65 @@ def fetch_er(sgg, prev):
             _age_h = (_n - datetime.fromisoformat(str(prev.get("updated")))).total_seconds() / 3600
         except (TypeError, ValueError):
             _age_h = 1e9
-        if _age_h < ER_GAP_H:  # 마지막 성공 수집 후 ER_GAP_H 시간 안이면 이전 파일 유지
+        _gap = ER_GAP_H if str(prev.get("status", "ok")) == "ok" else min(ER_GAP_H, 1.0)  # 부분 수집이면 1시간 뒤 재시도
+        if _age_h < _gap:  # 마지막 수집 후 간격 안이면 이전 파일 유지
             return dict(prev, status=prev.get("status", "ok"), skipped=f"fresh:{_age_h:.1f}h")
-    errs = 0
-    for s in sgg:
-        try:
-            txt = http_get(EGEN_BEDS, {"STAGE1": s.get("sido_name", ""), "STAGE2": s.get("name", ""), "pageNo": 1, "numOfRows": 30}, KEY_KMA)
-            root = ET.fromstring(txt)
-            code = root.findtext(".//resultCode")
-            if code not in (None, "00"):
-                errs += 1
-                continue
-            rows = []
-            for it in root.iter("item"):
-                g = lambda k: (it.findtext(k) or "").strip()
-                rows.append({"id": g("hpid"), "name": g("dutyName"), "tel": g("dutyTel3") or g("dutyTel1"),
-                             "beds": fnum(g("hvec")), "or": fnum(g("hvoc")), "ct": g("hvctayn") == "Y", "mri": g("hvmriayn") == "Y",
-                             "icu": fnum(g("hvicc")), "at": g("hvidate")})
-            if rows:
-                sec["by_sgg"][str(s["code"])] = rows
-        except HttpError as e:
-            errs += 1
-            if e.code == "budget":
+    # 250곳 순차 호출은 E-Gen이 느릴 때 15초 × 250 = 1시간이 되어 Actions 제한(15분)에 걸린다 →
+    # 6개 동시 + 벽시계 예산(ER_BUDGET_S) 안에서만 수집, 못 받은 시군구는 이전 값을 유지(partial:time).
+    from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+    import time as _time
+
+    def one(s):
+        txt = http_get(EGEN_BEDS, {"STAGE1": s.get("sido_name", ""), "STAGE2": s.get("name", ""), "pageNo": 1, "numOfRows": 30}, KEY_KMA)
+        root = ET.fromstring(txt)
+        code = root.findtext(".//resultCode")
+        if code not in (None, "00"):
+            raise HttpError("egen" + str(code))
+        rows = []
+        for it in root.iter("item"):
+            g = lambda k: (it.findtext(k) or "").strip()
+            rows.append({"id": g("hpid"), "name": g("dutyName"), "tel": g("dutyTel3") or g("dutyTel1"),
+                         "beds": fnum(g("hvec")), "or": fnum(g("hvoc")), "ct": g("hvctayn") == "Y", "mri": g("hvmriayn") == "Y",
+                         "icu": fnum(g("hvicc")), "at": g("hvidate")})
+        return rows
+
+    errs = 0; got = 0; budget_hit = False; deadline = _time.monotonic() + ER_BUDGET_S
+    ex = ThreadPoolExecutor(max_workers=ER_WORKERS)
+    futs = {ex.submit(one, s): s for s in sgg}
+    pending = set(futs)
+    try:
+        while pending:
+            left = deadline - _time.monotonic()
+            if left <= 0:
+                sec["status"] = "partial:time"
+                break
+            done, pending = wait(pending, timeout=min(left, 5), return_when=FIRST_COMPLETED)
+            for f in done:
+                s = futs[f]
+                try:
+                    rows = f.result()
+                    if rows:
+                        sec["by_sgg"][str(s["code"])] = rows; got += 1
+                except HttpError as e:
+                    errs += 1
+                    if e.code == "budget":
+                        budget_hit = True
+                except Exception:  # 파싱 오류 등
+                    errs += 1
+            if budget_hit:
                 sec["status"] = "partial:budget"
                 break
+    finally:
+        ex.shutdown(wait=False, cancel_futures=True)
     if not sec["by_sgg"]:
         sec = dict(prev or {}, status="error:egen")
-    elif errs:
-        sec["errors"] = errs
+    else:
+        if sec["status"].startswith("partial") and isinstance(prev, dict) and prev.get("by_sgg"):
+            merged = dict(prev["by_sgg"]); merged.update(sec["by_sgg"]); sec["by_sgg"] = merged
+            sec["fresh_sgg"] = got
+        if errs:
+            sec["errors"] = errs
+    log(f"er: fetched={got} errors={errs} status={sec['status']}")
     return sec
 
 

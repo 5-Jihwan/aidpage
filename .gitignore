@@ -27,3 +27,6 @@ docs/13_API신청_문안_IP_20260903.md
 data/src/vuln/*.hwp
 data/src/vuln/*.pdf
 data/src/vuln/*.png
+
+# 미출판 원고(JCCM 심사 중) 내용 포함 — 공개 repo 금지
+docs/23_*

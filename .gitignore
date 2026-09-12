@@ -30,3 +30,5 @@ data/src/vuln/*.png
 
 # 미출판 원고(JCCM 심사 중) 내용 포함 — 공개 repo 금지
 docs/23_*
+# 재해연보 원본 PDF·파생 CSV(연구용, 로컬 전용)
+.work_yearbook/

@@ -210,7 +210,7 @@ async function renderInner() {
   const [people, hist0, fac, sup] = await Promise.all([blockPeople(s), blockHistory(s), blockFacilities(s), blockSupport(s, ty)]);
   const hist = hist0 + blockInstitutions(s);
   root.innerHTML = `${mobile ? '' : `<div class="rg-head"><div><div class="eyebrow">${t('rg.eyebrow')}</div><h3>${esc(name)}</h3></div><button type="button" class="rg-x" aria-label="${t('rg.close')}">✕</button></div>`}
-    <div class="rg-tags">${ty ? typeChips(ty) : ''}${upper}${warnTag}</div>${ty ? whyHTML(ty) : ''}${sidoDist}
+    <div class="rg-tags">${ty ? typeChips(ty) : ''}${upper}${warnTag}</div>${ty ? whyHTML(ty) : ''}${ty ? `<a class="rg-dex" href="dex.html#c=${s.sgg}&l=${ctx.getLang()}">${t('rg.dex')}</a>` : ''}${sidoDist}
     <div class="rg-filters">${['all', 'people', 'history', 'facility', 'support'].map(k => `<button type="button" class="chip ${topic === k ? 'is-on' : ''}" data-topic="${k}">${t('rg.topic.' + k)}</button>`).join('')}</div>
     <div class="rg-body">${people}${hist}${fac}${sup}</div>
     <p class="rg-src">${t('rg.src')}</p>`;

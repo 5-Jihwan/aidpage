@@ -262,7 +262,7 @@ const thrKey = r => r.t && r.t.band != null ? String(r.t.band) : 'na';
 const eok = k => k == null ? '—' : (k / 100000).toLocaleString(L === 'en' ? 'en-US' : 'ko-KR', { maximumFractionDigits: k >= 1e6 ? 0 : 1 });
 const THR_COL = ['#f4c95d', '#e7a23a', '#c97c2c', '#9d5622', '#6b3a17'];
 /* 금액(억 원) 표기: ko '33억' · en '₩3.3B' (1억 = ₩100M) */
-const won = v => v == null ? '—' : L === 'en' ? `₩${(v / 10).toLocaleString('en-US', { maximumFractionDigits: v < 10 ? 2 : 1 })}B` : `${Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 1 })}억`;
+const won = v => v == null ? '—' : L === 'en' ? `₩${(v / 10).toLocaleString('en-US', { maximumFractionDigits: v < 10 ? 2 : 1 })}B` : `${Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}억`;
 const wonK = k => k == null ? '—' : won(k / 100000);
 const byCode = Object.fromEntries(rows.map(r => [r.code, r]));
 const nm = r => L === 'en' ? (r.i.name_en || r.i.name) : (r.i.name || r.s.name);

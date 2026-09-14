@@ -1,7 +1,7 @@
 {
-  "title": "AidPage Dex — rule-based, rank-free multi-lens profiles of Korean municipalities (v1.4) with national aid thresholds and recorded outcomes",
+  "title": "AidPage Atlas — rule-based, rank-free multi-lens profiles of Korean municipalities (v1.4) with national aid thresholds and recorded outcomes",
   "upload_type": "dataset",
-  "description": "Rule-based typology of 255 Korean municipal units (si/gun/gu): natural hazards (flood history, landslide/slope, coastal contact, drought zones), a social hazard (traffic), unordered vulnerability traits, and ordinance holdings. National top-quartile thresholds within the same unit class; no composite score or ranking. v1.4 adds the national recovery-aid threshold layer (fiscal-capacity bands, Regulation art. 5①, in force 2024-11-19) and recorded outcomes from the Disaster Yearbook 2012–2024. Sensitivity specifications (p70/p80, 229 units) shipped for review. Files: data/ref/sgg_types.json, sgg_threshold.json, sgg_type_specs.json, sgg_ordin.json; viewer: dex.html.",
+  "description": "Rule-based typology of 255 Korean municipal units (si/gun/gu): natural hazards (flood history, landslide/slope, coastal contact, drought zones), a social hazard (traffic), unordered vulnerability traits, and ordinance holdings. National top-quartile thresholds within the same unit class; no composite score or ranking. v1.4 adds the national recovery-aid threshold layer (fiscal-capacity bands, Regulation art. 5①, in force 2024-11-19) and recorded outcomes from the Disaster Yearbook 2012–2024. Sensitivity specifications (p70/p80, 229 units) shipped for review. Files: data/ref/sgg_types.json, sgg_threshold.json, sgg_type_specs.json, sgg_ordin.json; viewer: atlas.html.",
   "creators": [
     { "name": "Oh, Jihwan", "affiliation": "Independent researcher" }
   ],
@@ -9,6 +9,6 @@
   "language": "kor",
   "version": "dex-v1.4",
   "related_identifiers": [
-    { "identifier": "https://5-jihwan.github.io/aidpage/dex.html", "relation": "isSupplementTo", "scheme": "url" }
+    { "identifier": "https://5-jihwan.github.io/aidpage/atlas.html", "relation": "isSupplementTo", "scheme": "url" }
   ]
 }

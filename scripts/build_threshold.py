@@ -102,6 +102,17 @@ def main() -> int:
                 fi_years[c] = r["years_used"]
     if miss:
         print("fiscal unmatched:", miss)
+    # 자치구(광역시) — scripts/fetch_gu_fiscal.py 가 KOSIS에서 받아 둔 CSV가 있으면 2023~2025 평균으로 채운다(없으면 건너뜀)
+    gu_csv = os.path.join(W, "fiscal", "gu_fiscal_index.csv")
+    if os.path.exists(gu_csv):
+        acc = defaultdict(list)
+        for r in rd(gu_csv):
+            if str(r["year"])[:4] in ("2023", "2024", "2025"):
+                acc[r["code"]].append(float(r["fiscal_index"]))
+        for c, vs in acc.items():
+            if c not in fi and vs:
+                fi[c] = round(sum(vs) / len(vs), 4); fi_unit[c] = "self"; fi_years[c] = "2023-2025 (KOSIS 자치구)"
+        print(f"gu fiscal (KOSIS): {len(acc)} districts")
 
     # ── 기록: 국고지원 / 선포 / 우심피해 ──
     sub, dec = defaultdict(list), defaultdict(list)

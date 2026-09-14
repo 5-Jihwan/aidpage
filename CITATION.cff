@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use the AidPage typology (도감) or its data, please cite it as below. 이 유형화·데이터를 쓰시면 아래와 같이 인용해 주세요."
+type: dataset
+title: "AidPage Dex — rule-based, rank-free multi-lens profiles of Korean municipalities (v1.4) with national aid thresholds and recorded outcomes"
+version: "dex-v1.4"
+date-released: "2026-09-14"
+authors:
+  - given-names: Jihwan
+    family-names: Oh
+    alias: 5-Jihwan
+repository-code: "https://github.com/5-Jihwan/aidpage"
+url: "https://5-jihwan.github.io/aidpage/dex.html"
+abstract: >-
+  Rule-based typology of 255 Korean municipal units (si/gun/gu) across natural hazards
+  (flood history, landslide/slope, coastal contact, drought zones), a social hazard
+  (traffic), unordered vulnerability traits, and institutional (ordinance) holdings.
+  Thresholds are national top-quartile cut-offs within the same unit class; no composite
+  score or ranking is produced. v1.4 adds the national recovery-aid threshold layer
+  (fiscal-capacity bands under Regulation art. 5①, in force from 2024-11-19) and recorded
+  outcomes from the Disaster Yearbook 2012–2024 (central subsidy events, special disaster
+  area declarations, severe-damage events). Sensitivity specifications (p70/p80 thresholds,
+  229-unit aggregation) are shipped alongside for review.
+keywords:
+  - disaster risk
+  - Korea
+  - municipal typology
+  - administrative burden
+  - fiscal capacity
+  - regression discontinuity

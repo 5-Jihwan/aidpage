@@ -258,7 +258,10 @@ def main() -> int:
             return 0
         # 자동 생성 파일이므로 충돌 시 로컬(최신 수집분)을 채택한다.
         # 리베이스에서 우리 커밋은 'theirs' 쪽이다.
-        pl = git("pull", "--rebase", "-X", "theirs", "-q")
+        # --autostash: 사용자가 다른 파일을 수정 중이면(예: docs xlsx) git 이 "unstaged changes"로
+        #   rebase 를 거부해 push 가 영구 실패했다(2026-09-12 18:18~09-14, 79 커밋 적체). 자동 stash 는
+        #   rebase 뒤(실패 시 abort 뒤에도) 되돌려 주고, 되돌리기가 충돌하면 stash 항목으로 남겨 유실되지 않는다.
+        pl = git("pull", "--rebase", "--autostash", "-X", "theirs", "-q")
         if pl.returncode != 0:
             git("rebase", "--abort")
             msg = f"pull failed, retry next cycle: {pl.stderr[:200]}"

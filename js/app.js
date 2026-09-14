@@ -1,7 +1,7 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260912a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260912a';
-import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat } from './api.js?v=20260901p';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260914a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260914a';
+import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914a';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
@@ -559,7 +559,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260912a');
+      _simMod = await import('./sim.js?v=20260914a');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1450,7 +1450,7 @@ function setTab(tab) {
   const at = $('.tab.is-active'); if (at && at.scrollIntoView) at.scrollIntoView({ block: 'nearest', inline: 'nearest' }); // 폰: 활성 탭이 절단면에 걸치지 않게
   $$('.view').forEach(v => v.classList.toggle('is-active', v.dataset.view === tab));
   if (!state._autoNav) $('#panel').classList.remove('is-collapsed'); $('#panelScroll').scrollTop = 0;
-  if (tab === 'about') renderRulesTable();
+  if (tab === 'about') { renderRulesTable(); renderSiteStats(); }
   setTimeout(() => map && map.resize(), 260);
 }
 function initPanel() {
@@ -1553,7 +1553,7 @@ function reportError() {
 addEventListener('error', reportError);
 addEventListener('unhandledrejection', reportError);
 function initPWA() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260912a').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js?v=20260914a').catch(() => {});
   let deferred = null; const row = $('#installRow');
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; if (!localStorage.getItem('safepic.installDismissed')) row.hidden = false; });
   $('#btnInstall').addEventListener('click', async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; row.hidden = true; });
@@ -1817,7 +1817,7 @@ function initWelcome() {
 
 /* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
 let _regionMod = null;
-const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260912a'));
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260914a'));
 const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
 function regionCtx() {
   return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,
@@ -1893,6 +1893,23 @@ function applyFoldsNow() {
   });
 }
 
+/* ---------- 방문 계측·공개 집계 표시 ----------
+   visit = 브라우저 세션당 1회(sessionStorage 플래그; 쿠키·ID·지역 없음). 탭을 닫으면 다음 방문은 새로 센다.
+   표시는 about 하단 한 줄: 오늘·이번 달·올해·누적. 워커가 답하지 않으면 줄을 비워 둔다. */
+function statVisit() {
+  try { if (sessionStorage.getItem('safepic.v')) return; sessionStorage.setItem('safepic.v', '1'); } catch { /* 저장 불가 브라우저: 매 로드 카운트 */ }
+  stat('visit');
+}
+let _statsShown = false;
+async function renderSiteStats() {
+  if (_statsShown) return; _statsShown = true;
+  const el = $('#siteStats'); if (!el) return;
+  const r = await getStatSummary();
+  if (!r || r.status !== 'ok' || !r.visits) { _statsShown = false; return; }
+  const v = r.visits, f = n => (+n || 0).toLocaleString();
+  el.textContent = t('about.stats', { d: f(v.today), m: f(v.month), y: f(v.year), a: f(v.total), s: v.since || '' });
+  el.hidden = false;
+}
 /* ---------- wizard ---------- */
 function syncWizardLoc() {
   const n = nameOf(), box = $('#qLoc');
@@ -1943,9 +1960,17 @@ function initHouseholdOpts() {
   unk.addEventListener('change', () => { if (unk.checked) none.checked = false; });
   others.forEach(o => o.addEventListener('change', () => { if (o.checked) none.checked = false; }));
 }
+/* 익명 깔때기 계측 — 문항(2~5)별 '처음 건드린' 사실만 페이지당 1회 보낸다. 무엇을 골랐는지는 보내지 않는다.
+   목적: 어느 문항에서 멈추는지(도달 대비 제출)를 집계로 보기 위함 (docs/23 §3 self/proxy 계측). */
+const _wizTouched = new Set();
+function initWizardFunnel(f) {
+  const qs = $$('fieldset.q', f);
+  qs.forEach((fs, i) => { if (i === 0) return; fs.addEventListener('change', () => { const k = `wiz_q${i + 1}`; if (_wizTouched.has(k)) return; _wizTouched.add(k); stat(k); }, { passive: true }); });
+}
 function initWizard() {
   initHouseholdOpts();
   const f = $('#wizard');
+  initWizardFunnel(f);
   f.addEventListener('submit', e => { e.preventDefault(); runResult(); });
   f.addEventListener('reset', () => { $('#result').hidden = true; state.lastResult = null; history.replaceState(null, '', location.pathname); });
   $('#btnFindHere').addEventListener('click', () => { setTab('find'); syncWizardLoc(); });
@@ -1957,6 +1982,9 @@ function runResult() {
   if (!state.rules || !evaluate) { $('#result').hidden = false; $('#result').innerHTML = `<p>${t('ui.nodata')}</p>`; return; }
   const res = evaluate(state.rules, inp, getLang()); state.lastResult = { res, inp };
   stat('wizard_submit');
+  stat(inp.proxy ? 'wiz_proxy' : 'wiz_self');
+  if (!(res.matched_ids || []).length) stat('wiz_zero');
+  if (inp.sgg) stat(`sub_sido_${String(inp.sgg).slice(0, 2)}`); // 시도 코드 2자리까지만 — 시군구 이하는 보내지 않는다
   renderResult(res, inp); history.replaceState(null, '', encodeShare(inp));
 }
 /* ⑪ "왜 해당되나": matchRule의 why 토큰 → 사람이 읽는 문구 */
@@ -2201,6 +2229,7 @@ function renderRulesTable() {
   addEventListener('beforeprint', () => stat('print'), { once: true });
   document.addEventListener('click', e => { const a = e.target.closest('a[data-stat]'); if (a) stat(a.dataset.stat); }, true);
   initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPush(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
+  statVisit();
   // 지금 도는 앱 버전 — "구버전 캐시인가?"를 사용자가 서랍에서 10초 만에 확인
   { const v = new URL(import.meta.url).searchParams.get('v'); const el = $('#appVer'); if (el && v) el.textContent = 'app v' + v; }
   let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const p = $('#panel'); if (!matchMedia(MQ_MOBILE).matches) { p.classList.remove('is-tall'); p.style.height = ''; } map && map.resize(); renderLegend(activeShelterKinds()); }, 150); });

@@ -37,14 +37,21 @@ jobs:
           LAW_OC: ${{ secrets.LAW_INFORM_KEY }}
         run: python scripts/fetch_daily.py
 
+      # 익명 사용 집계(워커 KV)를 repo 패널로 — 값은 정수 카운트뿐(scripts/stat_panel.py 머리말 참조)
+      - name: Snapshot anonymous usage stats
+        continue-on-error: true
+        timeout-minutes: 3
+        run: python scripts/stat_panel.py --days 3
+
       - name: Commit if changed
         run: |
           git config user.name "daily-bot"
           git config user.email "daily-bot@users.noreply.github.com"
           [ -d data/ref/law ] && git add data/ref/law || true
+          [ -d data/stats ] && git add data/stats || true
           if git diff --cached --quiet; then
             echo "no changes"
             exit 0
           fi
-          git commit -m "ref: law $(date -u +%F)"
+          git commit -m "ref: law+stats $(date -u +%F)"
           git push || (git pull --rebase && git push)

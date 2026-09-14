@@ -9,7 +9,7 @@
    status: "ok" | "no_key" | "error:<code>" | "rate_limited". Missing key never throws. */
 
 import { kakaoSkill } from './kakao.js';
-const VERSION = '0.3.0';
+const VERSION = '0.3.1';
 const TTL = { news: 3600, law: 86400, radar: 600, er: 180 };
 const RATE = { perMin: 30 };
 const ER_DAILY_MAX = 150;  // E-Gen 일 1,000건 중 Actions 수집(~750건)을 빼고 워커 몫
@@ -38,7 +38,7 @@ export default {
         case '/report': return json(await report(req, env, ip), 200, cors);
         case '/report/flag': return json(await flag(req, env, ip), 200, cors);
         case '/stat': return json(await stat(req, env), 200, cors);
-        case '/stat/summary': return json(await statSummary(env), 200, cors);
+        case '/stat/summary': return json(await statSummary(req, env), 200, cors);
         case '/push/vapid': return json({ status: 'ok', key: env.VAPID_PUB || '' }, 200, cors);
         case '/push/sub': return json(await pushSub(req, env), 200, cors);
         case '/push/unsub': return json(await pushUnsub(req, env), 200, cors);
@@ -311,30 +311,46 @@ async function pushSend(req, env, cors) {
 
 /* ── 익명 사용 계측 — 이벤트 이름별 일 단위 카운터. 페이로드는 {ev}뿐(지역·입력·식별자 없음).
    KV 증분은 동시 요청에서 일부 유실될 수 있으나(비원자적) 추세 파악용으론 충분하다.
-   조회는 wrangler kv key list/get (stat:YYYY-MM-DD:이벤트). 400일 보존. ── */
-const STAT_EVS = new Set(['wizard_submit', 'nearmiss_shown', 'welfare_shown', 'print', 'share_copy', 'ins_click', 'welfare_click', 'js_error_m', 'js_error_d', 'region_open', 'region_open_m', 'region_to_find', 'region_maplink']);
-/* 최근 14일 이벤트별 카운트 — 익명 집계라 공개 조회 무해. 사업 지표 대시보드용. */
-async function statSummary(env) {
+   키: stat:YYYY-MM-DD:이벤트 (400일) · visit만 월(stat:m:YYYY-MM:visit)·연(stat:y:YYYY:visit)·누적(stat:all:visit) 키를 함께 올린다(무기한).
+   09-14: visit(세션당 1회)·깔때기(wiz_q2~q5·wiz_self/proxy·wiz_zero)·시도 단위 제출(sub_sido_NN)·sim_run 추가.
+   sub_sido_NN 은 두 자리 시도 코드만 허용 — 시군구 이하 단위는 받지 않는다(소수 카운트 재식별 여지 차단). ── */
+const STAT_EVS = new Set(['visit', 'wizard_submit', 'nearmiss_shown', 'welfare_shown', 'print', 'share_copy', 'ins_click', 'welfare_click', 'js_error_m', 'js_error_d', 'region_open', 'region_open_m', 'region_to_find', 'region_maplink',
+  'sim_run', 'wiz_q2', 'wiz_q3', 'wiz_q4', 'wiz_q5', 'wiz_self', 'wiz_proxy', 'wiz_zero']);
+const STAT_SIDO = /^sub_sido_\d{2}$/;
+const STAT_ALLOW = ev => STAT_EVS.has(ev) || STAT_SIDO.test(ev);
+const kstDate = (ms = Date.now()) => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
+async function kvInc(env, key, ttl) {
+  const n = parseInt(await env.CACHE.get(key) || '0', 10) + 1;
+  await env.CACHE.put(key, String(n), ttl ? { expirationTtl: ttl } : {});
+  return n;
+}
+/* 최근 N일(기본 14, 최대 60) 이벤트별 카운트 + 방문 합계(오늘·이번 달·올해·누적) — 익명 집계라 공개 조회 무해.
+   ?days=N 은 daily.yml 이 repo 패널(data/stats/daily.csv)로 옮길 때 쓴다. */
+async function statSummary(req, env) {
+  const url = new URL(req.url);
+  const nDays = Math.min(60, Math.max(1, parseInt(url.searchParams.get('days') || '14', 10) || 14));
+  const today = kstDate();
   const days = [];
-  for (let i = 0; i < 14; i++) days.push(new Date(Date.now() + 9 * 3600e3 - i * 86400e3).toISOString().slice(0, 10));
+  for (let i = 0; i < nDays; i++) days.push(kstDate(Date.now() - i * 86400e3));
   const out = {};
+  const sidoKeys = (await env.CACHE.list({ prefix: 'stat:sido:' })).keys.map(k => k.name.slice(10)); // 등록된 시도 코드 목록
+  const evs = [...STAT_EVS, ...sidoKeys.map(c => `sub_sido_${c}`)];
   for (const d of days) {
     const row = {};
-    for (const ev of STAT_EVS) {
-      const v = await env.CACHE.get(`stat:${d}:${ev}`);
-      if (v) row[ev] = +v;
-    }
+    await Promise.all(evs.map(async ev => { const v = await env.CACHE.get(`stat:${d}:${ev}`); if (v) row[ev] = +v; }));
     if (Object.keys(row).length) out[d] = row;
   }
-  return { status: 'ok', days: out };
+  const [m, y, all] = await Promise.all([env.CACHE.get(`stat:m:${today.slice(0, 7)}:visit`), env.CACHE.get(`stat:y:${today.slice(0, 4)}:visit`), env.CACHE.get('stat:all:visit')]);
+  return { status: 'ok', updated: now(), today, visits: { today: +((out[today] || {}).visit || 0), month: +(m || 0), year: +(y || 0), total: +(all || 0), since: '2026-09-14' }, days: out };
 }
 async function stat(req, env) {
   if (req.method !== 'POST') return { status: 'method' };
   let ev = '';
   try { ev = String((await req.json()).ev || ''); } catch (e) { /* not json */ }
-  if (!STAT_EVS.has(ev)) return { status: 'bad' };
-  const key = `stat:${new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)}:${ev}`; // KST 일자
-  const n = parseInt(await env.CACHE.get(key) || '0', 10) + 1;
-  await env.CACHE.put(key, String(n), { expirationTtl: 400 * 86400 });
+  if (!STAT_ALLOW(ev)) return { status: 'bad' };
+  const d = kstDate(); // KST 일자
+  await kvInc(env, `stat:${d}:${ev}`, 400 * 86400);
+  if (ev === 'visit') await Promise.all([kvInc(env, `stat:m:${d.slice(0, 7)}:visit`), kvInc(env, `stat:y:${d.slice(0, 4)}:visit`), kvInc(env, 'stat:all:visit')]);
+  else if (STAT_SIDO.test(ev)) { const c = ev.slice(9); if (!await env.CACHE.get(`stat:sido:${c}`)) await env.CACHE.put(`stat:sido:${c}`, '1'); }
   return { status: 'ok' };
 }

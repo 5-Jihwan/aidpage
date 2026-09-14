@@ -12,6 +12,8 @@ export const flagReport = (sgg, id) => call('/report/flag', { method: 'POST', bo
 export const getNews = (sgg, name) => call(`/news?sgg=${encodeURIComponent(sgg)}&name=${encodeURIComponent(name)}`);
 export const getER = (sgg, sido, name) => call(`/er?sgg=${encodeURIComponent(sgg)}&sido=${encodeURIComponent(sido)}&name=${encodeURIComponent(name)}`);
 export const getVapid = () => call('/push/vapid');
+/* 공개 익명 집계(방문 오늘·이번 달·올해·누적 + 최근 14일 이벤트) — about 하단 표시용 */
+export const getStatSummary = () => call('/stat/summary');
 export const pushSub = body => call('/push/sub', { method: 'POST', body: JSON.stringify(body) });
 export const pushUnsub = body => call('/push/unsub', { method: 'POST', body: JSON.stringify(body) });
 

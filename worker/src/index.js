@@ -9,7 +9,7 @@
    status: "ok" | "no_key" | "error:<code>" | "rate_limited". Missing key never throws. */
 
 import { kakaoSkill } from './kakao.js';
-const VERSION = '0.3.1';
+const VERSION = '0.3.2';
 const TTL = { news: 3600, law: 86400, radar: 600, er: 180 };
 const RATE = { perMin: 30 };
 const ER_DAILY_MAX = 150;  // E-Gen 일 1,000건 중 Actions 수집(~750건)을 빼고 워커 몫
@@ -324,24 +324,34 @@ async function kvInc(env, key, ttl) {
   await env.CACHE.put(key, String(n), ttl ? { expirationTtl: ttl } : {});
   return n;
 }
-/* 최근 N일(기본 14, 최대 60) 이벤트별 카운트 + 방문 합계(오늘·이번 달·올해·누적) — 익명 집계라 공개 조회 무해.
-   ?days=N 은 daily.yml 이 repo 패널(data/stats/daily.csv)로 옮길 때 쓴다. */
+/* 최근 N일(기본 14, 최대 30) 이벤트별 카운트 + 방문 합계(오늘·이번 달·올해·누적) — 익명 집계라 공개 조회 무해.
+   ?days=N 은 daily.yml 이 repo 패널(data/stats/daily.csv)로 옮길 때 쓴다.
+   일별 표는 KV 읽기가 N×이벤트 수(≈25)라 2~5초 걸리고 KV 호출 한도(1,000/요청)에 걸릴 수 있어
+   10분 캐시(stat:cache:summary:N)로 답한다. 방문 합계 4개는 매번 새로 읽어 about 줄이 즉시 반영되게 한다. */
+const SUMMARY_TTL = 600;
 async function statSummary(req, env) {
   const url = new URL(req.url);
-  const nDays = Math.min(60, Math.max(1, parseInt(url.searchParams.get('days') || '14', 10) || 14));
+  const nDays = Math.min(30, Math.max(1, parseInt(url.searchParams.get('days') || '14', 10) || 14));
   const today = kstDate();
-  const days = [];
-  for (let i = 0; i < nDays; i++) days.push(kstDate(Date.now() - i * 86400e3));
-  const out = {};
-  const sidoKeys = (await env.CACHE.list({ prefix: 'stat:sido:' })).keys.map(k => k.name.slice(10)); // 등록된 시도 코드 목록
-  const evs = [...STAT_EVS, ...sidoKeys.map(c => `sub_sido_${c}`)];
-  for (const d of days) {
-    const row = {};
-    await Promise.all(evs.map(async ev => { const v = await env.CACHE.get(`stat:${d}:${ev}`); if (v) row[ev] = +v; }));
-    if (Object.keys(row).length) out[d] = row;
+  const ckey = `stat:cache:summary:${nDays}`;
+  let days = null, cachedAt = null;
+  try { const c = JSON.parse(await env.CACHE.get(ckey) || 'null'); if (c && c.today === today) { days = c.days; cachedAt = c.at; } } catch { /* 캐시 손상 → 재계산 */ }
+  if (!days) {
+    const list = [];
+    for (let i = 0; i < nDays; i++) list.push(kstDate(Date.now() - i * 86400e3));
+    const sidoKeys = (await env.CACHE.list({ prefix: 'stat:sido:' })).keys.map(k => k.name.slice(10)); // 등록된 시도 코드 목록
+    const evs = [...STAT_EVS, ...sidoKeys.map(c => `sub_sido_${c}`)];
+    days = {};
+    for (const d of list) {
+      const row = {};
+      await Promise.all(evs.map(async ev => { const v = await env.CACHE.get(`stat:${d}:${ev}`); if (v) row[ev] = +v; }));
+      if (Object.keys(row).length) days[d] = row;
+    }
+    cachedAt = now();
+    await env.CACHE.put(ckey, JSON.stringify({ today, at: cachedAt, days }), { expirationTtl: SUMMARY_TTL });
   }
-  const [m, y, all] = await Promise.all([env.CACHE.get(`stat:m:${today.slice(0, 7)}:visit`), env.CACHE.get(`stat:y:${today.slice(0, 4)}:visit`), env.CACHE.get('stat:all:visit')]);
-  return { status: 'ok', updated: now(), today, visits: { today: +((out[today] || {}).visit || 0), month: +(m || 0), year: +(y || 0), total: +(all || 0), since: '2026-09-14' }, days: out };
+  const [t, m, y, all] = await Promise.all([env.CACHE.get(`stat:${today}:visit`), env.CACHE.get(`stat:m:${today.slice(0, 7)}:visit`), env.CACHE.get(`stat:y:${today.slice(0, 4)}:visit`), env.CACHE.get('stat:all:visit')]);
+  return { status: 'ok', updated: now(), cached_at: cachedAt, today, visits: { today: +(t || 0), month: +(m || 0), year: +(y || 0), total: +(all || 0), since: '2026-09-14' }, days };
 }
 async function stat(req, env) {
   if (req.method !== 'POST') return { status: 'method' };

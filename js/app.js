@@ -191,6 +191,19 @@ function initMiddleDrag() {
   addEventListener('mouseup', e => { if (e.button === 1) on = false; });
   addEventListener('blur', () => { on = false; });
 }
+/* 기울기 ±15° 버튼(09-17): 폰의 두 손가락 제스처·노트북 트랙패드로는 기울기 조절이 잘 안 된다는 피드백 →
+   어디서나 같은 버튼. 누르면 자동 추종(_userTilt)을 끄고 사용자 값이 우선. 0°에서 ▽, 70°에서 △는 비활성. */
+class TiltControl {
+  onAdd(m) {
+    const d = document.createElement('div'); d.className = 'maplibregl-ctrl maplibregl-ctrl-group ctrl-tilt-group';
+    const mk = (txt, dp, title) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'ctrl-tilt'; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title);
+      b.addEventListener('click', () => { _userTilt = true; m.easeTo({ pitch: Math.max(0, Math.min(70, m.getPitch() + dp)), duration: 300 }); }); d.appendChild(b); return b; };
+    const up = mk('\u25B3', 15, '기울이기 / Tilt up'), dn = mk('\u25BD', -15, '평평하게 / Tilt down');
+    const sync = () => { const p = m.getPitch(); up.disabled = p >= 69.5; dn.disabled = p <= 0.5; };
+    m.on('pitch', sync); m.on('load', sync); sync(); this._d = d; return d;
+  }
+  onRemove() { this._d.remove(); }
+}
 class TerrainToggle {
   onAdd(m) {
     const d = document.createElement('div'); d.className = 'maplibregl-ctrl maplibregl-ctrl-group';
@@ -208,6 +221,7 @@ function initMap() {
   });
   // bottom-right는 나중에 추가한 컨트롤이 위로 쌓인다 — 3D를 +/- 아래에 두려면 먼저 추가
   map.addControl(new TerrainToggle(), 'bottom-right');
+  map.addControl(new TiltControl(), 'bottom-right');
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
   initMiddleDrag();
   map.on('zoomend', () => { syncTerrainEx(); syncAutoPitch(); });
@@ -1525,12 +1539,17 @@ function initPanel() {
   // 09-07 갤럭시 태블릿(삼성 인터넷) 보고: 카드 영역에서 끌어내리면 도로 올라옴 — 브라우저가 당김 제스처를 먼저 가져간 것
   const syncTA = () => { ps.style.touchAction = !matchMedia(MQ_MOBILE).matches ? '' : p.classList.contains('is-collapsed') ? 'none' : ps.scrollTop <= 0 ? 'pan-up' : 'pan-y'; };
   ps.addEventListener('scroll', syncTA, { passive: true }); new MutationObserver(syncTA).observe(p, { attributes: true, attributeFilter: ['class'] }); addEventListener('resize', syncTA); syncTA();
-  ps.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; if ((ps.scrollTop <= 0 || p.classList.contains('is-collapsed')) && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; } }, { passive: true });
+  // 09-17: non-passive touchmove 리스너가 '항상' 달려 있으면 브라우저가 매 touchmove마다 JS를 기다려 네이티브 스크롤이 끊긴다(비동기 스크롤 불가).
+  // → 시트 제스처가 될 수 있는 터치(맨 위 또는 접힘 상태)에서만 touchstart 때 장착하고 touchend/cancel에서 뗀다. 중간에서 시작한 스크롤은 브라우저가 온전히 처리.
+  let armed = false;
+  const arm = () => { if (!armed) { ps.addEventListener('touchmove', onSheetMove, { passive: false }); armed = true; } };
+  const disarm = () => { if (armed) { ps.removeEventListener('touchmove', onSheetMove); armed = false; } };
+  ps.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; if ((ps.scrollTop <= 0 || p.classList.contains('is-collapsed')) && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; arm(); } }, { passive: true });
   // ⚠passive:false + "첫 touchmove부터" preventDefault가 핵심 — 안드로이드 크롬은 네이티브
   // 스크롤이 일단 시작되면 이후 touchmove의 cancelable이 false가 되어 preventDefault가 무력화된다.
   // 12px 문턱을 기다렸다 막으면 이미 늦는다(그 사이 브라우저가 제스처를 가져가 touchcancel).
   // 맨 위에서 아래로 당기는 순간(콘텐츠가 더 스크롤될 게 없는 방향)은 첫 이벤트부터 막는다.
-  ps.addEventListener('touchmove', e => {
+  const onSheetMove = e => {
     const dy = e.touches[0].clientY - y0;
     // dy>4: 손가락 잔떨림(위로 스크롤 의도)은 통과시키되, 브라우저 터치 슬롭(~8px)보다 먼저 개입
     const collapsed = p.classList.contains('is-collapsed');
@@ -1539,10 +1558,10 @@ function initPanel() {
     if (!sheetDrag && (pullAtTop || pushUp) && Math.abs(dy) > 12) { sheetDrag = true; h0 = p.getBoundingClientRect().height; y0 = lastY = e.touches[0].clientY; p.style.transition = 'none'; beginMove(); }
     if ((sheetDrag || pullAtTop || pushUp) && e.cancelable) e.preventDefault();
     if (sheetDrag) shMove(e);
-  }, { passive: false });
+  };
   // 드래그가 시작되지 않은 채 끝나면 touchstart가 걸어둔 transition:none을 되돌린다
-  ps.addEventListener('touchend', e => { if (sheetDrag) shEnd(e); else if (p.style.transition) p.style.transition = ''; syncTA(); });
-  ps.addEventListener('touchcancel', shCancel);
+  ps.addEventListener('touchend', e => { disarm(); if (sheetDrag) shEnd(e); else if (p.style.transition) p.style.transition = ''; syncTA(); });
+  ps.addEventListener('touchcancel', e => { disarm(); shCancel(e); });
 }
 /* 오류 계측: 기기군별 카운트만(js_error_m / js_error_d). 세션당 최대 3회, 내용 없음. */
 let _errSent = 0;

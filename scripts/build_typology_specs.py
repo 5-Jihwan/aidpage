@@ -2,10 +2,10 @@
 
 같은 규칙(build_types.py classify)을 임계 사양·단위 사양만 바꿔 다시 돌려, 시군구별로 타입이 어떻게 달라지는지를 저장한다.
   임계: p70/p75 · p75/p80(기준) · p80/p85 · p75/p75(경사·홀로도 p75)
-  단위: 255(기준) · 229(구를 둔 일반시 13곳을 시로 합산 — 위해 면적가중·인구 지표 인구가중·밀도 재계산, docs/22 §4)
+  단위: 256(기준) · 230(구를 둔 일반시 13곳을 시로 합산 — 위해 면적가중·인구 지표 인구가중·밀도 재계산, docs/22 §4)
 scripts/typology_sensitivity.py 의 앞부분(적재·run·thresholds)을 그대로 실행해 규칙 동일성을 보장한다(부트스트랩 등 무거운 분석은 실행하지 않음).
 
-출력: { meta, baseline:'p75', specs: { p70|p75|p80|p7575: {code: T}, u229: {code: T + m: 합산 시 코드} } }
+출력: { meta, baseline:'p75', specs: { p70|p75|p80|p7575: {code: T}, u230: {code: T + m: 합산 시 코드} } }
   T = { p: 주 타입(근접·희미 포함), lean: '근접'|'희미'|null, b: 근거, t: 특징[], s: 사회 위해, x: 복합 }
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ def main() -> int:
         out, _ = run(q=q, q80=q80)
         specs[name] = {c: slim(t) for c, t in out.items()}
 
-    # ── 단위 229: typology_sensitivity.py §4와 동일 절차 ──
+    # ── 단위 230: typology_sensitivity.py §4와 동일 절차 ──
     groups = defaultdict(list)
     METRO = ("서울특별시", "부산광역시", "대구광역시", "인천광역시", "광주광역시", "대전광역시", "울산광역시", "전남광주통합특별시")
     for r in rows:
@@ -70,15 +70,15 @@ def main() -> int:
     for t in om.values():
         if t.get("lean"):
             t["lean"]["deg"] = "근접" if t["lean"]["r"] >= 0.5 else "희미"
-    u229 = {}
+    u230 = {}
     for r in rows:
         c = r["code"]
         if c in gu_to_m:
             d = slim(om[gu_to_m[c]]); d["m"] = gu_to_m[c]; d["mn"] = next(city for city, gs in groups.items() if any(x["code"] == c for x in gs))
         else:
             d = slim(om[c])
-        u229[c] = d
-    specs["u229"] = u229
+        u230[c] = d
+    specs["u230"] = u230
 
     # 기준 사양이 배포본(sgg_types.json)과 같은지 확인
     ty = json.load(open(P("data", "ref", "sgg_types.json"), encoding="utf-8"))["sgg"]
@@ -92,14 +92,14 @@ def main() -> int:
     meta = {
         "version": "specs-" + date.today().isoformat(), "built": date.today().isoformat(), "baseline": "p75",
         "typology_version": json.load(open(P("data", "ref", "sgg_types.json"), encoding="utf-8"))["meta"]["version"],
-        "specs": {"p70": "p70/p75", "p75": "p75/p80 (기준)", "p80": "p80/p85", "p7575": "p75/p75 (경사·홀로도 p75)", "u229": "단위 229 (통합시 13곳 합산)"},
-        "changed_vs_baseline": {k: chg(k) for k in ("p70", "p80", "p7575", "u229")},
-        "n_units_229": len(merged_rows), "n_cities_merged": len(groups), "baseline_mismatch": len(mism),
+        "specs": {"p70": "p70/p75", "p75": "p75/p80 (기준)", "p80": "p80/p85", "p7575": "p75/p75 (경사·홀로도 p75)", "u230": "단위 230 (통합시 13곳 합산)"},
+        "changed_vs_baseline": {k: chg(k) for k in ("p70", "p80", "p7575", "u230")},
+        "n_units_230": len(merged_rows), "n_cities_merged": len(groups), "baseline_mismatch": len(mism),
         "note": "'바뀜' = 성립 주 타입 또는 성립/미성립 여부가 기준 사양과 다른 경우. 규칙·자료는 동일, 임계·단위만 다름(docs/22 §1·§4).",
     }
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump({"meta": meta, "specs": specs}, f, ensure_ascii=False, separators=(",", ":"))
-    print(f"wrote {OUT}: changed={meta['changed_vs_baseline']} units229={len(merged_rows)} size={os.path.getsize(OUT) // 1024}KB")
+    print(f"wrote {OUT}: changed={meta['changed_vs_baseline']} units230={len(merged_rows)} size={os.path.getsize(OUT) // 1024}KB")
     return 0
 
 

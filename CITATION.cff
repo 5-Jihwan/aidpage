@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use the AidPage typology (도감) or its data, please cite it as below. 이 유형화·데이터를 쓰시면 아래와 같이 인용해 주세요."
 type: dataset
-title: "AidPage Atlas — rule-based, rank-free multi-lens profiles of Korean municipalities (v1.4) with national aid thresholds and recorded outcomes"
-version: "dex-v1.4"
+title: "AidPage Atlas — rule-based, rank-free multi-lens profiles of Korean municipalities (v1.4.1) with national aid thresholds and recorded outcomes"
+version: "dex-v1.4.1"
 date-released: "2026-09-14"
 authors:
   - given-names: Jihwan
@@ -11,15 +11,15 @@ authors:
 repository-code: "https://github.com/5-Jihwan/aidpage"
 url: "https://5-jihwan.github.io/aidpage/atlas.html"
 abstract: >-
-  Rule-based typology of 255 Korean municipal units (si/gun/gu) across natural hazards
+  Rule-based typology of 256 Korean municipal units (si/gun/gu) across natural hazards
   (flood history, landslide/slope, coastal contact, drought zones), a social hazard
   (traffic), unordered vulnerability traits, and institutional (ordinance) holdings.
   Thresholds are national top-quartile cut-offs within the same unit class; no composite
   score or ranking is produced. v1.4 adds the national recovery-aid threshold layer
   (fiscal-capacity bands under Regulation art. 5①, in force from 2024-11-19) and recorded
   outcomes from the Disaster Yearbook 2012–2024 (central subsidy events, special disaster
-  area declarations, severe-damage events). Sensitivity specifications (p70/p80 thresholds,
-  229-unit aggregation) are shipped alongside for review.
+  area declarations, severe-damage events). v1.4.1 (2026-09-17) restores Jeongeup-si (52180), which was missing from v1.4 (255 units); merged-unit specification is now 230. Sensitivity specifications (p70/p80 thresholds,
+  230-unit aggregation) are shipped alongside for review.
 keywords:
   - disaster risk
   - Korea

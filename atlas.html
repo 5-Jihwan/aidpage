@@ -8,7 +8,7 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%231a5fc4'/%3E%3Cg transform='translate(72 72) scale(0.7200)'%3E%3Cpath d='M256 40 96 104v152c0 108 68 176 160 216 92-40 160-108 160-216V104z' fill='%23fff'/%3E%3Ccircle cx='256' cy='176' r='30' fill='%231a5fc4'/%3E%3Crect x='228' y='228' width='56' height='150' rx='16' fill='%231a5fc4'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
-<link rel="stylesheet" href="css/style.css?v=20260914e">
+<link rel="stylesheet" href="css/style.css?v=20260917a">
 <style>
   :root{--c-물:#2a67cf;--c-산:#66872a;--c-바다:#0f95a8;--c-마름:#c47f22;--c-none:#e3e8f0;--c-교통:#c2447e;--c-trait:#9a7328;--c-inst:#0f4a9e;--rail-w:300px;--top-h:56px}
   html,body{height:100%}
@@ -172,7 +172,7 @@
       <details><summary><span data-ui="f.trait">특징</span> <b id="nTrait"></b></summary><div class="row" id="fTrait"></div></details>
       <details><summary><span data-ui="f.inst">제도·조례</span> <b id="nInst"></b></summary><div class="row" id="fInst"></div></details>
       <details><summary><span data-ui="f.thr">국가 지원 문턱</span> <b id="nThr"></b></summary><div class="row" id="fThr"></div></details>
-      <details id="methodBox"><summary><span data-ui="mb">방법 보기 · 심사자용</span> <b id="nSpec"></b></summary><div class="mb"><label><span data-ui="mb.q">임계</span> <select id="specQ"><option value="p70">p70/p75</option><option value="p75" selected>p75/p80</option><option value="p80">p80/p85</option><option value="p7575">p75/p75</option></select></label><label><span data-ui="mb.u">단위</span> <select id="specU"><option value="255" selected>255</option><option value="229">229</option></select></label></div><div class="mb-note" id="specNote"></div></details>
+      <details id="methodBox"><summary><span data-ui="mb">방법 보기 · 심사자용</span> <b id="nSpec"></b></summary><div class="mb"><label><span data-ui="mb.q">임계</span> <select id="specQ"><option value="p70">p70/p75</option><option value="p75" selected>p75/p80</option><option value="p80">p80/p85</option><option value="p7575">p75/p75</option></select></label><label><span data-ui="mb.u">단위</span> <select id="specU"><option value="256" selected>256</option><option value="230">230</option></select></label></div><div class="mb-note" id="specNote"></div></details>
       <details><summary><span data-ui="f.flag">표식</span></summary><div class="row" id="fFlag"><button type="button" class="chip" data-k="edge" data-ui="fl.edge">경계 표시</button><button type="button" class="chip" data-k="complex" data-ui="fl.complex">복합</button><button type="button" class="chip" data-k="bold" data-ui="fl.bold">굵게</button><button type="button" class="chip" data-k="unseen" data-ui="fl.unseen">아직 안 본 장</button><button type="button" class="chip" data-k="chg" data-ui="fl.chg" id="chipChg" hidden>이 기준에서 바뀜</button></div></details>
     </div>
     <nav class="toc" id="toc"></nav>
@@ -197,7 +197,7 @@
 <canvas id="cv" hidden></canvas>
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script type="module">
-import { DICT } from './js/i18n.js?v=20260914e';
+import { DICT } from './js/i18n.js?v=20260917a';
 const V = '20260912a';
 const ICON = { '물': '💧', '산': '⛰️', '바다': '🌊', '눈': '❄️', '볕': '☀️', '땅': '🪨', '마름': '🏜️', '노년': '🧓', '홀로': '🧍', '이방': '🌐', '돌봄': '♿', '살림': '🏚️', '도심': '🏙️', '들': '🌾', '섬': '🏝️', '접경': '🪖', '교통': '🚗', '화재': '🔥' };
 const COL = { '물': '#2a67cf', '산': '#66872a', '바다': '#0f95a8', '마름': '#c47f22', '교통': '#c2447e', trait: '#9a7328', inst: '#0f4a9e', none: '#e3e8f0' };
@@ -208,7 +208,7 @@ const TRAITS = ['노년', '홀로', '이방', '돌봄', '살림', '도심', '들
 const UPPER_EN = { '구·내륙': 'gu · inland', '구·해안': 'gu · coastal', '시·내륙': 'si · inland', '시·해안': 'si · coastal', '군·내륙': 'gun · inland', '군·해안': 'gun · coastal' };
 /* ── UI strings (ko/en) ── */
 const UI = {
-  ko: { mb: '방법 보기 · 심사자용', 'mb.q': '임계', 'mb.u': '단위', 'mb.note': '{s}: 규칙과 자료는 같고 임계·단위만 다릅니다. 기준(p75/255) 대비 주 타입 또는 성립 여부가 바뀐 곳 <b>{n}</b> / {t} (목차 ▲, 카드 상자, 지도 범례). docs/22 §1·§4의 민감도 표를 대화형으로 옮긴 것입니다.', 'mb.base.note': '기준 사양(위해·특징 p75, 경사·홀로 p80, 단위 255). 임계나 단위를 바꾸면 타입이 어디서 흔들리는지 볼 수 있습니다.', 'mb.u229only': '단위 229는 p75 기준에서만 계산했습니다.', 'mb.nodata': '사양 비교 자료가 없습니다.', 'mb.card': '이 기준에서', 'mb.base': '기준', 'mb.same': '같음', 'mb.chg': '바뀜', 'mb.u229': '{m} 합산 값', 'fl.chg': '이 기준에서 바뀜', 'lg.chg': '바뀜',
+  ko: { mb: '방법 보기 · 심사자용', 'mb.q': '임계', 'mb.u': '단위', 'mb.note': '{s}: 규칙과 자료는 같고 임계·단위만 다릅니다. 기준(p75/256) 대비 주 타입 또는 성립 여부가 바뀐 곳 <b>{n}</b> / {t} (목차 ▲, 카드 상자, 지도 범례). docs/22 §1·§4의 민감도 표를 대화형으로 옮긴 것입니다.', 'mb.base.note': '기준 사양(위해·특징 p75, 경사·홀로 p80, 단위 256). 임계나 단위를 바꾸면 타입이 어디서 흔들리는지 볼 수 있습니다.', 'mb.u230only': '단위 230은 p75 기준에서만 계산했습니다.', 'mb.nodata': '사양 비교 자료가 없습니다.', 'mb.card': '이 기준에서', 'mb.base': '기준', 'mb.same': '같음', 'mb.chg': '바뀜', 'mb.u230': '{m} 합산 값', 'fl.chg': '이 기준에서 바뀜', 'lg.chg': '바뀜',
     'f.thr': '국가 지원 문턱', 'f.thr.m': '지원 문턱', 'thr.k': '국가 지원 문턱 · 규정 제5조① (2024-11-19~)', 'thr.sub': '피해 {v} 원부터 국고지원', 'thr.decl': '특별재난지역 선포 기준 {v} (읍·면·동 단위 {e})', 'thr.fi': '재정력지수 {v} ({y} 평균)', 'thr.unit.parent': '{p} 단위 값(시 전체에 같이 적용)', 'thr.range': '재정력 구간에 따라 {a}~{b}', 'thr.na.gu': '자치구는 광역시 본청과 합산해 교부세를 산정하므로 재정력지수가 따로 공표되지 않습니다. 시·구 재정력 통계 확보 후 채웁니다.', 'thr.na.jeju': '제주는 행정시라 별도 재정력지수가 없습니다(도 단위 산정).', 'thr.na': '재정력지수 미확보', 'thr.na.s': '지수 없음', 'thr.b0': '재정력 0.1 미만 (26억)', 'thr.b1': '0.1~0.2 (33억)', 'thr.b2': '0.2~0.4 (41억)', 'thr.b3': '0.4~0.6 (49억)', 'thr.b4': '0.6 이상 (57억)', rec: '기록된 결과', 'rec.s': '재해연보 2012~2024 · 인쇄된 사실만 · 예측 아님', 'rec.unit.parent': '{p} 단위 기록(구별 구분 없음)', 'rec.sub': '국고지원(우심) 해당 {n}회', 'rec.decl': '특별재난지역 선포 {n}회', 'rec.decl.mix': '시군구 단위 {s}·읍면동 단위 {e}', 'rec.woo': '우심피해 2015~2024 {n}건 · {v}', 'rec.woo.none': '우심피해 2015~2024 없음', 'rec.cnt': '건', eok: '억',
     title: '🧭 AidPage Atlas <small style="font-weight:500;color:var(--mute)">도감</small>', 'v.book': '카드', 'v.map': '지도', rnd: '아무 장이나', 'rnd.t': '아무 시·군·구나 한 장', 'prog.t': '이 브라우저에서 펼쳐 본 카드 수', dict: '타입 사전', home: '← 본 사이트', q: '시·군·구 검색 (예: 진안, 관악)',
     'f.prim': '자연 위해', 'f.basis': '근거', 'f.soc': '사회 위해', 'f.trait': '특징', 'f.inst': '제도·조례', 'f.flag': '표식', 'fl.edge': '경계 표시', 'fl.complex': '복합', 'fl.bold': '굵게', 'fl.unseen': '아직 안 본 장',
@@ -227,7 +227,7 @@ const UI = {
     'd.bold': '굵게', 'd.bold.d': '인구밀도 상위 25% — 노출이 큼 (주 타입이 근접·희미이면 미적용)', 'd.zone': '지정', 'd.complex': '복합', 'd.edge': '경계', 'd.lean': '근접', 'd.faint': '희미',
     'dict.foot': '임계 = 같은 단위 전국 상위 25%(사회 위해는 같은 군·시·구 유형 안). 이 도감은 지역을 서열화하지 않습니다. 기록이 없다는 것이 안전하다는 뜻은 아닙니다.<br>키보드: <span class="kbd">←</span> <span class="kbd">→</span> 앞·뒤 장, <span class="kbd">R</span> 아무 장이나, <span class="kbd">M</span> 지도/카드',
     'bs.history': '이력', 'bs.zone': '지정', 'bs.lean': '근접', 'bs.faint': '희미', 'bs.contact': '접촉·지정', 'cv.rule': '규칙 {v} · 같은 단위 전국 상위 25% 임계 · 순위 없음 · 기록 없음 ≠ 안전', 'cv.src': 'aidpage 도감 · 5-jihwan.github.io/aidpage/dex.html' },
-  en: { mb: 'Method view · for reviewers', 'mb.q': 'Threshold', 'mb.u': 'Units', 'mb.note': '{s}: same rules and data, only thresholds or areal units differ. Primary class or eligibility changed vs baseline (p75/255) in <b>{n}</b> / {t} districts (▲ in the list, box on the card, map legend). Interactive version of the sensitivity tables in docs/22 §1·§4.', 'mb.base.note': 'Baseline specification (hazards & traits p75, slope & single-person p80, 255 units). Change a threshold or the unit to see where classes move.', 'mb.u229only': 'The 229-unit specification is computed at p75 only.', 'mb.nodata': 'No specification comparison data.', 'mb.card': 'Under this specification', 'mb.base': 'baseline', 'mb.same': 'same', 'mb.chg': 'changed', 'mb.u229': 'merged value of {m}', 'fl.chg': 'Changed under this spec', 'lg.chg': 'changed',
+  en: { mb: 'Method view · for reviewers', 'mb.q': 'Threshold', 'mb.u': 'Units', 'mb.note': '{s}: same rules and data, only thresholds or areal units differ. Primary class or eligibility changed vs baseline (p75/256) in <b>{n}</b> / {t} districts (▲ in the list, box on the card, map legend). Interactive version of the sensitivity tables in docs/22 §1·§4.', 'mb.base.note': 'Baseline specification (hazards & traits p75, slope & single-person p80, 256 units). Change a threshold or the unit to see where classes move.', 'mb.u230only': 'The 230-unit specification is computed at p75 only.', 'mb.nodata': 'No specification comparison data.', 'mb.card': 'Under this specification', 'mb.base': 'baseline', 'mb.same': 'same', 'mb.chg': 'changed', 'mb.u230': 'merged value of {m}', 'fl.chg': 'Changed under this spec', 'lg.chg': 'changed',
     'f.thr': 'National aid threshold', 'f.thr.m': 'Aid threshold', 'thr.k': 'National aid threshold · Regulation art. 5① (from 2024-11-19)', 'thr.sub': 'Central aid from {v} of damage', 'thr.decl': 'Special disaster area from {v} (eup/myeon/dong {e})', 'thr.fi': 'Fiscal capacity {v} ({y} avg)', 'thr.unit.parent': 'City-level value ({p}), same for every district', 'thr.range': '{a}–{b} depending on fiscal band', 'thr.na.gu': 'Autonomous districts of metropolitan cities are assessed with the city, so no separate fiscal capacity index is published. To be filled once the city/district table is obtained.', 'thr.na.jeju': 'Jeju’s two cities are administrative cities without a separate index (assessed at province level).', 'thr.na': 'Fiscal capacity index not available', 'thr.na.s': 'No index', 'thr.b0': 'Fiscal < 0.1 (₩2.6B)', 'thr.b1': '0.1–0.2 (₩3.3B)', 'thr.b2': '0.2–0.4 (₩4.1B)', 'thr.b3': '0.4–0.6 (₩4.9B)', 'thr.b4': '≥ 0.6 (₩5.7B)', rec: 'Recorded outcomes', 'rec.s': 'Disaster Yearbook 2012–2024 · printed facts only · not a forecast', 'rec.unit.parent': 'City-level record ({p}), not split by district', 'rec.sub': 'Central subsidy events: {n}', 'rec.decl': 'Special disaster declarations: {n}', 'rec.decl.mix': '{s} at district level · {e} at township level', 'rec.woo': 'Severe-damage events 2015–2024: {n} · {v}', 'rec.woo.none': 'No severe-damage event 2015–2024', 'rec.cnt': '', eok: '00M',
     title: '🧭 AidPage Atlas', 'v.book': 'Cards', 'v.map': 'Map', rnd: 'Random', 'rnd.t': 'Any district', 'prog.t': 'Cards opened in this browser', dict: 'Type dictionary', home: '← Main site', q: 'Search district (e.g. Jinan, Gwanak)',
     'f.prim': 'Natural hazard', 'f.basis': 'Basis', 'f.soc': 'Social hazard', 'f.trait': 'Traits', 'f.inst': 'Ordinances', 'f.flag': 'Flags', 'fl.edge': 'Borderline', 'fl.complex': 'Multi', 'fl.bold': 'Bold', 'fl.unseen': 'Not opened yet',
@@ -275,9 +275,9 @@ const THR_COL = ['#f4c95d', '#e7a23a', '#c97c2c', '#9d5622', '#6b3a17'];
 const won = v => v == null ? '—' : L === 'en' ? `₩${(v / 10).toLocaleString('en-US', { maximumFractionDigits: v < 10 ? 2 : 1 })}B` : `${Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 })}억`;
 const wonK = k => k == null ? '—' : won(k / 100000);
 /* 방법 보기(심사자용, docs/24 §5-3): 임계·단위 사양을 바꿔 같은 규칙을 다시 돌린 결과(sgg_type_specs.json).
-   기준(p75/255)이면 null. 단위 229는 p75에서만 계산했으므로 둘 다 바꾸면 단위 229가 우선한다. */
-const spec = { q: 'p75', u: '255' };
-const specKey = () => spec.u === '229' ? 'u229' : (spec.q === 'p75' ? null : spec.q);
+   기준(p75/256)이면 null. 단위 230은 p75에서만 계산했으므로 둘 다 바꾸면 단위 230이 우선한다. */
+const spec = { q: 'p75', u: '256' };
+const specKey = () => spec.u === '230' ? 'u230' : (spec.q === 'p75' ? null : spec.q);
 const altOf = r => { const k = specKey(); return SP && k && SP.specs[k] ? SP.specs[k][r.code] || null : null; };
 const specChanged = r => { const a = altOf(r); return !!a && (a.p !== r.s.primary || (a.lean == null) !== (r.s.lean == null)); };
 const effP = r => { const a = altOf(r); return a ? a.p : r.s.primary; };
@@ -404,7 +404,7 @@ function specHtml(r) {
   const tp = (p, lean) => p ? `${ICON[p] || ''} ${tn(p)}${lean ? ` (${lean === '근접' ? T('bs.lean') : T('bs.faint')})` : ''}` : T('b.none');
   const tr = arr => (arr || []).length ? arr.map(k => `${ICON[k] || ''}${tn(k)}`).join('·') : T('none');
   const base = r.s;
-  return `<div class="spec ${chg ? 'chg' : ''}"><div class="k">${T('mb.card')} · ${esc(specLabel(k))}${a.m ? ` · ${T('mb.u229', { m: esc(a.mn || '') })}` : ''}</div>
+  return `<div class="spec ${chg ? 'chg' : ''}"><div class="k">${T('mb.card')} · ${esc(specLabel(k))}${a.m ? ` · ${T('mb.u230', { m: esc(a.mn || '') })}` : ''}</div>
     <div class="v"><b>${tp(a.p, a.lean)}</b><span class="tag ${chg ? 'on' : ''}">${chg ? T('mb.chg') : T('mb.same')}</span><small>${T('mb.base')}: ${tp(base.primary, base.lean && base.lean.deg)}</small></div>
     <div class="d">${T('tr.k').split(' ·')[0]}: ${tr(a.t)} <small>(${T('mb.base')}: ${tr(base.traits)})</small>${a.s !== (base.social || null) ? ` · ${T('b.soc')}: ${a.s ? tn(a.s) : T('b.none')} <small>(${T('mb.base')}: ${base.social ? tn(base.social) : T('b.none')})</small>` : ''}</div></div>`;
 }
@@ -624,11 +624,11 @@ function applySpec() {
   const k = specKey(), n = k ? rows.filter(specChanged).length : 0;
   $('#nSpec').textContent = k ? `${n}` : '';
   $('#chipChg').hidden = !k; if (!k && F.flag.has('chg')) { F.flag.delete('chg'); $('#chipChg').classList.remove('is-on'); }
-  $('#specNote').innerHTML = !SP ? T('mb.nodata') : k ? T('mb.note', { n, t: rows.length, s: esc(specLabel(k)) }) + (spec.u === '229' && spec.q !== 'p75' ? ' ' + T('mb.u229only') : '') : T('mb.base.note');
+  $('#specNote').innerHTML = !SP ? T('mb.nodata') : k ? T('mb.note', { n, t: rows.length, s: esc(specLabel(k)) }) + (spec.u === '230' && spec.q !== 'p75' ? ' ' + T('mb.u230only') : '') : T('mb.base.note');
   $$('#toc li').forEach(li => { const r = byCode[li.dataset.c]; li.classList.toggle('chg', !!r && specChanged(r)); });
   applyFilters(); if (cur) show(cur, true); if (map) paintMap();
 }
-const specLabel = k => L === 'en' ? ({ p70: 'p70/p75', p75: 'p75/p80 (baseline)', p80: 'p80/p85', p7575: 'p75/p75 (slope & single-person p75)', u229: '229 units (13 multi-district cities merged)' })[k] : (SP && SP.meta.specs[k]) || k;
+const specLabel = k => L === 'en' ? ({ p70: 'p70/p75', p75: 'p75/p80 (baseline)', p80: 'p80/p85', p7575: 'p75/p75 (slope & single-person p75)', u230: '230 units (13 multi-district cities merged)' })[k] : (SP && SP.meta.specs[k]) || k;
 $('#specQ').addEventListener('change', e => { spec.q = e.target.value; applySpec(); });
 $('#specU').addEventListener('change', e => { spec.u = e.target.value; applySpec(); });
 function rebuild() {

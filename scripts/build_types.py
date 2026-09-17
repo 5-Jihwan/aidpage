@@ -43,7 +43,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 RZ_MODE = os.environ.get("RZ_MODE", "pos")  # all | pos | tag (docs/14 §7)
-VERSION = "v1.4-20260907-" + RZ_MODE
+VERSION = "v1.4.1-20260917-" + RZ_MODE  # v1.4.1: 정읍시(52180) 누락 수정, 256곳
 EDGE = 0.05  # 임계 ±5%
 
 rows = list(csv.DictReader(io.open(P("docs", "lib", "sgg_typology_explore_20260903.csv"), encoding="utf-8")))

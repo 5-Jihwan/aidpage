@@ -32,3 +32,5 @@ data/src/vuln/*.png
 docs/23_*
 # 재해연보 원본 PDF·파생 CSV(연구용, 로컬 전용)
 .work_yearbook/
+# 로컬 미리보기 래퍼(배포 전 화면 확인용)
+wrap_*.html

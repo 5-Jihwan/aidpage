@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919d';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919d';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919e';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919e';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -573,7 +573,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260919d');
+      _simMod = await import('./sim.js?v=20260919e');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -2228,6 +2228,16 @@ const acc = (id, title, sum, body, { open = false, solo = true, hidden = false }
 addEventListener('beforeprint', () => $$('details.acc').forEach(d => { d.dataset.was = d.open ? '1' : ''; d.open = true; }));
 addEventListener('afterprint', () => $$('details.acc').forEach(d => { d.open = !!d.dataset.was; }));
 
+/* ---------- A1c 인쇄 한 장 v2 (docs/42): 화면의 접힘 줄 대신 표 한 장 — 주민이 들고 가고, 담당자가 근거 줄로 확인한다 (docs/40 §3.2) ---------- */
+function printSheetHTML(res, cashItems) {
+  const items = [...cashItems, ...(res.auto || []), ...(res.apply || []), ...(res.insurance || [])];
+  if (!items.length) return '';
+  const conf = r => r.confidence === 'verified' ? '' : ` <span class="ps-conf">${r.confidence === 'reported' ? t('badge.reported') : t('badge.est')}</span>`;
+  const rows = items.map(r => `<tr><td><b>${r.label}</b>${conf(r)}<div class="ps-law">${escapeHTML(r.basis || '')}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div></td><td>${r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '')}</td><td>${escapeHTML((r.where || '').replace(/\s*\([^)]*\)/g, ''))}</td></tr>`).join('');
+  const docs = [...new Set(items.flatMap(r => r.docs || []).map(d => d.replace(/\s*\([^)]*\)/g, '')))].map(escapeHTML).join(' · ');   // 괄호를 뗀 뒤에 중복 제거(영어에서 같은 이름이 두 번 나왔다)
+  return `<div class="print-only print-sheet"><h3>${t('print.got')}</h3><table><thead><tr><th>${t('print.h.item')}</th><th>${t('print.h.what')}</th><th>${t('print.h.where')}</th></tr></thead><tbody>${rows}</tbody></table>${docs ? `<p class="ps-docs"><b>${t('print.docs')}</b> ${docs}</p>` : ''}<div class="ps-staff"><b>${t('print.staff.h')}</b> ${t('print.staff')}</div><div class="ps-foot">${t('print.foot')} · 5-jihwan.github.io/aidpage</div></div>`;
+}
+
 function renderResult(res, inp) {
   const n = nameOf(), el = $('#result'); el.hidden = false;
   const place = state.emd ? `${n.sidoName} ${n.sggName} ${n.emdName}` : t('res.noloc');
@@ -2253,17 +2263,18 @@ function renderResult(res, inp) {
   const docsN = new Set([...(res.cash || []), ...(res.relief_fund || []), ...(res.apply || []), ...(res.insurance || [])].flatMap(r => r.docs || [])).size;
   const stepsHTML = v && v !== 'shelter' ? `<div class="steps">${['report', 'survey', 'pay', 'more'].map((k, i) => `<span class="${i === (v === 'nonews' ? 1 : 0) ? 'on' : ''}">${t('step.' + k)}</span>`).join('<i></i>')}</div>` : '';
   el.innerHTML = `
+    <div class="print-head"><div><b>AidPage</b> ${t('brand.sub')}</div><div>${place} · ${inp.today} · ${t(inp.proxy ? 'print.proxy' : 'print.self')}</div></div>
     <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><div class="result-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSpeak" title="${t('tts.title')}">🔊</button><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div></div>
     ${v ? firstBoxHTML(v, res, inp, dl, icsBtn) + stepsHTML : `<div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>${dlHTML}${icsBtn}`}
     ${acc('late', t('late.title'), '', lateHTML, { open: true })}
     ${inp.foreign ? `<div class="result-block foreign"><h3>${t('fr.title')}</h3><p>${t('fr.ok')}</p><p>${t('fr.cash')}</p><p>${t('fr.emergency')}</p><p>${t('fr.check')}</p><div class="fr-call">📞 ${t('fr.call')}</div></div>` : ''}
-    <div class="print-head"><div>${place} · ${inp.today}</div><div>${t('res.print.for')}</div></div>
     ${nGot ? acc('got', t('res.got'), gotSum, `<div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>${sec(t('res.auto'), res.auto)}${sec(t('res.apply'), res.apply)}${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}`, { solo: false }) : v === 'nonews' ? `<p class="muted first-hint">${t('first.nonews.hint')}</p>` : ''}
     ${acc('docs', t('res.docs'), t('res.docs.n', { n: docsN }), docsHTML(res))}
     ${acc('miss', inp.household_unknown ? t('res.maybe') : t('res.miss'), t('res.n', { n: nm.length }), nm.length ? `<div class="result-block miss ${inp.household_unknown ? 'is-unknown' : ''}"><h3>${inp.household_unknown ? t('res.maybe') : t('res.miss')}</h3>${inp.household_unknown ? `<small class="muted">${t('res.maybe.s')}</small>` : ''}${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : '')}
     ${acc('psych', t('res.psych'), '', psychHTML)}
     ${acc('welfare', t('res.welfare'), '', `<div class="result-block welfare" id="welfareBox" hidden></div>`, { hidden: true })}
     ${acc('proc', t('res.proc.all'), t('res.proc.n', { n: (res.timeline || []).length }), `<div class="result-block"><h3>${t('res.proc')}</h3><ol class="timeline">${(res.timeline || []).map(s => `<li><b>${s.label}</b>${s.due ? ` <span class="badge">${t('badge.due', { d: s.due })}${s.days_left != null ? (s.days_left < 0 ? ' · ' + t('badge.over') : ` · D-${s.days_left}`) : ''}</span>` : ''}<small>${[s.summary, s.where, s.docs && s.docs.length && s.docs.join(', '), s.typical_days].filter(Boolean).join(' · ')}</small></li>`).join('')}</ol></div>`)}
+    ${printSheetHTML(res, cashItems)}
     <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><button type="button" class="btn btn-ghost" id="btnImg">🖼 ${t('res.img')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
     <div class="disclaimer">${t('res.disc')}</div>`;
   renderWelfare(inp);
@@ -2276,7 +2287,7 @@ function renderResult(res, inp) {
   const ib = $('#btnIcs'); if (ib && dl) ib.onclick = () => downloadICS(`${dl.label} — AidPage`, dl.due, `${place}\n${t('res.dl.ext', { due: dl.due })}\n${location.href}`);
   // print-only: nearest community center (피해신고 접수처)
   const fw = $('#firstWhere', el), fk = fw ? fw.dataset.kind : 'townhall';
-  if (state.emd && state.shelters.avail.some(a => a.id === fk)) { const e = state.idx.byEmd.get(state.emd); nearestShelters([e.lon, e.lat], [fk], state.sido, 1, true).then(l => { if (l[0] && !el.hidden) { if (fw && fw.isConnected) { fw.innerHTML = `<b>${escapeHTML(l[0].p.name)}</b> · ${t('sh.walk', { n: l[0].walk })}`; const fa = $('#firstActs', el); if (fa) fa.insertAdjacentHTML('afterbegin', `${l[0].p.tel ? `<a class="btn btn-ghost btn-sm" href="tel:${l[0].p.tel}">📞 ${t('first.call')}</a>` : ''}`); fw.closest('dd').insertAdjacentHTML('beforeend', routeLinks(l[0].c[0], l[0].c[1], l[0].p.name)); } if (fk !== 'townhall') return; const d = document.createElement('div'); d.className = 'result-block print-only'; d.innerHTML = `<h3>${t('res.print.townhall')}</h3><b>${l[0].p.name}</b><br>${l[0].p.addr || ''}${l[0].p.tel ? ` · ${l[0].p.tel}` : ''} · ${t('sh.walk', { n: l[0].walk })}`; el.querySelector('.share-row').before(d); } }); }
+  if (state.emd && state.shelters.avail.some(a => a.id === fk)) { const e = state.idx.byEmd.get(state.emd); nearestShelters([e.lon, e.lat], [fk], state.sido, 1, true).then(l => { if (l[0] && !el.hidden) { if (fw && fw.isConnected) { fw.innerHTML = `<b>${escapeHTML(l[0].p.name)}</b> · ${t('sh.walk', { n: l[0].walk })}`; const fa = $('#firstActs', el); if (fa) fa.insertAdjacentHTML('afterbegin', `${l[0].p.tel ? `<a class="btn btn-ghost btn-sm" href="tel:${l[0].p.tel}">📞 ${t('first.call')}</a>` : ''}`); fw.closest('dd').insertAdjacentHTML('beforeend', routeLinks(l[0].c[0], l[0].c[1], l[0].p.name)); } if (fk !== 'townhall') return; const d = document.createElement('div'); d.className = 'result-block print-only'; d.innerHTML = `<h3>${t('res.print.townhall')}</h3><b>${l[0].p.name}</b><br>${l[0].p.addr || ''}${l[0].p.tel ? ` · ${l[0].p.tel}` : ''} · ${t('sh.walk', { n: l[0].walk })}`; (el.querySelector('.first') || el.querySelector('.share-row'))[el.querySelector('.first') ? 'after' : 'before'](d); } }); }
   $$('input[data-doc]', el).forEach(c => c.addEventListener('change', () => { const on = $$('input[data-doc]', el).filter(x => x.checked).map(x => x.nextElementSibling.textContent); sessionStorage.setItem('safepic.docs', JSON.stringify(on)); }));
   $('#btnCopy').onclick = async () => { stat('share_copy'); try { await navigator.clipboard.writeText(location.href); $('#copied').textContent = t('res.copied'); setTimeout(() => $('#copied').textContent = '', 2000); } catch { prompt('URL', location.href); } };
   $('#panelScroll').scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });

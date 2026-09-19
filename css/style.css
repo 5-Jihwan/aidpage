@@ -890,3 +890,24 @@ details.acc[open]>summary::after{content:"▴"}
 .acc-in .result-block{margin-bottom:8px}
 .acc-solo .acc-in>.result-block>h3:first-child,.acc-solo .acc-in>h3:first-child{display:none}
 @media print{ .first{border:2px solid #000;background:#fff;break-inside:avoid} .first-acts,.steps{display:none} details.acc{border:0} details.acc>summary::after{display:none} details.acc>summary{padding:6px 0} .acc-in{padding:0} }
+
+/* A1c 인쇄 한 장 v2 */
+@media print{
+  details.acc:not([data-acc="late"]),.first .route-row,.result-tools{display:none!important}
+  .result h2{font-size:15pt;margin-bottom:6px}
+  .first{padding:8px 10px;margin-bottom:8px} .first-do{font-size:16pt} .first dl{font-size:11pt;margin-top:6px}
+  .print-only.result-block{padding:6px 10px;margin-bottom:8px;font-size:10.5pt} .print-only.result-block h3{display:inline;border:0;padding:0;margin:0 6px 0 0;font-size:10.5pt}
+  .print-sheet h3{font-size:11pt;margin:8px 0 4px;border:0;padding:0}
+  .print-sheet table{width:100%;border-collapse:collapse;font-size:10pt;line-height:1.35}
+  .print-sheet th{text-align:left;font-weight:600;color:#444;border-bottom:1.5px solid #000;padding:2px 4px}
+  .print-sheet td{border-bottom:1px solid #bbb;padding:3px 4px;vertical-align:top} .print-sheet td:nth-child(2){white-space:normal;width:30%} .print-sheet td:nth-child(3){width:24%}
+  .print-sheet tr{break-inside:avoid}
+  .ps-law{font-size:7.5pt;color:#444;line-height:1.25} .ps-conf{font-size:7.5pt;border:1px solid #888;border-radius:3px;padding:0 3px;font-weight:400}
+  .ps-docs{font-size:9pt;margin:8px 0 0;line-height:1.4}
+  .ps-staff{border:1px dashed #555;border-radius:6px;padding:6px 8px;margin-top:8px;font-size:9pt;line-height:1.4;break-inside:avoid}
+  .ps-foot{margin-top:8px;border-top:1px solid #bbb;padding-top:4px;font-size:8pt;color:#444}
+  .disclaimer{font-size:8pt;margin-top:6px}
+  /* 머리줄은 아래쪽 기본 규칙(.print-head{display:none})에 져서 그동안 인쇄에 안 나왔다 */
+  .print-head{display:flex!important}
+  .result-block.late{font-size:10pt;padding:8px 10px} .result-block.late .late-list{margin:4px 0;padding-left:18px} .late-list li{font-size:10pt!important;padding:2px 0!important;margin:0} .result-block.late small{font-size:8pt}
+}

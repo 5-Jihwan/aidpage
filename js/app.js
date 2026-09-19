@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919b';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919b';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -573,7 +573,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260919a');
+      _simMod = await import('./sim.js?v=20260919b');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -1712,7 +1712,7 @@ function initLang() {
     }));
   }
   $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, () => {
-    document.title = getLang() === 'en' ? 'AidPage · Your situation, your safety — on one page' : 'AidPage · 내 상황에 맞는 안전, 한 장으로';
+    document.title = getLang() === 'en' ? 'AidPage · Disaster assistance navigator, on one page' : 'AidPage · 재난 지원제도 안내, 한 장으로';
     paint(); setRulesLang(getLang()); applyRulesLang(); renderAll(); renderTip(); if (state.meta) { $('#aboutAdmin').textContent = `${state.meta.source || ''} ${state.meta.version || ''}`.trim(); $('#buildDate').textContent = state.meta.built || ''; } syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
     if (map) { localizeLabels(); ['sgg-label', 'emd-label'].forEach(id => map.getLayer(id) && map.setLayoutProperty(id, 'text-field', adminNameField())); if (map.getLayer('landmark-label')) map.setLayoutProperty('landmark-label', 'text-field', landmarkNameField()); applyWxLayer(); }
     if (state.lastResult && evaluate) { state.lastResult.res = evaluate(state.rules, state.lastResult.inp, getLang()); renderResult(state.lastResult.res, state.lastResult.inp); }
@@ -2238,7 +2238,7 @@ function renderRulesTable() {
 /* ---------- boot ---------- */
 (async function boot() {
   applyStatic();
-  if (getLang() === 'en') document.title = 'AidPage · Your situation, your safety — on one page';
+  if (getLang() === 'en') document.title = 'AidPage · Disaster assistance navigator, on one page';
   $$('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
   const goStart = () => { setTab('now'); resetNation(); const w = $('#wizard'); if (w) { w.reset(); syncWizardLoc(); } const r = $('#result'); if (r) r.hidden = true; $('#mapHint').classList.remove('is-hidden'); if (state._welOpen) state._welOpen(); };
   $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });

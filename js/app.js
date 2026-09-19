@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919e';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919e';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919f';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919f';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -329,13 +329,28 @@ function visiblePadding() {
   return clampPad({ top: 70, bottom: 40, left: pw, right: 170 });
 }
 /* 🔊 읽어주기 (Web Speech, 키 불필요) */
-let speaking = false;
+let speaking = false, _utts = [];   // _utts: 크롬은 참조가 끊긴 발화를 도중에 수거해 버린다 → 끝날 때까지 붙들어 둔다
+if ('speechSynthesis' in window) speechSynthesis.getVoices();   // 음성 목록은 첫 호출 때 비동기로 채워진다 — 미리 깨워 둔다
+/* 09-19 "눌러도 안 읽어 준다" 수정. 원인 셋: ① cancel() 직후 speak()는 크롬(특히 안드로이드)이 삼킨다 → 말하는 중일 때만 cancel, 조금 뒤에 speak
+   ② 긴 한 문장은 크롬이 15초쯤에서 끊는다 → 문장 단위로 나눠 줄 세운다 ③ 음성을 지정하지 않으면 기기 기본 음성(영어)이 한국어를 못 읽는다 → 언어에 맞는 음성을 고른다 */
 function speak(text, btn) {
   if (!('speechSynthesis' in window)) { alert(t('tts.unsupported')); return; }
-  if (speaking) { speechSynthesis.cancel(); speaking = false; if (btn) btn.classList.remove('is-on'); return; }
-  const u = new SpeechSynthesisUtterance(text); u.lang = getLang() === 'en' ? 'en-US' : 'ko-KR'; u.rate = document.documentElement.classList.contains('big') ? 0.9 : 1;
-  u.onend = u.onerror = () => { speaking = false; if (btn) btn.classList.remove('is-on'); };
-  speaking = true; if (btn) btn.classList.add('is-on'); speechSynthesis.cancel(); speechSynthesis.speak(u);
+  const ss = speechSynthesis, stop = () => { speaking = false; _utts = []; if (btn) btn.classList.remove('is-on'); };
+  if (speaking) { ss.cancel(); stop(); return; }
+  const lg = getLang() === 'en' ? 'en' : 'ko';
+  const voice = ss.getVoices().find(v => v.lang.toLowerCase().startsWith(lg));
+  const parts = String(text).split(/\.\s+|\n+/).map(s => s.trim()).filter(Boolean);
+  if (!parts.length) return;
+  if (ss.speaking || ss.pending) ss.cancel();
+  _utts = parts.map((p, i) => {
+    const u = new SpeechSynthesisUtterance(p); u.lang = lg === 'en' ? 'en-US' : 'ko-KR'; if (voice) u.voice = voice;
+    u.rate = document.documentElement.classList.contains('big') ? 0.9 : 1;
+    if (i === parts.length - 1) u.onend = stop;
+    u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled') stop(); };
+    return u;
+  });
+  speaking = true; if (btn) btn.classList.add('is-on');
+  setTimeout(() => { _utts.forEach(u => ss.speak(u)); setTimeout(() => { if (speaking && !ss.speaking && !ss.pending) { stop(); alert(t('tts.novoice')); } }, 1500); }, 80);
 }
 const plain = html => { const d = document.createElement('div'); d.innerHTML = html; return d.textContent.replace(/\s+/g, ' ').trim(); };
 /* 🖼 결과 카드 이미지 (카톡·가족방 공유용, 1080×1350) */
@@ -573,7 +588,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260919e');
+      _simMod = await import('./sim.js?v=20260919f');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -2283,7 +2298,7 @@ function renderResult(res, inp) {
   const bl = $('#btnStill'); if (bl) bl.onclick = () => { const d = $('details[data-acc="late"]', el); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
   $('#btnEdit').onclick = () => { el.hidden = true; $('#panelScroll').scrollTop = 0; };
   $('#btnImg').onclick = () => shareImage(res, inp);
-  $('#btnSpeak').onclick = () => { const txt = [place, formatKRW(res.total_cash_krw || 0) + ' ' + t('res.cash.s'), dl ? `${dl.label} ${dl.due}` : '', ...(res.todo || []).map(x => x.text || x), ...cashItems.map(r => `${r.label} ${r.amount_text || ''}`)].filter(Boolean).join('. '); speak(txt, $('#btnSpeak')); };
+  $('#btnSpeak').onclick = () => { const fb = $('.first', el); const txt = [place, fb ? [...fb.querySelectorAll('.first-do, dt, dd')].map(n => (n.firstChild && n.firstChild.textContent || n.textContent).trim()).join('. ') : '', formatKRW(res.total_cash_krw || 0) + ' ' + t('res.cash.s'), dl ? `${dl.label} ${dl.due}` : '', ...(res.todo || []).map(x => x.text || x), ...cashItems.map(r => `${r.label} ${r.amount_text || ''}`)].filter(Boolean).join('. '); speak(txt, $('#btnSpeak')); };
   const ib = $('#btnIcs'); if (ib && dl) ib.onclick = () => downloadICS(`${dl.label} — AidPage`, dl.due, `${place}\n${t('res.dl.ext', { due: dl.due })}\n${location.href}`);
   // print-only: nearest community center (피해신고 접수처)
   const fw = $('#firstWhere', el), fk = fw ? fw.dataset.kind : 'townhall';

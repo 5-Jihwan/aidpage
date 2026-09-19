@@ -1461,7 +1461,7 @@ function initSearch() {
 function setTab(tab) {
   state.tab = tab;
   $$('.tab').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tab));
-  const at = $('.tab.is-active'); if (at && at.scrollIntoView) at.scrollIntoView({ block: 'nearest', inline: 'nearest' }); // 폰: 활성 탭이 절단면에 걸치지 않게
+  const at = $('.tab.is-active'); if (at && at.scrollIntoView) at.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); // 폰: 활성 탭을 가운데로(오른쪽 페이드 밑에 걸치지 않게), 점프 대신 미끄러지게
   $$('.view').forEach(v => v.classList.toggle('is-active', v.dataset.view === tab));
   if (!state._autoNav) $('#panel').classList.remove('is-collapsed'); $('#panelScroll').scrollTop = 0;
   if (tab === 'about') { renderRulesTable(); renderSiteStats(); }
@@ -1544,7 +1544,10 @@ function initPanel() {
   let armed = false;
   const arm = () => { if (!armed) { ps.addEventListener('touchmove', onSheetMove, { passive: false }); armed = true; } };
   const disarm = () => { if (armed) { ps.removeEventListener('touchmove', onSheetMove); armed = false; } };
-  ps.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; if ((ps.scrollTop <= 0 || p.classList.contains('is-collapsed')) && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; arm(); } }, { passive: true });
+  // 09-19: 가로 스크롤 영역(상황 칩·예보 타임라인·표)에서 시작한 터치는 시트 제스처로 장착하지 않는다 — 맨 위에서는 non-passive touchmove가 걸려
+  // 가로 스크롤이 JS를 기다리며 끊기고, 손가락이 4px만 아래로 흘러도 preventDefault가 가로 스크롤을 죽였다.
+  const X_SCROLL = '.sit-bar,.wx-fcst,.table-wrap';
+  ps.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; if (e.target.closest && e.target.closest(X_SCROLL)) return; if ((ps.scrollTop <= 0 || p.classList.contains('is-collapsed')) && matchMedia(MQ_MOBILE).matches) { shStart(e); sheetDrag = false; arm(); } }, { passive: true });
   // ⚠passive:false + "첫 touchmove부터" preventDefault가 핵심 — 안드로이드 크롬은 네이티브
   // 스크롤이 일단 시작되면 이후 touchmove의 cancelable이 false가 되어 preventDefault가 무력화된다.
   // 12px 문턱을 기다렸다 막으면 이미 늦는다(그 사이 브라우저가 제스처를 가져가 touchcancel).

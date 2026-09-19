@@ -19,6 +19,7 @@
   .sim-panel select{height:40px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font:inherit;font-weight:600;color:var(--ink);background:#fff;width:100%}
   .sim-panel .status{font-size:.84rem;color:var(--mute);margin:4px 0 8px}
   .sim-panel .near{margin:0}
+  .sandbox-banner{border:1px solid #c8432b;background:#fdf5f3;color:#7a2a1b;border-radius:10px;padding:8px 10px;font-size:.84rem;line-height:1.45;margin-bottom:10px}
   .sim-panel .back{display:inline-block;margin-top:10px;font-size:.84rem;color:var(--accent)}
   @media (max-width:640px){.sim-panel{top:auto;bottom:0;left:0;width:100%;max-height:62vh;border-radius:16px 16px 0 0}}
 </style>
@@ -26,7 +27,8 @@
 <body>
 <div id="map" aria-label="지도"></div>
 <aside class="sim-panel">
-  <h1>🧭 AidPage Simulator <small>standalone</small></h1>
+  <div class="sandbox-banner"><b>연구 샌드박스</b> — 지도의 선은 도로가 아닙니다. 격자(한 칸 약 170~460m) 위의 방향이며 길 안내가 아닙니다. 본 사이트는 선 없이 문장으로만 알려 드리고, 이 페이지는 연구용으로 그대로 묶어 둡니다(2026-09 동결).<br><small>Research sandbox: lines are not roads, and this is not navigation. Frozen 2026-09.</small></div>
+  <h1>🧭 AidPage Simulator <small>research sandbox</small></h1>
   <div class="fine">시·군·구를 고르면 위험 격자가 뜨고, 출발·목적지를 지도에서 찍어 실행합니다. 본 사이트와 같은 데이터·같은 계산기를 씁니다.</div>
   <div class="pick"><select id="selSido" aria-label="시·도"></select><select id="selSgg" aria-label="시·군·구" disabled></select></div>
   <div class="status" id="status">시·도부터 골라주세요.</div>
@@ -36,9 +38,9 @@
 </aside>
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script type="module">
-import { initGrid, hasGrid, cells as gridCells, show as showGrid, hide as hideGrid } from './js/grid.js?v=20260919g';
+import { initGrid, hasGrid, cells as gridCells, show as showGrid, hide as hideGrid } from './js/grid.js?v=20260919h';
 import { initShelters, collect as collectShelters, nearest as nearestShelters, KINDS } from './js/shelters.js?v=20260914b';
-import { initSim, openSim, closeSim } from './js/sim.js?v=20260919g';
+import { initSim, openSim, closeSim } from './js/sim.js?v=20260919h';
 const $ = (s, r = document) => r.querySelector(s);
 const state = { sgg: null, sido: null, gps: null, sim: null, simPick: null, shelters: { avail: [] }, _gridAvail: false, live: { alerts: null } };
 let idx = [], map;

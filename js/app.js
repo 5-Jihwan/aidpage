@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919g';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919g';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919h';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919h';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -588,15 +588,10 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260919g');
-      _simMod.initSim({
-        map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
-        warningsFor: () => warningsFor(state.sgg, state.sido),
-        // 폰: 지도에서 지점을 찍는 동안 시트를 내려 지도를 보이게, 찍고 나면 다시 올린다
-        onPick: on => { if (!matchMedia(MQ_MOBILE).matches) return; const p = $('#panel'); p.classList.toggle('is-collapsed', on); if (!on) p.classList.remove('is-tall'); p.style.height = ''; setTimeout(() => map.resize(), 260); },
-      });
+      _simMod = await import('./access.js?v=20260919h');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
+      _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
-    await _simMod.openSim();
+    await _simMod.openAccess();
   } catch (e) { console.warn('simulator load failed', e); toast(t('sim.fail')); }
   finally { b.disabled = false; }
 }
@@ -2293,6 +2288,7 @@ function renderResult(res, inp) {
     ${acc('late', t('late.title'), '', lateHTML, { open: true })}
     ${inp.foreign ? `<div class="result-block foreign"><h3>${t('fr.title')}</h3><p>${t('fr.ok')}</p><p>${t('fr.cash')}</p><p>${t('fr.emergency')}</p><p>${t('fr.check')}</p><div class="fr-call">📞 ${t('fr.call')}</div></div>` : ''}
     ${nGot ? acc('got', t('res.got'), gotSum, `<div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>${sec(t('res.auto'), res.auto)}${sec(t('res.apply'), res.apply)}${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}`, { solo: false }) : v === 'nonews' ? `<p class="muted first-hint">${t('first.nonews.hint')}</p>` : ''}
+    ${(() => { const A = _simMod && _simMod.accessLines && _simMod.accessLines(); return A ? `<div class="result-block access"><h3>${t('acc.print')} <small class="muted">${escapeHTML(A.from)}</small></h3><ol>${A.rows.map(x => `<li>${escapeHTML(x)}</li>`).join('')}</ol><small class="muted">${t('acc.note')}</small></div>` : ''; })()}
     ${acc('docs', t('res.docs'), t('res.docs.n', { n: docsN }), docsHTML(res))}
     ${acc('miss', inp.household_unknown ? t('res.maybe') : t('res.miss'), t('res.n', { n: nm.length }), nm.length ? `<div class="result-block miss ${inp.household_unknown ? 'is-unknown' : ''}"><h3>${inp.household_unknown ? t('res.maybe') : t('res.miss')}</h3>${inp.household_unknown ? `<small class="muted">${t('res.maybe.s')}</small>` : ''}${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : '')}
     ${acc('psych', t('res.psych'), '', psychHTML)}

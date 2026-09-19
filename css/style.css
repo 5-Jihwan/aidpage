@@ -862,3 +862,31 @@ body.map-pick #map .maplibregl-canvas{cursor:crosshair!important}
 .ty-feat-label{font-family:var(--mono);font-size:.64rem;color:var(--mute);letter-spacing:.04em}
 .ty-chip.ty-t{background:#fbf3e4;color:var(--gold);border-color:#eadfc3} .ty-chip.ty-t.none{background:var(--bg2);color:var(--mute);font-weight:400}
 .rg-why li.rg-feat-h{list-style:none;margin:6px 0 0 -18px;color:var(--mute);font-size:.8rem}
+
+/* A1a 결과 카드 v2: 먼저 할 일 상자 · 단계 · 접힘 (docs/42) */
+.first{border:2px solid var(--accent);border-radius:14px;padding:14px 16px 12px;margin-bottom:12px;background:#f2f6fd}
+.first h3{margin:0 0 4px;border-left:0;padding-left:0;font-size:.8rem;color:var(--accent2);letter-spacing:.02em}
+.first-do{font-family:var(--display);font-size:1.3rem;font-weight:700;line-height:1.35;color:var(--ink);letter-spacing:-.01em}
+.first-do em{font-style:normal;color:var(--danger)}
+.first dl{margin:10px 0 0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:.92rem}
+.first dt{color:var(--mute);font-weight:600;white-space:nowrap} .first dd{margin:0;min-width:0}
+.first .route-row{margin-top:6px}
+.first-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px} .first-acts:empty{display:none} .first-acts .btn{background:#fff;text-decoration:none}
+.first.late{border-color:var(--danger);background:#fdf5f3} .first.late h3{color:var(--danger)}
+.first.wait{border-color:var(--gold);background:#fdfaf3} .first.wait h3{color:var(--gold)}
+.first-hint{font-size:.88rem;margin:0 2px 12px}
+.steps{display:flex;align-items:center;margin:0 2px 12px;font-size:.78rem;color:var(--mute)}
+.steps span{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.steps span::before{content:"";width:10px;height:10px;border-radius:50%;border:2px solid #b9c5d6;background:#fff}
+.steps span.on{color:var(--ink);font-weight:700} .steps span.on::before{background:var(--accent);border-color:var(--accent)}
+.steps i{flex:1;height:2px;background:var(--line);margin:0 6px;min-width:6px}
+details.acc{border:1px solid var(--line);border-radius:14px;margin-bottom:10px;background:var(--card)}
+details.acc>summary{list-style:none;cursor:pointer;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700;color:var(--ink);min-height:var(--tap)}
+details.acc>summary::-webkit-details-marker{display:none} details.acc>summary>span:first-child{white-space:nowrap}
+details.acc>summary::after{content:"▾";color:var(--mute);font-size:.8rem;flex:none}
+details.acc[open]>summary::after{content:"▴"}
+.acc-s{margin-left:auto;font-weight:500;font-size:.84rem;color:var(--mute);text-align:right} .acc-s b{color:var(--accent2)}
+.acc-in{padding:0 10px 4px}
+.acc-in .result-block{margin-bottom:8px}
+.acc-solo .acc-in>.result-block>h3:first-child,.acc-solo .acc-in>h3:first-child{display:none}
+@media print{ .first{border:2px solid #000;background:#fff;break-inside:avoid} .first-acts,.steps{display:none} details.acc{border:0} details.acc>summary::after{display:none} details.acc>summary{padding:6px 0} .acc-in{padding:0} }

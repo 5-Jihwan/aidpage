@@ -36,9 +36,9 @@
 </aside>
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script type="module">
-import { initGrid, hasGrid, cells as gridCells, show as showGrid, hide as hideGrid } from './js/grid.js?v=20260919b';
+import { initGrid, hasGrid, cells as gridCells, show as showGrid, hide as hideGrid } from './js/grid.js?v=20260919d';
 import { initShelters, collect as collectShelters, nearest as nearestShelters, KINDS } from './js/shelters.js?v=20260914b';
-import { initSim, openSim, closeSim } from './js/sim.js?v=20260919b';
+import { initSim, openSim, closeSim } from './js/sim.js?v=20260919d';
 const $ = (s, r = document) => r.querySelector(s);
 const state = { sgg: null, sido: null, gps: null, sim: null, simPick: null, shelters: { avail: [] }, _gridAvail: false, live: { alerts: null } };
 let idx = [], map;

@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919f';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919f';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919g';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919g';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -588,7 +588,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./sim.js?v=20260919f');
+      _simMod = await import('./sim.js?v=20260919g');
       _simMod.initSim({
         map, state, toast, t, KINDS: SHELTER_KINDS, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, padding: visiblePadding,
         warningsFor: () => warningsFor(state.sgg, state.sido),
@@ -2212,7 +2212,8 @@ function firstBoxHTML(v, res, inp, dl, icsBtn) {
   const step = id => (res.timeline || []).find(s => s.id === id) || {};
   const row = (k, val) => val ? `<dt>${t(k)}</dt><dd>${val}</dd>` : '';
   const where = kind => `<span id="firstWhere" data-kind="${kind}">${kind === 'townhall' ? (step('proc.report').where || '') : t('first.where.app')}</span>`;
-  const send = `<button type="button" class="btn btn-ghost btn-sm" id="btnSend">${t('first.send')}</button>`;
+  const send = inp.proxy ? '' : `<button type="button" class="btn btn-ghost btn-sm" id="btnSend">${t('first.send')}</button>`;
+  const px = inp.proxy ? row('first.proxy', t('first.proxy.v')) : '';
   let cls = '', doText, rows, acts = send;
   if (v === 'shelter') {
     const cold = res.heat_cold.find(r => r.id.endsWith('_shelter')).id.includes('cold');
@@ -2225,13 +2226,13 @@ function firstBoxHTML(v, res, inp, dl, icsBtn) {
   } else if (v === 'late') {
     const n = (res.auto || []).length + (res.apply || []).length;
     cls = ' late'; doText = t('first.do.late', { n: -dl.days_left });
-    rows = row('first.where', where('townhall')) + row('first.say', t('first.say.v')) + (n ? row('first.still', t('first.still.v', { n })) : '');
+    rows = row('first.where', where('townhall')) + px + row('first.say', t('first.say.v')) + (n ? row('first.still', t('first.still.v', { n })) : '');
     acts = `<button type="button" class="btn btn-ghost btn-sm" id="btnStill">${t('first.still.btn')}</button>` + send;
   } else {
     doText = !dl ? t('first.do.noend') : dl.days_left === 0 ? t('first.do.today') : t('first.do.report', { date: fmtMD(dl.due), dday: `D-${dl.days_left}` });
     // ponytail: '가져갈 것'은 절차 데이터의 앞 3개(서식·신분증·사진)+통장 사본에 기대는 순서 의존. procedures.json에 first_docs 필드가 생기면 그걸로 교체
     const bring = [...(step('proc.report').docs || []).slice(0, 3), ...(step('proc.payment').docs || []).slice(0, 1), inp.housing === 'rent' ? t('first.lease') : null].filter(Boolean).map(d => d.replace(/\s*\([^)]*\)/g, ''));   // 괄호 설명은 상자에서 뺀다(전체는 '준비할 서류'에)
-    rows = row('first.where', where('townhall')) + row('first.bring', bring.map(escapeHTML).join(' · ')) + row('first.before', t('first.photo'));
+    rows = row('first.where', where('townhall')) + row('first.bring', bring.map(escapeHTML).join(' · ')) + px + row('first.before', t('first.photo'));
     acts = icsBtn + send;
   }
   return `<div class="first${cls}"><h3>${t('first.h')}</h3><div class="first-do">${doText}</div><dl>${rows}</dl><div class="first-acts" id="firstActs">${acts}</div></div>`;
@@ -2251,6 +2252,14 @@ function printSheetHTML(res, cashItems) {
   const rows = items.map(r => `<tr><td><b>${r.label}</b>${conf(r)}<div class="ps-law">${escapeHTML(r.basis || '')}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div></td><td>${r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '')}</td><td>${escapeHTML((r.where || '').replace(/\s*\([^)]*\)/g, ''))}</td></tr>`).join('');
   const docs = [...new Set(items.flatMap(r => r.docs || []).map(d => d.replace(/\s*\([^)]*\)/g, '')))].map(escapeHTML).join(' · ');   // 괄호를 뗀 뒤에 중복 제거(영어에서 같은 이름이 두 번 나왔다)
   return `<div class="print-only print-sheet"><h3>${t('print.got')}</h3><table><thead><tr><th>${t('print.h.item')}</th><th>${t('print.h.what')}</th><th>${t('print.h.where')}</th></tr></thead><tbody>${rows}</tbody></table>${docs ? `<p class="ps-docs"><b>${t('print.docs')}</b> ${docs}</p>` : ''}<div class="ps-staff"><b>${t('print.staff.h')}</b> ${t('print.staff')}</div><div class="ps-foot">${t('print.foot')} · 5-jihwan.github.io/aidpage</div></div>`;
+}
+
+/* ---------- A2 대리 주 경로: 전달 바 · 대신 하실 때 · 인쇄물 이름 칸 (docs/43) ---------- */
+function proxyHTML() {
+  const blank = k => `<span>${t(k)} <i></i></span>`;
+  return `<div class="deliver"><b>${t('dlv.h')}</b><button type="button" class="btn btn-primary btn-sm" id="dlvPrint">🖨 ${t('dlv.print')}</button><button type="button" class="btn btn-ghost btn-sm" id="dlvSend">${t('dlv.send')}</button><button type="button" class="btn btn-ghost btn-sm" id="dlvCopy">${t('dlv.copy')}</button></div>
+    <div class="print-only ps-proxy">${blank('print.px.victim')}${blank('print.px.helper')}${blank('print.px.rel')}${blank('print.px.tel')}</div>
+    <div class="result-block px"><h3>${t('px.h')}</h3><ul><li>${t('px.2')}</li><li>${t('px.3')}</li></ul></div>`;
 }
 
 function renderResult(res, inp) {
@@ -2280,7 +2289,7 @@ function renderResult(res, inp) {
   el.innerHTML = `
     <div class="print-head"><div><b>AidPage</b> ${t('brand.sub')}</div><div>${place} · ${inp.today} · ${t(inp.proxy ? 'print.proxy' : 'print.self')}</div></div>
     <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><div class="result-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSpeak" title="${t('tts.title')}">🔊</button><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div></div>
-    ${v ? firstBoxHTML(v, res, inp, dl, icsBtn) + stepsHTML : `<div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>${dlHTML}${icsBtn}`}
+    ${v ? firstBoxHTML(v, res, inp, dl, icsBtn) + (inp.proxy ? proxyHTML() : '') + stepsHTML : `<div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>${dlHTML}${icsBtn}`}
     ${acc('late', t('late.title'), '', lateHTML, { open: true })}
     ${inp.foreign ? `<div class="result-block foreign"><h3>${t('fr.title')}</h3><p>${t('fr.ok')}</p><p>${t('fr.cash')}</p><p>${t('fr.emergency')}</p><p>${t('fr.check')}</p><div class="fr-call">📞 ${t('fr.call')}</div></div>` : ''}
     ${nGot ? acc('got', t('res.got'), gotSum, `<div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>${sec(t('res.auto'), res.auto)}${sec(t('res.apply'), res.apply)}${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}`, { solo: false }) : v === 'nonews' ? `<p class="muted first-hint">${t('first.nonews.hint')}</p>` : ''}
@@ -2294,7 +2303,9 @@ function renderResult(res, inp) {
     <div class="disclaimer">${t('res.disc')}</div>`;
   renderWelfare(inp);
   $$('details.acc', el).forEach(d => d.addEventListener('toggle', () => { const o = _accOpen(); d.open ? o.add(d.dataset.acc) : o.delete(d.dataset.acc); sessionStorage.setItem('safepic.acc', JSON.stringify([...o])); }));
-  const bs = $('#btnSend'); if (bs) bs.onclick = () => navigator.share ? navigator.share({ title: document.title, url: location.href }).catch(() => {}) : $('#btnCopy').click();
+  const sendIt = () => navigator.share ? navigator.share({ title: document.title, url: location.href }).catch(() => {}) : $('#btnCopy').click();
+  const bs = $('#btnSend'); if (bs) bs.onclick = sendIt;
+  if ($('#dlvPrint')) { $('#dlvPrint').onclick = () => print(); $('#dlvSend').onclick = sendIt; $('#dlvCopy').onclick = () => $('#btnCopy').click(); }
   const bl = $('#btnStill'); if (bl) bl.onclick = () => { const d = $('details[data-acc="late"]', el); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
   $('#btnEdit').onclick = () => { el.hidden = true; $('#panelScroll').scrollTop = 0; };
   $('#btnImg').onclick = () => shareImage(res, inp);

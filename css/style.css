@@ -911,3 +911,9 @@ details.acc[open]>summary::after{content:"▴"}
   .print-head{display:flex!important}
   .result-block.late{font-size:10pt;padding:8px 10px} .result-block.late .late-list{margin:4px 0;padding-left:18px} .late-list li{font-size:10pt!important;padding:2px 0!important;margin:0} .result-block.late small{font-size:8pt}
 }
+
+/* A2 대리 주 경로 */
+.deliver{display:flex;flex-wrap:wrap;align-items:center;gap:6px;border:1px solid var(--gold);background:#fdfaf3;border-radius:14px;padding:10px 12px;margin-bottom:12px}
+.deliver b{font-family:var(--label);color:var(--gold);margin-right:4px}
+.result-block.px{background:#fff} .result-block.px ul{margin:0;padding-left:18px;font-size:.92rem} .result-block.px li{margin:5px 0}
+@media print{ .deliver{display:none!important} .ps-proxy{display:flex!important;flex-wrap:wrap;gap:6px 18px;font-size:10pt;margin:0 0 8px} .ps-proxy i{display:inline-block;width:34mm;border-bottom:1px solid #000;margin-left:4px} .result-block.px{font-size:9.5pt;padding:6px 10px} .result-block.px h3{font-size:10.5pt;margin:0 0 2px;border:0;padding:0} .result-block.px li{margin:1px 0} }

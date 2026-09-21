@@ -5,7 +5,7 @@
     "sources": [
       {"name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정 제9조(재난지원금의 지급 절차)·제10조·제12조", "url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945"},
       {"name": "재난 및 안전관리 기본법 제59조(재난복구계획의 수립) · 자연재난조사 및 복구계획수립 요령(행안부 고시)", "url": "https://www.law.go.kr/법령/재난및안전관리기본법"},
-      {"name": "행정안전부 2025.7 호우 피해 지원 절차 안내", "url": "https://www.mois.go.kr"}
+      {"name": "행정안전부 2025.7 호우 피해 지원 절차 안내 — 해당 글의 주소는 찾지 못해 보도자료 게시판을 가리킴", "url": "https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardList.do?bbsId=BBSMSTR_000000000008"}
     ],
     "note": "typical_days는 사안별 편차가 큰 경험적 추정치(특별재난지역 대규모 재난 기준). 법정 기한은 deadline 필드만 신뢰."
   },

@@ -4,7 +4,7 @@
     "asof": "2026-08-21",
     "sources": [
       {"name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정 연혁", "url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945"},
-      {"name": "행정안전부 보도자료", "url": "https://www.mois.go.kr"},
+      {"name": "행정안전부 보도자료 게시판", "url": "https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardList.do?bbsId=BBSMSTR_000000000008"},
       {"name": "의연금품 관리·운영 규정 연혁", "url": "https://www.law.go.kr/행정규칙/의연금품관리·운영규정"}
     ]
   },
@@ -23,8 +23,8 @@
       "title": "주택 침수 지원금 100만원 → 200만원",
       "affects": ["cash.house_flood"],
       "change": "2020년 8월 집중호우 계기로 침수 주택 재난지원금 단가를 세대당 100만원에서 200만원으로 상향(국토부 고시 단가).",
-      "basis": "규정 별표1 제2호가목 + 국토부 고시",
-      "basis_url": "https://www.mois.go.kr",
+      "basis": "규정 별표1 제2호가목 + 국토부 고시 (당시 발표 글의 주소는 찾지 못해 보도자료 게시판을 가리킴)",
+      "basis_url": "https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardList.do?bbsId=BBSMSTR_000000000008",
       "confidence": "reported"
     },
     {
@@ -58,9 +58,9 @@
       "date": "2025-07",
       "title": "2025.7·8 호우 한시 상향 (중대본 결정)",
       "affects": ["cash.house_flood", "cash.small_biz_stability"],
-      "change": "침수 주택 350만원 → 700만원, 소상공인 300만원 → 1,000만원으로 한시 상향(해당 재난 한정). 항구 기준 아님.",
-      "basis": "중앙재난안전대책본부 결정 · 행안부 보도자료",
-      "basis_url": "https://www.mois.go.kr",
+      "change": "침수 주택 350만원 → 700만원(도배·장판에 가전·가재도구 피해 포함), 사업장 피해 소상공인은 정부 발표 표현으로 '기존 500만 원 → 1,000만 원' 한시 상향(해당 재난 한정). 항구 기준 아님. 규정상 기본 단가(업체당 300만원)와 '기존 500만 원'의 차이가 어떤 추가 지원분인지는 확인하지 못함.",
+      "basis": "중앙재난안전대책본부 결정 · 대한민국 정책브리핑 2025-08-18 「7월 호우 피해복구에 2조 7235억 원 투입」 · 2025-09-22 「8월 호우 피해 복구에 869억 원 투입」",
+      "basis_url": "https://www.korea.kr/news/policyNewsView.do?newsId=148947716",
       "confidence": "verified"
     },
     {
@@ -78,7 +78,7 @@
       "affects": ["cash.house_flood"],
       "change": "현행 단가 350만원은 2026-08-19 중대본 적용으로 확인되나, 300→350만원 인상 고시 시점은 미확인(2024~2025 사이 추정).",
       "basis": "국토부 고시 단가 · 중대본 2026-08-19",
-      "basis_url": "https://www.mois.go.kr",
+      "basis_url": "https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardList.do?bbsId=BBSMSTR_000000000008",
       "confidence": "estimate"
     },
     {
@@ -86,9 +86,18 @@
       "title": "중앙합동 재난피해자 지원센터 신설",
       "affects": ["indirect.disaster_victim_center"],
       "change": "대규모 재난 시 범정부 오프라인 원스톱 상담·접수 창구 운영 개시.",
-      "basis": "행정안전부 2026-07-22 발표",
-      "basis_url": "https://www.mois.go.kr",
-      "confidence": "reported"
+      "basis": "재난 및 안전관리 기본법 제14조의2③ (2026-01-21 신설 · 2026-07-22 시행)",
+      "basis_url": "https://www.law.go.kr/법령/재난및안전관리기본법/제14조의2",
+      "confidence": "verified"
+    },
+    {
+      "date": "2026-07-01",
+      "title": "에너지바우처 2026년 지원금액 확인",
+      "affects": ["heat_cold.energy_voucher"],
+      "change": "세대당 총액 1인 295,200원 · 2인 407,500원 · 3인 532,700원 · 4인 이상 701,300원(하절기 40,700~102,000원 포함), 사용 기간 2026-07-01~2027-05-31. 근거 조문 표기를 제16조의2 → 제16조의3(에너지이용권의 발급 등)으로 바로잡음.",
+      "basis": "에너지바우처 누리집 지원금액 안내 (2026-09-21 확인) · 에너지법 제16조의3",
+      "basis_url": "https://www.energyv.or.kr/info/support_info.do",
+      "confidence": "verified"
     }
   ]
 }

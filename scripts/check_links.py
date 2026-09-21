@@ -91,8 +91,20 @@ def check(u: str) -> dict:
             out['verdict'], out['note'] = 'SOFT404', hit.group(0)[:40]
         elif bounced:
             out['verdict'], out['note'] = 'BOUNCED', '첫 화면으로 돌려보냄'
-        elif q.netloc.endswith('law.go.kr') and out['title']:
-            out['verdict'], out['note'] = 'OK', '법령 틀 페이지(제목으로 해석 확인)'
+        elif q.netloc.endswith('law.go.kr') and re.search(r'<iframe[^>]+src="([^"]+)"', body):
+            # 법령 한글주소는 겉이 틀뿐이다 → 안쪽 프레임을 받아 '제N조'가 실제로 있는지 본다
+            src = urllib.parse.urljoin('https://www.law.go.kr/', re.search(r'<iframe[^>]+src="([^"]+)"', body).group(1).replace('&amp;', '&'))
+            with urllib.request.urlopen(urllib.request.Request(src, headers={'User-Agent': UA}), timeout=25, context=CTX) as r2:
+                inner = re.sub(r'<script.*?</script>|<[^>]+>', ' ', r2.read(3_000_000).decode('utf-8', 'replace'), flags=re.S)
+            art = re.search(r'/(제\d+조(?:의\d+)?)$', urllib.parse.unquote(u))
+            if re.search(r'일치하는\s*법령이\s*없|존재하지\s*않', inner[:4000]):
+                out['verdict'], out['note'] = 'SOFT404', '법령을 찾지 못함'
+            elif art and art.group(1) + '(' not in inner:
+                out['verdict'], out['note'] = 'SOFT404', art.group(1) + ' 조문이 안쪽 프레임에 없음'
+            else:
+                out['verdict'], out['note'] = 'OK', '법령 프레임에서 확인'
+        elif q.netloc.endswith('law.go.kr') and urllib.parse.unquote(q.path).startswith(('/법령/', '/행정규칙/', '/자치법규/')):
+            out['verdict'], out['note'] = 'SOFT404', '법령 한글주소가 해석되지 않음(프레임 없음)'
         elif len(text.strip()) < 80 and 'html' in body[:500].lower():
             out['verdict'], out['note'] = 'EMPTY', '본문 거의 없음(스크립트 렌더 가능성 — 손으로 확인)'
         else:

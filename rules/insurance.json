@@ -4,7 +4,7 @@
     "asof": "2026-08-21",
     "sources": [
       {"name": "풍수해·지진재해보험법 제7조(보험료의 지원)", "url": "https://www.law.go.kr/법령/풍수해·지진재해보험법"},
-      {"name": "행정안전부 2026-06-29 풍수해·지진재해보험 안내 (지원율)", "url": "https://www.mois.go.kr"},
+      {"name": "행정안전부 풍수해·지진재해보험 상품안내 — 보험료 지원율(일반 55%~ · 차상위·한부모 77.5%~ · 수급자 86.5%~ · 재해취약지역 저소득층 100%, 2026-09-21 확인)", "url": "https://www.mois.go.kr/frt/sub/a06/b11/insuranceProducts/screen.do"},
       {"name": "풍수해·지진재해보험 안내", "url": "https://www.mois.go.kr/frt/sub/a06/b11/insuranceOverview/screen.do"}
     ],
     "note": "재난 발생 전 가입해야 하는 사전 대비 항목. 재난 발생 후 지원이 아니라 평시 가입 시 보험료 일부를 국고·지방비로 지원. 가입 창구: 7개 민간 손보사(DB·현대·삼성·KB·NH농협·메리츠·한화) 및 읍·면·동."
@@ -103,7 +103,7 @@
       "where": "읍·면·동 주민센터 (지자체 일괄 가입)",
       "docs": ["신분증", "수급자·차상위·한부모 증명"],
       "basis": "풍수해·지진재해보험법 제7조 · 행안부 재해취약지역 보험료 전액지원 사업",
-      "basis_url": "https://www.mois.go.kr",
+      "basis_url": "https://www.mois.go.kr/frt/sub/a06/b11/insuranceProducts/screen.do",
       "effective_from": "2026-01-01",
       "rate_asof": "2026-06-29",
       "confidence": "verified",

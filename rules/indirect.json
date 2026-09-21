@@ -493,9 +493,9 @@
       },
       "group": "indirect",
       "label": "소상공인 재해 긴급경영안정자금 융자",
-      "summary": "소상공인시장진흥공단 정책자금 중 재해 피해 소상공인 대상 저리 직접대출.",
+      "summary": "재해 피해 소상공인 대상 저리 직접대출. 시·군·구에서 재해 중소기업(소상공인) 확인증을 받아 소상공인시장진흥공단 지역센터에 신청.",
       "amount_krw": null,
-      "amount_text": "한도·금리 미확인 (연도별 공고)",
+      "amount_text": "연 2.0% 고정 · 5년(2년 거치 3년 상환) · 업체당 1억원 이내 (2025-07 기준, 해마다 공고로 달라질 수 있음)",
       "unit": "업체",
       "conditions": {
         "housing": [
@@ -518,8 +518,8 @@
       "basis": "소상공인 보호 및 지원에 관한 법률 제9조 · 소상공인 정책자금 운용지침",
       "basis_url": "https://www.law.go.kr/법령/소상공인보호및지원에관한법률/제9조",
       "effective_from": null,
-      "rate_asof": null,
-      "confidence": "estimate",
+      "rate_asof": "2025-07-31",
+      "confidence": "reported",
       "notes": "연도별 공고로 한도·금리 변동. 본 사이트는 해당 가능성만 안내."
     },
     {

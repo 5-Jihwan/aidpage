@@ -383,8 +383,8 @@
   },
   "indirect.sme_emergency_loan": {
    "label": "Emergency business-stability loan for small businesses",
-   "amount_text": "Limit and rate unconfirmed (annual notice)",
-   "summary": "Low-interest direct loan from SEMAS policy funds for disaster-hit small businesses.",
+   "amount_text": "2.0% fixed · 5 years (2-year grace, 3-year repayment) · up to ₩100M per business (as of 2025-07; terms are re-announced yearly)",
+   "summary": "Low-interest direct loan for disaster-hit small businesses. Get a disaster-affected business certificate from the city/county office, then apply at a SEMAS regional center.",
    "where": "SEMAS regional center (1357)",
    "docs": [
     "Damage confirmation",

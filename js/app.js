@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260921a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260921a';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260921c';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260921c';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260921a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -588,7 +588,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./access.js?v=20260921a');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
+      _simMod = await import('./access.js?v=20260921c');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
       _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
     await _simMod.openAccess();
@@ -937,11 +937,16 @@ function nameOf() {
 /* 지역명 표시: EN 모드면 빌드 시 생성한 로마자(name_en 등), 없으면 한글 폴백 */
 const rn = (o, k = 'name') => o ? ((getLang() === 'en' && o[k + '_en']) || o[k] || '') : '';
 const emdDisp = ko => { if (getLang() !== 'en' || !ko) return ko; const e = (state.idx.emdBySgg.get(String(state.sgg)) || []).find(x => x.name === ko); return (e && e.name_en) || ko; };
+/* 수집이 실패하면 옛 값이 파일에 남는다(09-21: 이틀 전 관측이 오늘 시각으로 표시됨) → 수집 시각이 아니라 관측 시각으로 판단 */
+const WX_MAX_AGE_H = 6;
+const tmISO = tm => /^\d{12}$/.test(String(tm || '')) ? `${tm.slice(0, 4)}-${tm.slice(4, 6)}-${tm.slice(6, 8)}T${tm.slice(8, 10)}:${tm.slice(10, 12)}:00+09:00` : null;
+const ageH = iso => { const ms = Date.parse(iso); return isNaN(ms) ? Infinity : (Date.now() - ms) / 36e5; };
 const weatherFor = sgg => {
   const W = state.live.weather; if (!W) return null;
-  const w = W.by_sgg && W.by_sgg[String(sgg)]; if (w) return w;
+  const w = W.by_sgg && W.by_sgg[String(sgg)]; if (w) { const at = W.base_time || W.updated; return ageH(at) <= WX_MAX_AGE_H ? { ...w, _at: at } : null; }
   const s = state.idx.bySgg.get(String(sgg)); const h = W.hub && W.hub.by_sido && s && W.hub.by_sido[String(s.sido)];
-  return h ? { ...h, _sido: true } : null; // 시도 대표 관측소 폴백 (단기예보가 열리기 전)
+  if (!h) return null; const at = tmISO(h.tm) || W.hub.base_time || W.hub.updated;
+  return ageH(at) <= WX_MAX_AGE_H ? { ...h, _sido: true, _at: at } : null; // 시도 대표 관측소 폴백 (단기예보가 열리기 전)
 };
 const airFor = sgg => (state.live.air && state.live.air.by_sgg && state.live.air.by_sgg[String(sgg)]) || null;
 function recentQuake() {
@@ -1245,10 +1250,11 @@ function renderRegion() {
     if (items.length) {
       const wf = weatherFor(state.sgg);
       const srcs = [wf && wf._sido ? t('wx.basis.stn', { name: wf.stn_name }) : state.emd && t('wx.basis', { name: n.sggName }), wf && (wf._sido ? t('wx.src.asos') : t('wx.src')), airFor(state.sgg) && t('air.src')].filter(Boolean).join(' · ');
-      wx.innerHTML = items.map(i => `<div class="wx-item ${i.cls}"><div class="k">${i.label}</div><div class="v">${i.v}<small>${i.unit}</small></div></div>`).join('') + fcstHTML(wf) + `<div class="wx-src">${srcs} · ${fmtTime((state.live.weather || {}).updated || (state.live.air || {}).updated)}</div>`;
+      wx.innerHTML = items.map(i => `<div class="wx-item ${i.cls}"><div class="k">${i.label}</div><div class="v">${i.v}<small>${i.unit}</small></div></div>`).join('') + fcstHTML(wf) + `<div class="wx-src">${srcs} · ${fmtTime((wf && wf._at) || (state.live.air || {}).updated)}${wf && ageH(wf._at) > 2 ? ` · <b>${t('wx.ago', { h: Math.floor(ageH(wf._at)) })}</b>` : ''}</div>`;
     } else {
       const st = state.live.weather && state.live.weather.status;
-      wx.innerHTML = `<div class="wx-empty">${st === 'no_key' ? t('wx.noKey') : t('wx.noData')}</div>`;
+      const W0 = state.live.weather, last = W0 && ((W0.hub && W0.hub.base_time) || W0.base_time);   // 자료는 있는데 오래돼서 감춘 경우를 구분해 말한다
+      wx.innerHTML = `<div class="wx-empty">${st === 'no_key' ? t('wx.noKey') : last && ageH(last) > WX_MAX_AGE_H ? t('wx.stale', { t: fmtTime(last) }) : t('wx.noData')}</div>`;
     }
   } else wx.innerHTML = `<div class="wx-empty">${t('wx.pickSgg')}</div>`;
   // warnings
@@ -2352,6 +2358,8 @@ function renderRulesTable() {
   state._coreP = loadCore();
   initMap();
   await state._coreP; renderCrumb();
-  map.once('idle', async () => { await state._coreP; const auto = async fn => { state._autoNav = true; try { await fn(); } finally { state._autoNav = false; } }; if (location.hash) auto(() => applyShare(location.hash)); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => auto(() => selectEmd(getHome())), 1200); });
+  let _restored = false;
+  const restore = async () => { if (_restored) return; _restored = true; await state._coreP; const auto = async fn => { state._autoNav = true; try { await fn(); } finally { state._autoNav = false; } }; if (location.hash) auto(() => applyShare(location.hash)); else if (getHome() && state.idx.byEmd.has(getHome())) setTimeout(() => auto(() => selectEmd(getHome())), 1200); };
+  map.once('idle', restore); setTimeout(restore, 6000);
   renderHome();
 })();

@@ -1100,7 +1100,7 @@ function renderInsurance() {
   const flood = mine.length ? mine.filter(p => p.flood_hist_n > 0).length : null;
   const hist = `<div class="ins-hist"><button type="button" class="linkish" id="insToRegion">${t('ins.hist.go')}</button></div>`; // 09-04: 침수 셀 수치는 서랍 재난 이력 블록이 집(격자 로딩 전에도 링크는 항상)
   box.hidden = false;
-  box.innerHTML = `<h3>${t('ins.title')}</h3><div class="ins-rate"><b>${gen ? gen.amount_text : ''}</b><small class="muted"> · ${full ? full.amount_text : ''} (${t('ins.full.who')})</small></div><a class="btn btn-primary btn-sm ins-cta" href="https://www.mois.go.kr/frt/sub/a06/b08/pungsuhaeIns/screen.do" data-stat="ins_click" target="_blank" rel="noopener">☂ ${t('ins.cta')}</a><div class="fine">${t('ins.where')} · ${t('badge.asof')} ${(state.rules.insurance && state.rules.insurance.meta && state.rules.insurance.meta.asof) || '2026-08'}</div>`;
+  box.innerHTML = `<h3>${t('ins.title')}</h3><div class="ins-rate"><b>${gen ? gen.amount_text : ''}</b><small class="muted"> · ${full ? full.amount_text : ''} (${t('ins.full.who')})</small></div><a class="btn btn-primary btn-sm ins-cta" href="https://www.mois.go.kr/frt/sub/a06/b11/insuranceOverview/screen.do" data-stat="ins_click" target="_blank" rel="noopener">☂ ${t('ins.cta')}</a><div class="fine">${t('ins.where')} · ${t('badge.asof')} ${(state.rules.insurance && state.rules.insurance.meta && state.rules.insurance.meta.asof) || '2026-08'}</div>`;
   if (hist) { box.insertAdjacentHTML('beforeend', hist); const b = $('#insToRegion'); if (b) b.addEventListener('click', openRegionDrawer); }
 }
 /* ---------- 주민 제보 (Worker KV, 텍스트만, 7일) ---------- */

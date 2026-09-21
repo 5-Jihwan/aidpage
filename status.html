@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AidPage 상태 — 자료가 언제 것인가</title>
+<meta name="description" content="AidPage가 보여주는 자료의 시점과 수집 상태. 숨기지 않고 그대로 보여 줍니다.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<style>
+:root{--bg:#fff;--bg2:#f7f9fc;--ink:#14202e;--mute:#566577;--line:#e1e6ee;--blue:#1a5fc4;--ok:#2f7d4f;--ok-s:#e4f3e9;--warn:#9a7328;--warn-s:#fbf3dc;--bad:#b3412f;--bad-s:#fbe9e5}
+@media (prefers-color-scheme:dark){:root{--bg:#0f151d;--bg2:#161e28;--ink:#e8edf4;--mute:#9aa6b6;--line:#25303d;--blue:#6f9ff0;--ok:#6fc48f;--ok-s:#14281c;--warn:#e0b04c;--warn-s:#2d2610;--bad:#ef8d7c;--bad-s:#33191a}}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Pretendard,"Malgun Gothic",system-ui,sans-serif;padding:0 16px 64px}
+main{max-width:860px;margin:0 auto} a{color:var(--blue)}
+h1{font-size:1.5rem;margin:28px 0 6px} h2{font-size:1.05rem;margin:30px 0 8px} .lead{color:var(--mute);margin:0 0 4px}
+table{width:100%;border-collapse:collapse;font-size:.9rem} th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.74rem;color:var(--mute);font-weight:600;letter-spacing:.04em}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:.76rem;font-weight:600;white-space:nowrap}
+.ok{background:var(--ok-s);color:var(--ok)} .warn{background:var(--warn-s);color:var(--warn)} .bad{background:var(--bad-s);color:var(--bad)}
+small,.mute{color:var(--mute)} .wrap{overflow-x:auto} code{font-family:Consolas,monospace;font-size:.85em}
+.box{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:14px;font-size:.88rem}
+</style>
+</head>
+<body>
+<main>
+  <p style="margin:18px 0 0"><a href="./">← AidPage</a> · <a href="data.html">공개 데이터 안내</a></p>
+  <h1>자료가 언제 것인가</h1>
+  <p class="lead">AidPage가 보여주는 자료의 시점과 수집 상태를 그대로 보여 줍니다. 실시간 자료가 오래되면 화면에서는 값을 감추고 그 사실을 말합니다.</p>
+  <p class="lead"><small>Data freshness &amp; collection status — shown as is. <span id="now"></span></small></p>
+
+  <h2>실시간 자료 <small>30분마다 수집 · Live feeds</small></h2>
+  <div class="wrap"><table id="live"><thead><tr><th>자료</th><th>상태</th><th>자료 시각</th><th>지난 시간</th><th>출처·비고</th></tr></thead><tbody><tr><td colspan="5" class="mute">불러오는 중…</td></tr></tbody></table></div>
+
+  <h2>규칙·참조 자료 <small>Rules &amp; reference data</small></h2>
+  <div class="wrap"><table id="ref"><thead><tr><th>자료</th><th>기준일·판본</th><th>내용</th></tr></thead><tbody><tr><td colspan="3" class="mute">불러오는 중…</td></tr></tbody></table></div>
+
+  <div class="box">
+    <b>읽는 법</b><br>
+    · <span class="pill ok">정상</span> 최근 수집이 성공했고 자료가 새것입니다. <span class="pill warn">오래됨</span> 수집은 됐으나 자료 시각이 기준보다 오래됐습니다. <span class="pill bad">실패</span> 최근 수집이 실패해 이전 자료가 남아 있거나 비어 있습니다.<br>
+    · 특보·재난문자·산사태는 등록된 IP에서만 받을 수 있어 운영자의 PC가 수집합니다. 그 PC가 꺼져 있으면 멈춥니다 — 재난 상황에서는 <a href="https://www.safekorea.go.kr" rel="noopener">국민안전24</a>와 재난문자를 먼저 보세요.<br>
+    · 이 페이지는 저장소의 공개 파일을 브라우저에서 직접 읽어 만든 것입니다. 서버가 따로 없습니다.
+  </div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const get = async p => { try { const r = await fetch(p, { cache: 'no-cache' }); return r.ok ? await r.json() : null; } catch (e) { return null; } };
+const fmt = iso => { const d = new Date(iso); if (isNaN(d)) return esc(iso || '—'); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const ago = iso => { const ms = Date.now() - Date.parse(iso); if (isNaN(ms)) return '—'; const m = Math.round(ms / 6e4); return m < 90 ? m + '분' : m < 2880 ? Math.round(m / 60) + '시간' : Math.round(m / 1440) + '일'; };
+const pill = (st, iso, maxH) => { const bad = !st || /^(error|no_key)/.test(st), old = (Date.now() - Date.parse(iso)) / 36e5 > maxH; return bad ? `<span class="pill bad">실패</span> <small>${esc(st || '')}</small>` : old ? '<span class="pill warn">오래됨</span>' : `<span class="pill ok">정상</span>${st !== 'ok' ? ` <small>${esc(st)}</small>` : ''}`; };
+$('#now').textContent = '조회 ' + fmt(new Date().toISOString());
+(async () => {
+  const [W, A, AL, ER] = await Promise.all(['data/live/weather.json', 'data/live/air.json', 'data/live/alerts.json', 'data/live/er.json'].map(get));
+  const rows = [];
+  const row = (name, st, iso, maxH, note) => rows.push(`<tr><td><b>${name}</b></td><td>${pill(st, iso, maxH)}</td><td>${fmt(iso)}</td><td>${ago(iso)} 전</td><td><small>${note}</small></td></tr>`);
+  if (AL) {
+    const s = (k, label, maxH, note) => AL[k] && row(label, AL[k].status, AL[k].updated || AL.updated, maxH, note);
+    s('warnings', '기상특보', 3, '재난안전데이터 공유플랫폼 · 운영자 PC 수집'); s('prewarn', '예비특보', 3, '〃'); s('messages', '긴급재난문자', 3, '〃'); s('landslide', '산사태 예측·예보', 3, '산림청 · 〃');
+    s('quake', '지진 통보', 48, '기상청 API허브 · 클라우드 수집'); s('typhoon', '태풍 정보', 48, '〃 (활성 태풍이 없으면 비어 있음)'); s('river', '하천 수위·댐 방류', 3, '한강홍수통제소 — 인증키 미등록');
+  }
+  if (W) { row('날씨(시군구 실황)', W.status, W.base_time || W.updated, 6, '기상청 단기예보 — 활용신청 확인 중'); if (W.hub) row('날씨(시도 대표 관측소)', W.hub.status, W.hub.base_time || W.hub.updated, 6, '기상청 API허브 종관관측 · 6시간 넘으면 화면에서 값을 감춤'); }
+  if (A) row('미세먼지', A.status, A.data_time || A.updated, 6, '에어코리아 — 활용신청 확인 중');
+  if (ER) row('응급실 가용 병상', ER.status, ER.updated, 10, '중앙응급의료센터 E-Gen · 하루 3회');
+  $('#live tbody').innerHTML = rows.join('') || '<tr><td colspan="5">자료를 읽지 못했습니다.</td></tr>';
+
+  const R = await Promise.all(['cash', 'relief_fund', 'procedures', 'indirect', 'insurance', 'heat_cold', 'changelog'].map(n => get(`rules/${n}.json`)));
+  const [TY, TH, WF, RZ] = await Promise.all(['data/ref/sgg_types.json', 'data/ref/sgg_threshold.json', 'data/ref/welfare.json', 'data/ref/riskzone_by_sgg.json'].map(get));
+  const conf = {}; R.forEach(d => (d && d.rules || []).forEach(r => conf[r.confidence] = (conf[r.confidence] || 0) + 1));
+  const ref = [];
+  R.forEach(d => d && d.meta && ref.push(`<tr><td><b>${esc(d.meta.title || '')}</b></td><td>${esc(d.meta.asof || '—')}</td><td><small>${(d.rules || d.entries || []).length}건</small></td></tr>`));
+  ref.push(`<tr><td><b>규칙 확인 수준</b></td><td>—</td><td><small>원문 확인 ${conf.verified || 0} · 보도 기반 ${conf.reported || 0} · 추정 ${conf.estimate || 0} (절차 제외)</small></td></tr>`);
+  if (TY) ref.push(`<tr><td><b>Atlas 시군구 타입</b></td><td>${esc(TY.meta && (TY.meta.version || TY.meta.asof) || '—')}</td><td><small>${Object.keys(TY.sgg || {}).length}곳</small></td></tr>`);
+  if (TH) ref.push(`<tr><td><b>Atlas 국고지원 문턱</b></td><td>${esc(TH.meta && (TH.meta.version || TH.meta.asof) || '—')}</td><td><small>${Object.keys(TH.sgg || {}).length}곳</small></td></tr>`);
+  if (WF) ref.push(`<tr><td><b>복지서비스 목록</b></td><td>${fmt(WF.updated)}</td><td><small>${WF.total || (WF.items || []).length}건 · 복지로 상세로 연결</small></td></tr>`);
+  if (RZ) ref.push(`<tr><td><b>자연재해위험개선지구</b></td><td>${esc(RZ.asof || '—')}</td><td><small>${RZ.n_total || ''}곳</small></td></tr>`);
+  $('#ref tbody').innerHTML = ref.join('');
+})();
+</script>
+</body>
+</html>

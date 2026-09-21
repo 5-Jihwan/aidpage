@@ -1,0 +1,14 @@
+name: 죽은 링크·옮겨진 페이지
+description: 눌렀더니 없는 페이지이거나 첫 화면으로 돌아갈 때
+labels: ["link"]
+body:
+  - type: input
+    id: where
+    attributes: { label: "어느 화면·어느 단추인가요", placeholder: "예: 보험 카드 '가입 안내 보기'" }
+    validations: { required: true }
+  - type: input
+    id: url
+    attributes: { label: "열린 주소 (아시면)" }
+  - type: input
+    id: better
+    attributes: { label: "맞는 주소를 아신다면" }

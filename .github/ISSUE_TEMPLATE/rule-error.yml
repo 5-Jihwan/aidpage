@@ -1,0 +1,22 @@
+name: 규칙 오류 (금액·조건·기한·창구·서류)
+description: 지원 항목의 내용이 실제와 다를 때
+labels: ["rule"]
+body:
+  - type: markdown
+    attributes:
+      value: "개인정보(이름·주소·전화·피해 내용)는 적지 마세요."
+  - type: input
+    id: item
+    attributes: { label: "어느 항목인가요", placeholder: "예: 소상공인 경영안정 지원금 / cash.small_biz_stability" }
+    validations: { required: true }
+  - type: textarea
+    id: wrong
+    attributes: { label: "무엇이 다른가요", placeholder: "지금 화면에는 …라고 나오는데 실제는 …입니다." }
+    validations: { required: true }
+  - type: textarea
+    id: source
+    attributes: { label: "근거", description: "조문·고시·지자체 공고의 이름이나 주소, 또는 현장에서 확인한 경위", placeholder: "예: ○○법 시행령 제○조 / ○○시 2026-08 공고" }
+    validations: { required: true }
+  - type: dropdown
+    id: who
+    attributes: { label: "어떤 입장에서 보셨나요 (선택)", options: ["주민·가족", "읍면동·시군구 담당", "구호·복지 현장", "연구자", "그 밖"] }

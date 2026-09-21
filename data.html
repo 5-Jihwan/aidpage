@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AidPage 공개 데이터 안내</title>
+<meta name="description" content="AidPage의 규칙·데이터 파일 목록과 구조. 서버 API 없이 정적 JSON을 그대로 가져다 쓸 수 있습니다.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<style>
+:root{--bg:#fff;--bg2:#f7f9fc;--ink:#14202e;--mute:#566577;--line:#e1e6ee;--blue:#1a5fc4}
+@media (prefers-color-scheme:dark){:root{--bg:#0f151d;--bg2:#161e28;--ink:#e8edf4;--mute:#9aa6b6;--line:#25303d;--blue:#6f9ff0}}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 Pretendard,"Malgun Gothic",system-ui,sans-serif;padding:0 16px 64px}
+main{max-width:900px;margin:0 auto} a{color:var(--blue)} h1{font-size:1.5rem;margin:28px 0 6px} h2{font-size:1.08rem;margin:32px 0 8px}
+.lead,small{color:var(--mute)} table{width:100%;border-collapse:collapse;font-size:.88rem} th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.74rem;color:var(--mute);font-weight:600} code{font-family:Consolas,monospace;font-size:.85em;background:var(--bg2);padding:1px 5px;border-radius:5px;word-break:break-all}
+pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;font-size:.8rem;line-height:1.5}
+.wrap{overflow-x:auto} .box{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:14px;font-size:.88rem}
+</style>
+</head>
+<body>
+<main>
+  <p style="margin:18px 0 0"><a href="./">← AidPage</a> · <a href="status.html">자료 상태</a> · <a href="https://github.com/5-Jihwan/aidpage">GitHub</a></p>
+  <h1>공개 데이터 안내</h1>
+  <p class="lead">AidPage에는 서버 API가 없습니다. 사이트가 쓰는 파일이 곧 공개 데이터이고, 아래 주소에서 그대로 받을 수 있습니다. 개인정보는 어디에도 없습니다.</p>
+  <p class="lead"><small>No server API — the site's own static JSON files are the public data. Base URL: <code>https://5-jihwan.github.io/aidpage/</code></small></p>
+
+  <h2>1. 지원 규칙 <small>— 재난 지원 제도를 조건·금액·근거·기한으로</small></h2>
+  <div class="wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th><th>갱신</th></tr></thead>
+    <tbody>
+      <tr><td><code>rules/cash.json</code></td><td>재난지원금(주택·생계·소상공인·농어업)</td><td rowspan="6">법령·고시가 바뀔 때. 매일 새벽 법령 개정을 감지</td></tr>
+      <tr><td><code>rules/relief_fund.json</code></td><td>의연금(국민 성금) 배분 기준</td></tr>
+      <tr><td><code>rules/indirect.json</code></td><td>간접지원 — 세금·보험료·공공요금 감면, 융자·보증</td></tr>
+      <tr><td><code>rules/insurance.json</code></td><td>풍수해·지진재해보험 보험료 지원</td></tr>
+      <tr><td><code>rules/heat_cold.json</code></td><td>폭염·한파 쉼터와 에너지 지원</td></tr>
+      <tr><td><code>rules/procedures.json</code></td><td>신고 → 조사 → 확인서 → 지급 → 이의의 절차와 기한</td></tr>
+      <tr><td><code>rules/changelog.json</code></td><td>지원 기준이 바뀐 이력(언제·무엇이·근거)</td><td>기준 변경 시</td></tr>
+      <tr><td><code>rules/en.json</code></td><td>위 규칙의 영어 오버레이(id별 label·summary·amount_text 등)</td><td>규칙과 함께</td></tr>
+      <tr><td><code>data/ref/law/&lt;MST&gt;.json</code></td><td>규칙이 인용하는 조문·별표 원문 스냅샷(국가법령정보 OPEN API)</td><td>매일</td></tr>
+    </tbody>
+  </table></div>
+  <pre>{ "id": "cash.house_flood", "label": "…", "amount_krw": 3500000, "amount_text": "…",
+  "conditions": { "housing": ["own","rent"], "damage": ["flood"], "special_zone": null },   // 키마다 교집합(AND of any-of)
+  "channel": "auto_after_report | apply", "deadline_days_after_event": 10,
+  "where": "…", "docs": ["…"], "basis": "규정 별표1 …", "basis_url": "https://www.law.go.kr/…",
+  "rate_asof": "2026-08-19", "confidence": "verified | reported | estimate",          // 원문 확인 / 보도 기반 / 추정
+  "law": { "mst": "279945", "name": "…", "art": "제4조", "annex": "별표1" } }</pre>
+  <small>판정 엔진은 의존성 없는 ES 모듈 <code>js/rules.js</code>의 <code>evaluate(rules, input, lang)</code> 하나입니다. 브라우저와 Node에서 같은 코드가 돕니다.</small>
+
+  <h2>2. AidPage Atlas <small>— 시군구 256곳</small></h2>
+  <div class="wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>data/ref/sgg_types.json</code></td><td>자연 위해 타입(산·물·평온·바다·마름) · 사회 위해 · 특징 — 규칙 판정, 순위·점수 없음</td></tr>
+      <tr><td><code>data/ref/sgg_threshold.json</code></td><td>국고지원 문턱(재정력지수 구간별 기준액) · 기록된 국고지원·선포·우심 피해</td></tr>
+      <tr><td><code>data/ref/sgg_type_specs.json</code></td><td>방법 보기 — 임계(p70/p75/p80)·단위(256/230)를 바꿨을 때의 타입</td></tr>
+      <tr><td><code>data/ref/sgg_ordin.json</code> · <code>sgg_vuln.json</code> · <code>sgg_social.json</code></td><td>재난 관련 조례 표식 · 취약 3종(외국인주민·등록장애인·기초수급) · 교통</td></tr>
+      <tr><td><code>data/ref/riskzone_by_sgg.json</code></td><td>자연재해위험개선지구(시군구별·유형별)</td></tr>
+    </tbody>
+  </table></div>
+  <small>판본은 git 태그로 고정합니다. 인용은 저장소의 <code>CITATION.cff</code>를 따라 주세요. 방법·한계는 Atlas 기술보고서에 있습니다.</small>
+
+  <h2>3. 지도 자료</h2>
+  <div class="wrap"><table>
+    <thead><tr><th>파일</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td><code>data/grid/&lt;시군구코드&gt;.geojson</code></td><td>H3 격자(서울 res9 · 그 밖 res8): 침수 이력·침수심, 경사·고도, 산사태 이력, 고령 1인 세대(행정동 값), 대피소까지 직선 도보 분</td></tr>
+      <tr><td><code>data/shelters/…</code></td><td>대피·쉼터·응급 등 19종 25만여 지점(시도별 분할). 군 시설 제외</td></tr>
+      <tr><td><code>data/live/*.json</code></td><td>특보·재난문자·산사태·날씨·응급실 — 시점은 <a href="status.html">자료 상태</a>에서</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="box">
+    <b>쓰실 때</b><br>
+    · 결과는 "해당 가능성"입니다. AidPage는 심사하지 않으며 최종 판단은 관할 지자체입니다.<br>
+    · 침수 이력은 "조사된 침수"의 기록입니다. 기록이 없다는 것이 안전하다는 뜻은 아닙니다.<br>
+    · 도보 시간은 도로가 아니라 직선거리(67 m/분) 기준입니다.<br>
+    · 원천 자료는 각 제공 기관의 이용 조건(공공누리 등)을 따릅니다. 이 저장소의 라이선스 표기는 준비 중입니다.<br>
+    · 틀린 곳을 찾으셨다면 <a href="https://github.com/5-Jihwan/aidpage/issues/new/choose">GitHub 이슈</a>로 알려 주세요. 규칙 오류는 72시간 안에 고치는 것을 목표로 합니다.
+  </div>
+</main>
+</body>
+</html>

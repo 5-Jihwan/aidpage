@@ -1,8 +1,8 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260919h';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260919h';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260921a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260921a';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
-import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260901p';
+import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260921a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
@@ -588,7 +588,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./access.js?v=20260919h');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
+      _simMod = await import('./access.js?v=20260921a');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
       _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
     await _simMod.openAccess();
@@ -908,13 +908,16 @@ async function renderNearest() {
   const box = $('#nearBox'); if (!box) return;
   const e = state.emd && state.idx.byEmd.get(state.emd);
   if (!e || !state.shelters.avail.length) { box.hidden = true; return; }
-  const kinds = [...state.shelters.active].filter(k => { const a = state.shelters.avail.find(x => x.id === k); return a && !a.hazard; });
+  let kinds = [...state.shelters.active].filter(k => { const a = state.shelters.avail.find(x => x.id === k); return a && !a.hazard; });
+  const flood = floodContext(warningsFor(state.sgg, state.sido));
+  if (flood) kinds = [...new Set([...kinds.filter(k => k !== 'civil_defense'), ...['temp_housing', 'townhall'].filter(k => state.shelters.avail.some(a => a.id === k))])];
   const useGps = state.gps && state.gps.emd === e.code;
   const origin = useGps ? [state.gps.lon, state.gps.lat] : [e.lon, e.lat];
   const list = await nearestShelters(origin, kinds, state.sido, 8, true);
   if (state.emd !== e.code) return;
   box.hidden = false;
   box.innerHTML = `<h3>${t('sh.nearest')} <small class="muted">${useGps ? t('sh.fromGps') : t('sh.fromEmd')}</small></h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() === 'en' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
+  box.insertAdjacentHTML('beforeend', `${flood ? `<small class="near-note near-flood">${t('near.flood')}</small>` : ''}<small class="near-note">${t('sh.desig')}</small>`);
   applyFolds();
   $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5, padding: visiblePadding() }); openPopup(x.c, `<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}${x.p.tel ? `<br>📞 <a href="tel:${x.p.tel}">${x.p.tel}</a>` : ''}</small>${routeLinks(x.c[0], x.c[1], x.p.name)}`, { fromPanel: true }); }));
 }
@@ -994,9 +997,12 @@ function renderCrumb() {
 /* ---------- today's to-do (3 lines): warnings > situation > season ---------- */
 const WARN_EN = { '폭염': 'Heat', '호우': 'Heavy rain', '대설': 'Heavy snow', '강풍': 'Strong wind', '한파': 'Cold wave', '건조': 'Dry', '태풍': 'Typhoon', '지진': 'Earthquake', '풍랑': 'High seas', '황사': 'Yellow dust', '산사태': 'Landslide', '주의보': ' advisory', '경보': ' warning', '속보': ' bulletin', '정보': ' info' };
 const warnName = (type, level) => getLang() === 'en' ? (WARN_EN[type] || type) + (WARN_EN[level] || ' ' + level) : type + level;
+/* D11: 물 재난 맥락(특보 호우·태풍·산사태 또는 침수·비 상황 카드)에서는 지하 민방위 대피시설을 권하지 않는다 */
+const floodContext = ws => (ws || []).some(w => /호우|태풍|산사태|홍수/.test(w.type || '')) || ['house_flood', 'shop_flood', 'before_rain'].includes(state.sit);
+const evacKind = ws => (ws || []).some(w => w.type === '지진') ? 'quake' : 'temp_housing';
 const ALERT_MAP = { // 특보 종류·단계 → 행동 문구 키 + 자동 시설
-  '폭염': { key: 'heat', kinds: ['heat'] }, '호우': { key: 'rain', kinds: ['temp_housing', 'civil_defense', 'underpass'] }, '대설': { key: 'snow', kinds: ['cold'] },
-  '강풍': { key: 'wind', kinds: [] }, '한파': { key: 'cold', kinds: ['cold'] }, '건조': { key: 'dry', kinds: [] }, '태풍': { key: 'typhoon', kinds: ['temp_housing', 'civil_defense'] },
+  '폭염': { key: 'heat', kinds: ['heat'] }, '호우': { key: 'rain', kinds: ['temp_housing', 'townhall', 'underpass'] }, '대설': { key: 'snow', kinds: ['cold'] },
+  '강풍': { key: 'wind', kinds: [] }, '한파': { key: 'cold', kinds: ['cold'] }, '건조': { key: 'dry', kinds: [] }, '태풍': { key: 'typhoon', kinds: ['temp_housing', 'townhall'] },
   '지진': { key: 'quake', kinds: ['quake'] }, '풍랑': { key: 'sea', kinds: [] }, '황사': { key: 'dust', kinds: ['dust'] },
   '산사태': { key: 'lslide', kinds: ['temp_housing'] },
 };
@@ -1021,14 +1027,14 @@ function todoItems() {
   if (P.pet && (state.sit === 'evacuating' || ws.length)) add('prof.pet', null, null, whyProf('pet'));
   if (P.car && ws.some(w => w.type === '호우' || w.type === '태풍')) add('prof.car', null, null, whyProf('car') + ' · ' + whyAlert(ws.find(w => w.type === '호우' || w.type === '태풍'), 'rain'));
   if (state.sit === 'house_flood' || state.sit === 'shop_flood') { add('sit.photo', null, null, whySit); add('sit.report10', 'townhall', null, whySit); }
-  if (state.sit === 'evacuating') { add('sit.evac', 'civil_defense', null, whySit); add('sit.meds', 'pharmacy', null, whySit); }
+  if (state.sit === 'evacuating') { add('sit.evac', evacKind(ws), null, whySit); add('sit.meds', 'pharmacy', null, whySit); }
   if (state.sit === 'injury') { add('sit.er', 'er', null, whySit); add('sit.psych', null, null, whySit); }
   if (state.sit === 'no_news') { add('sit.ask', 'townhall', null, whySit); }
   if (m >= 6 && m <= 9) { add('season.summer.water', 'heat', null, whySeason); add('season.summer.drain', null, null, whySeason); }
   else if (m === 12 || m <= 2) { add('season.winter.taps', 'cold', null, whySeason); add('season.winter.ice', null, null, whySeason); }
   else if (m >= 3 && m <= 5) { add('season.spring.fire', null, null, whySeason); add('season.spring.dust', 'dust', null, whySeason); }
   else { add('season.autumn.typhoon', 'temp_housing', null, whySeason); }
-  add('always.shelter', 'civil_defense', null, whyAlways); add('always.townhall', 'townhall', null, whyAlways);
+  add('always.shelter', floodContext(ws) ? 'temp_housing' : 'civil_defense', null, whyAlways); add('always.townhall', 'townhall', null, whyAlways);
   return out.slice(0, 3);
 }
 /* "내 동은 위험 구역 안/밖" — 지도 없이 글자로 판정 (PADM/지도 오인 연구) */
@@ -1062,7 +1068,7 @@ async function renderRiskLine() {
   const e = state.emd && state.idx.byEmd.get(state.emd);
   if (e) {
     const cells = gridCells(state.sgg).map(f => f.properties).filter(p => p.emd_name === e.name);
-    if (cells.length) { const k = cells.filter(p => p.flood_hist_n > 0).length; parts.push(`<span class="${k ? 'rl-bad' : 'rl-ok'}">${t('risk.flood', { n: k, total: cells.length })}</span>`); }
+    if (cells.length) { const k = cells.filter(p => p.flood_hist_n > 0).length; parts.push(k ? `<span class="rl-bad">${t('risk.flood', { n: k, total: cells.length })}</span>` : `<span>${t('risk.flood0', { total: cells.length })}</span>`); }
     if (state.shelters.avail.some(a => a.id === 'underpass' || a.id === 'steep')) {
       const hz = await nearestShelters([e.lon, e.lat], ['underpass', 'steep'].filter(k => state.shelters.avail.some(a => a.id === k)), state.sido, 2, true);
       const near = hz.filter(h => h.d <= 500);
@@ -1744,7 +1750,7 @@ function applyPreset(sit) {
 const SITS = ['house_flood', 'shop_flood', 'evacuating', 'before_rain', 'injury', 'no_news', 'past', 'proxy'];
 const SIT_ICON = { house_flood: '🏠', shop_flood: '🏪', evacuating: '🚨', before_rain: '🌧️', injury: '🩹', no_news: '⏳', past: '🗓️', proxy: '👥' };
 const SIT_KEY = { house_flood: 'sit.house', shop_flood: 'sit.shop', evacuating: 'sit.evac', before_rain: 'sit.before', injury: 'sit.injury', no_news: 'sit.nonews', past: 'sit.past', proxy: 'sit.proxy' };
-const AUTO = { evacuating: ['civil_defense', 'temp_housing', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['civil_defense', 'townhall'] };
+const AUTO = { evacuating: ['temp_housing', 'townhall', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['temp_housing', 'townhall'] };
 // 상황별로 펼쳐 두는 카드 (나머지는 제목 한 줄로 접힘). null = 상황 없음
 const OPEN = { null: ['wx', 'near', 'er', 'grid'], past: ['near', 'ins', 'grid'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], proxy: ['near', 'wx'] };
 function applySituation(sit, navigate) {
@@ -2246,7 +2252,7 @@ function printSheetHTML(res, cashItems) {
   const conf = r => r.confidence === 'verified' ? '' : ` <span class="ps-conf">${r.confidence === 'reported' ? t('badge.reported') : t('badge.est')}</span>`;
   const rows = items.map(r => `<tr><td><b>${r.label}</b>${conf(r)}<div class="ps-law">${escapeHTML(r.basis || '')}${r.rate_asof ? ` · ${t('item.asof')} ${r.rate_asof}` : ''}</div></td><td>${r.amount_text || (r.amount_krw ? formatKRW(r.amount_krw) : '')}</td><td>${escapeHTML((r.where || '').replace(/\s*\([^)]*\)/g, ''))}</td></tr>`).join('');
   const docs = [...new Set(items.flatMap(r => r.docs || []).map(d => d.replace(/\s*\([^)]*\)/g, '')))].map(escapeHTML).join(' · ');   // 괄호를 뗀 뒤에 중복 제거(영어에서 같은 이름이 두 번 나왔다)
-  return `<div class="print-only print-sheet"><h3>${t('print.got')}</h3><table><thead><tr><th>${t('print.h.item')}</th><th>${t('print.h.what')}</th><th>${t('print.h.where')}</th></tr></thead><tbody>${rows}</tbody></table>${docs ? `<p class="ps-docs"><b>${t('print.docs')}</b> ${docs}</p>` : ''}<div class="ps-staff"><b>${t('print.staff.h')}</b> ${t('print.staff')}</div><div class="ps-foot">${t('print.foot')} · 5-jihwan.github.io/aidpage</div></div>`;
+  return `<div class="print-only print-sheet"><h3>${t('print.got')}</h3><table><thead><tr><th>${t('print.h.item')}</th><th>${t('print.h.what')}</th><th>${t('print.h.where')}</th></tr></thead><tbody>${rows}</tbody></table>${docs ? `<p class="ps-docs"><b>${t('print.docs')}</b> ${docs}</p>` : ''}<p class="ps-docs">${t('res.scope')}</p><div class="ps-staff"><b>${t('print.staff.h')}</b> ${t('print.staff')}</div><div class="ps-foot">${t('print.foot')} · 5-jihwan.github.io/aidpage</div></div>`;
 }
 
 /* ---------- A2 대리 주 경로: 전달 바 · 대신 하실 때 · 인쇄물 이름 칸 (docs/43) ---------- */
@@ -2284,7 +2290,7 @@ function renderResult(res, inp) {
   el.innerHTML = `
     <div class="print-head"><div><b>AidPage</b> ${t('brand.sub')}</div><div>${place} · ${inp.today} · ${t(inp.proxy ? 'print.proxy' : 'print.self')}</div></div>
     <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><div class="result-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSpeak" title="${t('tts.title')}">🔊</button><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div></div>
-    ${v ? firstBoxHTML(v, res, inp, dl, icsBtn) + (inp.proxy ? proxyHTML() : '') + stepsHTML : `<div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>${dlHTML}${icsBtn}`}
+    ${v ? firstBoxHTML(v, res, inp, dl, icsBtn) + (inp.proxy ? proxyHTML() : '') + stepsHTML + `<p class="res-scope">${t('res.scope')}</p>` : `<div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>${dlHTML}${icsBtn}`}
     ${acc('late', t('late.title'), '', lateHTML, { open: true })}
     ${inp.foreign ? `<div class="result-block foreign"><h3>${t('fr.title')}</h3><p>${t('fr.ok')}</p><p>${t('fr.cash')}</p><p>${t('fr.emergency')}</p><p>${t('fr.check')}</p><div class="fr-call">📞 ${t('fr.call')}</div></div>` : ''}
     ${nGot ? acc('got', t('res.got'), gotSum, `<div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>${sec(t('res.auto'), res.auto)}${sec(t('res.apply'), res.apply)}${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}`, { solo: false }) : v === 'nonews' ? `<p class="muted first-hint">${t('first.nonews.hint')}</p>` : ''}

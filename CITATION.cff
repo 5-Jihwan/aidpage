@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use the AidPage typology (도감) or its data, please cite it as below. 이 유형화·데이터를 쓰시면 아래와 같이 인용해 주세요."
 type: dataset
-title: "AidPage Atlas — rule-based, rank-free multi-lens profiles of Korean municipalities (v1.4.1) with national aid thresholds and recorded outcomes"
+title: "AidPage Atlas — rule-based, rank-free multi-lens profiles of Korean municipalities (v1.4.1) with national disaster-assistance thresholds and recorded outcomes"
 version: "dex-v1.4.1"
 date-released: "2026-09-14"
 authors:

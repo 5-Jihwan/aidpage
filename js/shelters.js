@@ -87,10 +87,17 @@ const BADGE_LABELS = ['2', '3', '4', '5', '6', '7', '8', '9', '9+'];
       누르면 그 자리의 시설 목록 (사용자 피드백: 겹친 아이콘 구분 불가) ── */
 const KIND_IDS = KINDS.map(k => k.id);
 const EMPTY_FC = { type: 'FeatureCollection', features: [] };
+/* D11·E1: 민방위 대피시설은 지하라 물 재난에 부적합 / 대피·쉼터류는 '지정'이지 '개설'이 아님 */
+const NOTE = {
+  cd: { ko: '⚠ 지하 시설입니다. 호우·침수·태풍 때는 이용하지 마세요 — 높은 곳이나 임시주거시설로.', en: '⚠ Underground facility. Do not use it in heavy rain, flooding or typhoons — go to higher ground or temporary housing.' },
+  desig: { ko: '지정 시설입니다. 지금 열려 있는지는 주민센터에 확인하세요.', en: 'A designated site. Check with the community center whether it is open now.' },
+};
+const DESIG_KINDS = new Set(['civil_defense', 'temp_housing', 'quake', 'tsunami', 'heat', 'cold', 'dust', 'chem']);
 function detailHTML(p, lngLat) {
   const k = KINDS.find(x => x.id === p.kind) || KINDS[0];
   const en = document.documentElement.lang === 'en';
-  return `<b>${p.name || ''}</b><br><small>${k.icon} ${en ? k.en : k.ko}${p.cap ? ` · ${p.cap}${en ? '' : '명'}` : ''}${p.type && !/^\d|^FTL|^\d{3}$/.test(p.type) ? ` · ${p.type}` : ''}<br>${p.addr || ''}${p.hours ? `<br>🕒 ${p.hours}` : ''}${p.tel ? `<br>📞 <a href="tel:${p.tel}">${p.tel}</a>` : ''}</small>${map.routeLinks ? map.routeLinks(lngLat.lng, lngLat.lat, p.name) : ''}${map.srcBadge ? map.srcBadge(p.src, p.asof) : ''}`;
+  const L = en ? 'en' : 'ko', note = `${p.kind === 'civil_defense' ? `<div class="pop-warn">${NOTE.cd[L]}</div>` : ''}${DESIG_KINDS.has(p.kind) ? `<div class="pop-note">${NOTE.desig[L]}</div>` : ''}`;
+  return `<b>${p.name || ''}</b><br><small>${k.icon} ${en ? k.en : k.ko}${p.cap ? ` · ${p.cap}${en ? '' : '명'}` : ''}${p.type && !/^\d|^FTL|^\d{3}$/.test(p.type) ? ` · ${p.type}` : ''}<br>${p.addr || ''}${p.hours ? `<br>🕒 ${p.hours}` : ''}${p.tel ? `<br>📞 <a href="tel:${p.tel}">${p.tel}</a>` : ''}</small>${note}${map.routeLinks ? map.routeLinks(lngLat.lng, lngLat.lat, p.name) : ''}${map.srcBadge ? map.srcBadge(p.src, p.asof) : ''}`;
 }
 let _popFallback = null;
 function openPopup(lngLat, html) {

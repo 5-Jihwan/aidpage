@@ -2,7 +2,7 @@
    본 사이트는 경로 선을 그리지 않는다. 가까운 대피소 3곳마다 "걸어서 약 n분 · 가는 방향에 침수 이력 칸 n · 지하차도 근처 n"을 문장으로만 보여준다.
    계산은 기존 sim_worker.js의 짧은 길을 '세는' 용도로만 재사용한다(피하는 길은 쓰지 않는다). 선이 있는 옛 시뮬레이터는 sim.html(연구 샌드박스)에만 남는다.
    ponytail: 전국 배치(S2)가 끝나면 이 실시간 계산은 미리 계산된 JSON 읽기로 바뀌고 sim_worker.js는 폐기된다. */
-import { t, getLang } from './i18n.js?v=20260919h';
+import { t, getLang } from './i18n.js?v=20260921a';
 const $ = (s, r = document) => r.querySelector(s);
 const HZ_KINDS = ['underpass', 'steep'];
 // 민방위 대피시설은 대부분 지하(공습 대비)라 침수 맥락의 이 카드에서는 뺀다. 지진옥외대피장소는 비를 피할 수 없는 공터라 뺀다.

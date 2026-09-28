@@ -846,9 +846,17 @@ def fetch_typhoon(prev):
 
 
 # --------------------------------------------------------------------------- 5b. 응급실 실시간 가용병상 (E-Gen)
+def egen_stage2(s):
+    """E-Gen STAGE2(시군구) 조회어. 일반구는 모시 이름, 세종은 빈 문자열."""
+    m = re.match(r"(.+?시).+구$", s["name"])
+    if m:
+        return m.group(1)
+    return "" if str(s.get("sido")) == "36" else s["name"]
+
+
 def fetch_er(sgg, prev):
     """중앙응급의료센터 E-Gen 응급실 실시간 가용병상 (data.go.kr B552657, 일 1,000건).
-    시군구 250곳 × 1회를 하루 3번(LIVE_ER_HOURS, KST)만 돌려 ~750건/일. 다른 시각엔 이전 파일 유지."""
+    자치단체 단위로 하루 3번(LIVE_ER_HOURS, KST)만 돌려 ~700건/일. 다른 시각엔 이전 파일 유지."""
     import xml.etree.ElementTree as ET
     sec = {"status": "ok", "by_sgg": {}, "source": "중앙응급의료센터 E-Gen", "updated": now_kst().isoformat(timespec="seconds")}
     if not KEY_KMA:
@@ -868,8 +876,17 @@ def fetch_er(sgg, prev):
     from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
     import time as _time
 
-    def one(s):
-        txt = http_get(EGEN_BEDS, {"STAGE1": s.get("sido_name", ""), "STAGE2": s.get("name", ""), "pageNo": 1, "numOfRows": 30}, KEY_KMA)
+    # E-Gen은 자치단체 단위로만 조회된다. 일반구(수원시장안구 등 39곳)를 그대로 STAGE2에 넣으면 빈 응답이 와서
+    # 그 39곳이 전부 조용히 비어 있었다(2026-09-28 확인: 응답 182/256, 일반구는 39곳 중 0곳). 모시 이름으로 한 번
+    # 묻고 결과를 소속 구에 공유한다 — 교통 통계(build_social.py)와 같은 처리이고 호출도 26건 줄어든다.
+    # 세종은 단층이라 STAGE2를 비운다. 조회어 규칙은 egen_stage2()에 있고 scripts/test_egen_q.py가 지킨다.
+    groups = {}
+    for s in sgg:
+        groups.setdefault((s.get("sido_name", ""), egen_stage2(s)), []).append(str(s["code"]))
+
+    def one(key):
+        stage1, stage2 = key
+        txt = http_get(EGEN_BEDS, {"STAGE1": stage1, "STAGE2": stage2, "pageNo": 1, "numOfRows": 30}, KEY_KMA)
         root = ET.fromstring(txt)
         code = root.findtext(".//resultCode")
         if code not in (None, "00"):
@@ -882,9 +899,9 @@ def fetch_er(sgg, prev):
                          "icu": fnum(g("hvicc")), "at": g("hvidate")})
         return rows
 
-    errs = 0; got = 0; budget_hit = False; deadline = _time.monotonic() + ER_BUDGET_S
+    errs = 0; got = 0; empty = 0; budget_hit = False; deadline = _time.monotonic() + ER_BUDGET_S
     ex = ThreadPoolExecutor(max_workers=ER_WORKERS)
-    futs = {ex.submit(one, s): s for s in sgg}
+    futs = {ex.submit(one, k): k for k in groups}
     pending = set(futs)
     try:
         while pending:
@@ -894,11 +911,15 @@ def fetch_er(sgg, prev):
                 break
             done, pending = wait(pending, timeout=min(left, 5), return_when=FIRST_COMPLETED)
             for f in done:
-                s = futs[f]
+                k = futs[f]
                 try:
                     rows = f.result()
                     if rows:
-                        sec["by_sgg"][str(s["code"])] = rows; got += 1
+                        for c in groups[k]:
+                            sec["by_sgg"][c] = rows
+                        got += len(groups[k])
+                    else:
+                        empty += 1  # 오류가 아니라 '해당 지역 결과 0건' — 조회어가 안 맞으면 여기로 샌다
                 except HttpError as e:
                     errs += 1
                     if e.code == "budget":
@@ -918,7 +939,9 @@ def fetch_er(sgg, prev):
             sec["fresh_sgg"] = got
         if errs:
             sec["errors"] = errs
-    log(f"er: fetched={got} errors={errs} status={sec['status']}")
+        if empty:
+            sec["empty_q"] = empty
+    log(f"er: fetched={got}/{len(sgg)} queries={len(groups)} empty={empty} errors={errs} status={sec['status']}")
     return sec
 
 

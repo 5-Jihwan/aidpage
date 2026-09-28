@@ -29,7 +29,9 @@ jobs:
         id: gate
         run: |
           MIN=$(date -u +%M)
-          if [ "$MIN" -lt 10 ] || { [ "$MIN" -ge 30 ] && [ "$MIN" -lt 40 ]; }; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true"  >> "$GITHUB_OUTPUT"   # 수동 실행은 슬롯을 따지지 않는다
+          elif [ "$MIN" -lt 10 ] || { [ "$MIN" -ge 30 ] && [ "$MIN" -lt 40 ]; }; then
             echo "run=true"  >> "$GITHUB_OUTPUT"   # 평시 30분 슬롯
           elif [ -f data/live/.hot ]; then
             echo "run=true"  >> "$GITHUB_OUTPUT"   # 경보 발효 중 → 10분 주기

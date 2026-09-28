@@ -1080,6 +1080,7 @@ def fetch_air(sgg, prev):
     stations = load_air_stations() or {}
     readings = {}  # stationName -> rec
     errors: dict[str, int] = {}
+    unknown_sido = set()  # 매핑에 없는 시도명 — 조용히 폴백하면 시도 개편을 못 본다(scripts/check_regions.py)
     latest_time = None
     for sido in AIR_SIDOS:
         try:
@@ -1091,6 +1092,8 @@ def fetch_air(sgg, prev):
                     continue
                 pm10, pm25 = air_val(it.get("pm10Value")), air_val(it.get("pm25Value"))
                 sido_nm = str(it.get("sidoName") or sido).strip()
+                if sido_nm not in AIR_SIDO_CODE:
+                    unknown_sido.add(sido_nm)
                 rec = {"station": name, "sido_code": AIR_SIDO_CODE.get(sido_nm, AIR_SIDO_CODE[sido]),
                        "pm10": pm10, "pm25": pm25,
                        "o3": air_val(it.get("o3Value")), "khai": air_val(it.get("khaiValue")),
@@ -1107,6 +1110,8 @@ def fetch_air(sgg, prev):
         m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})", latest_time)
         out["data_time"] = (f"{m.group(1)}-{m.group(2)}-{m.group(3)}T{m.group(4)}:{m.group(5)}+09:00"
                             if m else latest_time)
+    if unknown_sido:
+        out["unknown_sido"] = sorted(unknown_sido)
     if not readings:
         res = dict(prev or {}, status="error:" + (max(errors, key=errors.get) if errors else "empty"))
         res["updated"] = out["updated"]

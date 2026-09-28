@@ -1,0 +1,16 @@
+{
+ "updated": "2026-09-28T16:33:41+09:00",
+ "checked": {
+  "warning_codes": 4,
+  "messages": 23
+ },
+ "unknown_sgg_codes": [],
+ "unknown_sido_names": [],
+ "unknown_sgg_names": [],
+ "unknown_air_sido": [],
+ "index": {
+  "sgg": 256,
+  "sido": 16
+ },
+ "status": "ok"
+}

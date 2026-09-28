@@ -43,6 +43,14 @@ jobs:
         timeout-minutes: 3
         run: python scripts/stat_panel.py --days 3
 
+      # 행정구역 개편 감지 — 이미 받아 둔 data/live/*.json 만 대조한다(추가 호출 0).
+      # 상류 경계 레포를 폴링하는 대신 정부 API 응답에서 모르는 코드·이름을 잡는다.
+      # 결과는 data/stats/region_check.json + Actions 경고. 차단하지 않는다.
+      - name: Detect administrative boundary changes
+        continue-on-error: true
+        timeout-minutes: 2
+        run: python scripts/check_regions.py
+
       - name: Commit if changed
         run: |
           git config user.name "daily-bot"

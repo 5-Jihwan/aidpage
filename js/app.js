@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20260921c';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20260921c';
+import { t, getLang, setLang, applyStatic } from './i18n.js?v=20261006a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20261006a';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260921a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -588,7 +588,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./access.js?v=20260921c');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
+      _simMod = await import('./access.js?v=20261006a');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
       _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
     await _simMod.openAccess();
@@ -1746,19 +1746,21 @@ function initLang() {
 }
 
 /* ---------- situation presets ---------- */
-const PRESETS = { house_flood: { housing: 'own', damage: ['flood'] }, shop_flood: { housing: 'shop', damage: ['flood'] }, injury: { damage: ['injury'] }, no_news: { damage: ['flood'] } };
+const PRESETS = { house_flood: { housing: 'own', damage: ['flood'] }, shop_flood: { housing: 'shop', damage: ['flood'] }, injury: { damage: ['injury'] }, no_news: { damage: ['flood'] },
+  // ponytail: 계절로 폭염/한파를 고른다(4~9월 폭염). 지금 기온 자료로 고르는 게 다음 단계
+  heat_cold: () => ({ damage: [(m => m >= 4 && m <= 9)(new Date().getMonth() + 1) ? 'heat' : 'cold'] }) };
 function applyPreset(sit) {
-  const f = $('#wizard'); f.reset(); const p = PRESETS[sit]; if (!p) return;
+  const f = $('#wizard'); f.reset(); const p = typeof PRESETS[sit] === 'function' ? PRESETS[sit]() : PRESETS[sit]; if (!p) return;
   if (p.housing) { const r = f.querySelector(`input[name=housing][value=${p.housing}]`); if (r) r.checked = true; }
   (p.damage || []).forEach(v => { const c = f.querySelector(`input[name=damage][value=${v}]`); if (c) c.checked = true; });
 }
 /* ---------- 상황 = 필터. 상황이 바뀌면 (1) 자동 시설 (2) 펼칠 카드 (3) 동선이 바뀐다 ---------- */
-const SITS = ['house_flood', 'shop_flood', 'evacuating', 'before_rain', 'injury', 'no_news', 'past', 'proxy'];
-const SIT_ICON = { house_flood: '🏠', shop_flood: '🏪', evacuating: '🚨', before_rain: '🌧️', injury: '🩹', no_news: '⏳', past: '🗓️', proxy: '👥' };
-const SIT_KEY = { house_flood: 'sit.house', shop_flood: 'sit.shop', evacuating: 'sit.evac', before_rain: 'sit.before', injury: 'sit.injury', no_news: 'sit.nonews', past: 'sit.past', proxy: 'sit.proxy' };
-const AUTO = { evacuating: ['temp_housing', 'townhall', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], before_rain: ['temp_housing', 'townhall'] };
+const SITS = ['house_flood', 'shop_flood', 'evacuating', 'before_rain', 'injury', 'no_news', 'heat_cold', 'past', 'proxy'];
+const SIT_ICON = { house_flood: '🏠', shop_flood: '🏪', evacuating: '🚨', before_rain: '🌧️', injury: '🩹', no_news: '⏳', heat_cold: '🌡️', past: '🗓️', proxy: '👥' };
+const SIT_KEY = { house_flood: 'sit.house', shop_flood: 'sit.shop', evacuating: 'sit.evac', before_rain: 'sit.before', injury: 'sit.injury', no_news: 'sit.nonews', heat_cold: 'sit.heat', past: 'sit.past', proxy: 'sit.proxy' };
+const AUTO = { evacuating: ['temp_housing', 'townhall', 'fire', 'water'], house_flood: ['townhall', 'temp_housing'], shop_flood: ['townhall'], injury: ['er', 'pharmacy'], no_news: ['townhall'], heat_cold: ['heat', 'cold'], before_rain: ['temp_housing', 'townhall'] };
 // 상황별로 펼쳐 두는 카드 (나머지는 제목 한 줄로 접힘). null = 상황 없음
-const OPEN = { null: ['wx', 'near', 'er', 'grid'], past: ['near', 'ins', 'grid'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], proxy: ['near', 'wx'] };
+const OPEN = { null: ['wx', 'near', 'er', 'grid'], past: ['near', 'ins', 'grid'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], heat_cold: ['near', 'wx'], proxy: ['near', 'wx'] };
 function applySituation(sit, navigate) {
   state.sit = sit; if (sit) sessionStorage.setItem('safepic.sit', sit); else sessionStorage.removeItem('safepic.sit');
   state._foldOverride = {}; // 상황이 바뀌면 사용자가 손으로 접고 편 기록은 초기화
@@ -1769,7 +1771,7 @@ function applySituation(sit, navigate) {
   if (sit === 'past') { $('#wizard').reset(); $('#pastHint').hidden = false; setTab('find'); syncWizardLoc(); setTimeout(() => $('#qEnd').focus(), 200); return; }
   if (sit === 'evacuating' || sit === 'before_rain') { $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden'); $('#searchInput').focus(); return; }
   applyPreset(sit); setTab('find'); syncWizardLoc();
-  if (sit === 'no_news') setTimeout(() => $('#wizard').requestSubmit(), 50);
+  if (sit === 'no_news' || sit === 'heat_cold') setTimeout(() => $('#wizard').requestSubmit(), 50);
 }
 function initCards() {
   $$('#sitCards .card').forEach(b => b.addEventListener('click', () => applySituation(b.dataset.sit, true)));
@@ -1962,7 +1964,7 @@ function syncWizardLoc() {
 }
 function readWizard() {
   const fd = new FormData($('#wizard'));
-  return { housing: fd.get('housing') || null, damage: fd.getAll('damage'), household: fd.getAll('household'), special_zone: $('#qSpecial').checked ? true : null, household_unknown: $('#qUnknown').checked, foreign: $('#qForeign').checked, event_end: fd.get('event_end') || null, today: new Date().toISOString().slice(0, 10), hazard: 'rain', proxy: $('#qProxy').checked, emd: state.emd, sgg: state.sgg };
+  return { housing: fd.get('housing') || null, damage: fd.getAll('damage'), household: fd.getAll('household'), special_zone: $('#qSpecial').checked ? true : null, household_unknown: $('#qUnknown').checked, foreign: $('#qForeign').checked, event_end: fd.get('event_end') || null, today: new Date().toISOString().slice(0, 10), hazard: hazardOf(fd.getAll('damage')), proxy: $('#qProxy').checked, emd: state.emd, sgg: state.sgg };
 }
 function encodeShare(inp) {
   const p = new URLSearchParams();
@@ -2215,6 +2217,8 @@ function firstVariant(res, inp, dl) {
 }
 const _MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const fmtMD = iso => { const [, m, d] = String(iso).split('-').map(Number); return getLang() === 'en' ? `${_MON[m - 1]} ${d}` : `${m}월 ${d}일`; };
+// 위저드엔 재난 종류 질문이 없어 피해 유형으로 정한다(폭염·한파는 상황 카드로만 들어온다)
+const hazardOf = d => d.includes('heat') && !d.includes('cold') ? 'heat' : d.includes('cold') && !d.includes('heat') ? 'cold' : 'rain';
 function firstBoxHTML(v, res, inp, dl, icsBtn) {
   const step = id => (res.timeline || []).find(s => s.id === id) || {};
   const row = (k, val) => val ? `<dt>${t(k)}</dt><dd>${val}</dd>` : '';
@@ -2246,10 +2250,11 @@ function firstBoxHTML(v, res, inp, dl, icsBtn) {
 }
 const _accOpen = () => { try { return new Set(JSON.parse(sessionStorage.getItem('safepic.acc') || '[]')); } catch { return new Set(); } };
 // 접힘 한 줄: 제목 + 요약. solo = 안쪽 블록이 하나라 그 블록의 제목을 숨긴다(제목 중복 방지)
-const acc = (id, title, sum, body, { open = false, solo = true, hidden = false } = {}) => body ? `<details class="acc${solo ? ' acc-solo' : ''}" data-acc="${id}"${open || _accOpen().has(id) ? ' open' : ''}${hidden ? ' hidden' : ''}><summary><span>${title}</span><span class="acc-s">${sum || ''}</span></summary><div class="acc-in">${body}</div></details>` : '';
+// "more"(자세히 보기)는 세션에 기억하지 않는다: 대리 모드에서 펼친 상태가 다음 본인 결과로 넘어가면 안 된다
+const acc = (id, title, sum, body, { open = false, solo = true, hidden = false } = {}) => body ? `<details class="acc${solo ? ' acc-solo' : ''}" data-acc="${id}"${open || (id !== 'more' && _accOpen().has(id)) ? ' open' : ''}${hidden ? ' hidden' : ''}><summary><span>${title}</span><span class="acc-s">${sum || ''}</span></summary><div class="acc-in">${body}</div></details>` : '';
 // 닫힌 <details>는 인쇄되지 않는다 → 인쇄 동안만 전부 펼친다
-addEventListener('beforeprint', () => $$('details.acc').forEach(d => { d.dataset.was = d.open ? '1' : ''; d.open = true; }));
-addEventListener('afterprint', () => $$('details.acc').forEach(d => { d.open = !!d.dataset.was; }));
+addEventListener('beforeprint', () => $$('details.acc, details.disc').forEach(d => { d.dataset.was = d.open ? '1' : ''; d.open = true; }));
+addEventListener('afterprint', () => $$('details.acc, details.disc').forEach(d => { d.open = !!d.dataset.was; }));
 
 /* ---------- A1c 인쇄 한 장 v2 (docs/42): 화면의 접힘 줄 대신 표 한 장 — 주민이 들고 가고, 담당자가 근거 줄로 확인한다 (docs/40 §3.2) ---------- */
 function printSheetHTML(res, cashItems) {
@@ -2292,31 +2297,38 @@ function renderResult(res, inp) {
   const gotSum = `${res.total_cash_krw ? `<b>${t('res.got.sum', { amt: formatKRW(res.total_cash_krw) })}</b>${nUnpriced ? t('res.got.unpriced', { n: nUnpriced }) : ''} · ` : ''}${[['res.got.c', cashItems.length], ['res.got.a', (res.auto || []).length], ['res.got.p', (res.apply || []).length]].filter(x => x[1]).map(x => t(x[0], { n: x[1] })).join(' · ')}`;
   const nm = nearMisses(inp); if (nm.length) stat('nearmiss_shown');
   const docsN = new Set([...(res.cash || []), ...(res.relief_fund || []), ...(res.apply || []), ...(res.insurance || [])].flatMap(r => r.docs || [])).size;
+  // P1·P2: 당사자에겐 돈 한 줄. 건수·항목은 '자세히 보기' 안으로, 금액 상향 안내는 ⓘ 안으로
+  const moneyHTML = cashItems.length ? `<div class="money"><span>${t('res.money')}</span><b>${res.total_cash_krw ? t('res.got.sum', { amt: formatKRW(res.total_cash_krw) }) + (nUnpriced ? ' + α' : '') : t('res.money.tbd')}</b><button type="button" class="money-i" id="moneyI" aria-expanded="false" aria-controls="moneyPop" aria-label="${t('res.money.i')}">i</button></div><p class="money-pop" id="moneyPop" hidden>${t('res.cash.raise')}</p>` : '';
   const stepsHTML = v && v !== 'shelter' ? `<div class="steps">${['report', 'survey', 'pay', 'more'].map((k, i) => `<span class="${i === (v === 'nonews' ? 1 : 0) ? 'on' : ''}">${t('step.' + k)}</span>`).join('<i></i>')}</div>` : '';
   el.innerHTML = `
     <div class="print-head"><div><b>AidPage</b> ${t('brand.sub')}</div><div>${place} · ${inp.today} · ${t(inp.proxy ? 'print.proxy' : 'print.self')}</div></div>
     <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><div class="result-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSpeak" title="${t('tts.title')}">🔊</button><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div></div>
-    ${v ? firstBoxHTML(v, res, inp, dl, icsBtn) + (inp.proxy ? proxyHTML() : '') + stepsHTML + `<p class="res-scope">${t('res.scope')}</p>` : `<div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>${dlHTML}${icsBtn}`}
+    ${v ? firstBoxHTML(v, res, inp, dl, icsBtn) + (inp.proxy ? proxyHTML() : '') + stepsHTML : `<div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>${dlHTML}${icsBtn}`}
     ${acc('late', t('late.title'), '', lateHTML, { open: true })}
     ${inp.foreign ? `<div class="result-block foreign"><h3>${t('fr.title')}</h3><p>${t('fr.ok')}</p><p>${t('fr.cash')}</p><p>${t('fr.emergency')}</p><p>${t('fr.check')}</p><div class="fr-call">📞 ${t('fr.call')}</div></div>` : ''}
-    ${nGot ? acc('got', t('res.got'), gotSum, `<div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>${sec(t('res.auto'), res.auto)}${sec(t('res.apply'), res.apply)}${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}`, { solo: false }) : v === 'nonews' ? `<p class="muted first-hint">${t('first.nonews.hint')}</p>` : ''}
+    ${moneyHTML}
+    ${acc('psych', t('res.psych'), '', psychHTML)}
+    <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><button type="button" class="btn btn-ghost" id="btnImg">🖼 ${t('res.img')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
+    ${acc('more', t('res.more'), t('res.more.s'), `${nGot ? acc('got', t('res.got'), gotSum, `<div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>${sec(t('res.auto'), res.auto)}${sec(t('res.apply'), res.apply)}${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}`, { solo: false }) : v === 'nonews' ? `<p class="muted first-hint">${t('first.nonews.hint')}</p>` : ''}
+
     ${(() => { const A = _simMod && _simMod.accessLines && _simMod.accessLines(); return A ? `<div class="result-block access"><h3>${t('acc.print')} <small class="muted">${escapeHTML(A.from)}</small></h3><ol>${A.rows.map(x => `<li>${escapeHTML(x)}</li>`).join('')}</ol><small class="muted">${t('acc.note')}</small></div>` : ''; })()}
     ${acc('docs', t('res.docs'), t('res.docs.n', { n: docsN }), docsHTML(res))}
     ${acc('miss', inp.household_unknown ? t('res.maybe') : t('res.miss'), t('res.n', { n: nm.length }), nm.length ? `<div class="result-block miss ${inp.household_unknown ? 'is-unknown' : ''}"><h3>${inp.household_unknown ? t('res.maybe') : t('res.miss')}</h3>${inp.household_unknown ? `<small class="muted">${t('res.maybe.s')}</small>` : ''}${nm.map(x => `<div class="miss-item"><b>${x.r.label}</b>${x.r.amount_text ? ` <span class="item-amt">${x.r.amount_text}</span>` : ''}<br><small class="muted">→ ${x.cond}</small></div>`).join('')}</div>` : '')}
-    ${acc('psych', t('res.psych'), '', psychHTML)}
     ${acc('welfare', t('res.welfare'), '', `<div class="result-block welfare" id="welfareBox" hidden></div>`, { hidden: true })}
     ${acc('proc', t('res.proc.all'), t('res.proc.n', { n: (res.timeline || []).length }), `<div class="result-block"><h3>${t('res.proc')}</h3><ol class="timeline">${(res.timeline || []).map(s => `<li><b>${s.label}</b>${s.due ? ` <span class="badge">${t('badge.due', { d: s.due })}${s.days_left != null ? (s.days_left < 0 ? ' · ' + t('badge.over') : ` · D-${s.days_left}`) : ''}</span>` : ''}<small>${[s.summary, s.where, s.docs && s.docs.length && s.docs.join(', '), s.typical_days].filter(Boolean).join(' · ')}</small></li>`).join('')}</ol></div>`)}
+`, { solo: false, open: !!inp.proxy })}
     ${printSheetHTML(res, cashItems)}
-    <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><button type="button" class="btn btn-ghost" id="btnImg">🖼 ${t('res.img')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
-    <div class="disclaimer">${t('res.disc')}</div>`;
+    <p class="res-scope">${t('res.scope.s')}</p>
+    <details class="disc"><summary>${t('res.disc.s')} <u>${t('res.disc.more')}</u></summary><div class="disclaimer">${t('res.disc')}</div></details>`;
   renderWelfare(inp);
-  $$('details.acc', el).forEach(d => d.addEventListener('toggle', () => { const o = _accOpen(); d.open ? o.add(d.dataset.acc) : o.delete(d.dataset.acc); sessionStorage.setItem('safepic.acc', JSON.stringify([...o])); }));
+  $$('details.acc', el).forEach(d => d.dataset.acc !== 'more' && d.addEventListener('toggle', () => { const o = _accOpen(); d.open ? o.add(d.dataset.acc) : o.delete(d.dataset.acc); sessionStorage.setItem('safepic.acc', JSON.stringify([...o])); }));
   const sendIt = () => navigator.share ? navigator.share({ title: document.title, url: location.href }).catch(() => {}) : $('#btnCopy').click();
   const bs = $('#btnSend'); if (bs) bs.onclick = sendIt;
   if ($('#dlvPrint')) { $('#dlvPrint').onclick = () => print(); $('#dlvSend').onclick = sendIt; $('#dlvCopy').onclick = () => $('#btnCopy').click(); }
   const bl = $('#btnStill'); if (bl) bl.onclick = () => { const d = $('details[data-acc="late"]', el); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
   $('#btnEdit').onclick = () => { el.hidden = true; $('#panelScroll').scrollTop = 0; };
   $('#btnImg').onclick = () => shareImage(res, inp);
+  const mi = $('#moneyI', el); if (mi) mi.onclick = () => { const p = $('#moneyPop', el); p.hidden = !p.hidden; mi.setAttribute('aria-expanded', String(!p.hidden)); };
   $('#btnSpeak').onclick = () => { const fb = $('.first', el); const txt = [place, fb ? [...fb.querySelectorAll('.first-do, dt, dd')].map(n => (n.firstChild && n.firstChild.textContent || n.textContent).trim()).join('. ') : '', formatKRW(res.total_cash_krw || 0) + ' ' + t('res.cash.s'), dl ? `${dl.label} ${dl.due}` : '', ...(res.todo || []).map(x => x.text || x), ...cashItems.map(r => `${r.label} ${r.amount_text || ''}`)].filter(Boolean).join('. '); speak(txt, $('#btnSpeak')); };
   const ib = $('#btnIcs'); if (ib && dl) ib.onclick = () => downloadICS(`${dl.label} — AidPage`, dl.due, `${place}\n${t('res.dl.ext', { due: dl.due })}\n${location.href}`);
   // print-only: nearest community center (피해신고 접수처)

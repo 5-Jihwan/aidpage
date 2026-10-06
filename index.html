@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20260921a">
+<link rel="stylesheet" href="css/style.css?v=20261006a">
 </head>
 <body>
 
@@ -43,7 +43,7 @@
       <button type="button" class="wcard" data-g="proxy"><span class="card-ic">👥</span><b data-i18n="wel.proxy">대신 확인해요</b><small data-i18n="wel.proxy.s">부모님·이웃 몫을 인쇄·공유</small></button>
       <button type="button" class="wcard" data-g="damage"><span class="card-ic">🏚️</span><b data-i18n="wel.damage">피해를 입었어요</b><small data-i18n="wel.damage.s">지원금·신고 기한 확인</small></button>
       <button type="button" class="wcard" data-g="evac"><span class="card-ic">🚨</span><b data-i18n="wel.evac">지금 위험해요</b><small data-i18n="wel.evac.s">가까운 대피소·응급실</small></button>
-      <button type="button" class="wcard" data-g="prep"><span class="card-ic">🌧️</span><b data-i18n="wel.prep">미리 대비하려고요</b><small data-i18n="wel.prep.s">우리 동네 위험·보험</small></button>
+      <button type="button" class="wcard" data-g="prep"><span class="card-ic">🌧️</span><b data-i18n="wel.prep">미리 대비하려고요</b><small data-i18n="wel.prep.s">동네 살피기·보험</small></button>
     </div>
     <div class="welcome-sub" id="welSub" hidden>
       <button type="button" class="btn btn-ghost btn-sm" id="welBack">← <span data-i18n="wel.back">뒤로</span></button>
@@ -77,7 +77,7 @@
     <button type="button" class="tab tab-start" id="btnStart" data-i18n-title="start.title" title="처음 화면으로 (지역·입력 초기화)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg><span data-i18n="tab.start">처음으로</span></button>
     <button class="tab is-active" data-tab="now"><i>01</i><span data-i18n="tab.now">내 동네</span></button>
     <button class="tab" data-tab="find"><i>02</i><span data-i18n="tab.find">지원 찾기</span></button>
-    <button class="tab" data-tab="where"><i>03</i><span data-i18n="tab.where">우리 동네 위험</span></button>
+    <button class="tab" data-tab="where"><i>03</i><span data-i18n="tab.where">동네 살피기</span></button>
     <button class="tab tab-about" data-tab="about"><span data-i18n="tab.about">방법·한계</span></button>
   </nav>
   <div class="lang-top" id="langTop">
@@ -116,7 +116,7 @@
     <label class="drawer-row"><input type="checkbox" id="btnFxBanner" checked><span data-i18n="fx.banner.t">특보 배너를 지도 위에 표시</span></label>
     <small class="fine" data-i18n="fx.banner.n">꺼도 '내 동네' 패널의 특보 카드에는 그대로 나옵니다.</small>
     <label class="drawer-row"><input type="checkbox" id="btnGridOn" checked><span data-i18n="grid.on.t">위험 격자를 지도에 겹쳐 표시</span></label>
-    <small class="fine" data-i18n="grid.on.n">꺼도 '우리 동네 위험'의 수치는 패널에 그대로 나옵니다.</small>
+    <small class="fine" data-i18n="grid.on.n">꺼도 '동네 살피기'의 수치는 패널에 그대로 나옵니다.</small>
     <label class="drawer-row"><input type="checkbox" id="btnGrid3d"><span data-i18n="grid.3d.t">3D 모드에서 위험 격자를 기둥으로 세웁니다</span></label></section>
   <section class="drawer-sec desktop-only"><h4 data-i18n="drawer.panel">화면</h4><button type="button" class="btn btn-ghost btn-sm" id="btnPanelToggle" data-i18n="panel.collapse">패널 접기/펼치기</button></section>
 </aside>
@@ -137,10 +137,11 @@
             <button class="card" data-sit="house_flood"><span class="card-ic">🏠</span><b data-i18n="sit.house">집이 잠겼어요</b><small data-i18n="sit.house.s">침수·파손 지원금, 10일 신고</small></button>
             <button class="card" data-sit="shop_flood"><span class="card-ic">🏪</span><b data-i18n="sit.shop">가게가 잠겼어요</b><small data-i18n="sit.shop.s">소상공인 지원·융자</small></button>
             <button class="card" data-sit="evacuating"><span class="card-ic">🚨</span><b data-i18n="sit.evac">지금 대피 중이에요</b><small data-i18n="sit.evac.s">가까운 대피소·특보</small></button>
-            <button class="card" data-sit="before_rain"><span class="card-ic">🌧️</span><b data-i18n="sit.before">비 오기 전이에요</b><small data-i18n="sit.before.s">우리 동네 위험·보험</small></button>
+            <button class="card" data-sit="before_rain"><span class="card-ic">🌧️</span><b data-i18n="sit.before">비 오기 전이에요</b><small data-i18n="sit.before.s">동네 살피기·보험</small></button>
             <button class="card" data-sit="injury"><span class="card-ic">🩹</span><b data-i18n="sit.injury">가족이 다쳤어요</b><small data-i18n="sit.injury.s">의연금·심리지원</small></button>
             <button class="card" data-sit="no_news"><span class="card-ic">⏳</span><b data-i18n="sit.nonews">신고했는데 소식이 없어요</b><small data-i18n="sit.nonews.s">절차와 기한</small></button>
             <button class="card" data-sit="past"><span class="card-ic">🗓️</span><b data-i18n="sit.past">예전 재난, 이제 알아봐요</b><small data-i18n="sit.past.s">기한이 지났어도 가능한 것</small></button>
+            <button class="card" data-sit="heat_cold"><span class="card-ic">🌡️</span><b data-i18n="sit.heat">너무 덥거나 추워요</b><small data-i18n="sit.heat.s">쉼터·건강·지원</small></button>
             <button class="card card-proxy" data-sit="proxy"><span class="card-ic">👥</span><b data-i18n="sit.proxy">부모님·이웃 대신 확인해요</b><small data-i18n="sit.proxy.s">인쇄·공유하기 좋게</small></button>
           </div>
           <div class="tip-card" id="tipCard" hidden></div>
@@ -194,6 +195,7 @@
               <label><input type="checkbox" name="damage" value="goods"><span data-i18n="d.goods">가재도구·집기만 젖었어요</span></label>
               <label><input type="checkbox" name="damage" value="injury"><span data-i18n="d.injury">사람이 다쳤어요</span></label>
               <label><input type="checkbox" name="damage" value="death"><span data-i18n="d.death">가족이 사망·실종됐어요</span></label>
+              <input type="checkbox" name="damage" value="heat" hidden><input type="checkbox" name="damage" value="cold" hidden><!-- 폭염·한파: 질문엔 없고 상황 카드로만 들어온다(P6) -->
             </div>
           </fieldset>
           <fieldset class="q"><legend><span data-i18n="wiz.q4">4. 우리 집은</span> <small data-i18n="wiz.multi">(해당하는 것 모두)</small></legend>
@@ -313,6 +315,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20260921c"></script>
+<script type="module" src="js/app.js?v=20261006a"></script>
 </body>
 </html>

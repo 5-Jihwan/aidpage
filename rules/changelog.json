@@ -9,6 +9,7 @@
     ]
   },
   "entries": [
+    {"date": "2026-10-06", "title": "골드셋 평가 반영 — TV 수신료·고교 수업료 조건, 농가 생계지원 신설", "affects": ["indirect.tv_license", "indirect.highschool_tuition", "indirect.highschool_tuition_farm", "cash.farm_livelihood"], "change": "TV 수신료: 전파 한정 → 피해 신고 확인 세대 전체(특별재난지역, 위원회 의결 시 2개월). 고교 수업료: 침수·경미 피해·소상공인 제외, 전·반파 세대와 50% 이상 피해 농가로 한정(농가는 별도 항목). 농·어·임업 50% 이상 피해 가구 생계지원 신설(추정). 근거: 산청·서산 2025.7 호우 공식 안내와 규정 별표1 대조(docs/49).", "basis": "규정 제4조①1호나·다목 · 별표1 비고1·2 · 방송법 시행령 제44조①12호", "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945", "confidence": "reported"},
     {
       "date": "2018-09-18",
       "title": "폭염 법정 자연재난 편입 (한파는 2018-12 시행)",

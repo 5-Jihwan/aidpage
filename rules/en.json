@@ -361,13 +361,13 @@
   "indirect.highschool_tuition": {
    "label": "High-school tuition reduction",
    "amount_text": "Up to ₩1M for 6 months",
-   "summary": "Tuition reduced for high-school students of affected households for 6 months, up to ₩1M.",
+   "summary": "Tuition waived for 6 months (up to ₩1M) for high-school students in households whose home was destroyed or half-destroyed (tenants included). Flooding alone does not qualify.",
    "where": "School administration office / provincial education office",
    "docs": [
     "Damage confirmation",
     "Enrollment certificate"
    ],
-   "basis": "Elementary and Secondary Education Act Enforcement Decree art. 97 (tuition reduction) · Regulation art. 12"
+   "basis": "Regulation art. 4(1)1(b) · Annex 1 note 2 · Elementary and Secondary Education Act Enforcement Decree art. 97"
   },
   "indirect.sme_guarantee": {
    "label": "Disaster special guarantee for SMEs & small businesses (lower fee)",
@@ -415,13 +415,13 @@
   },
   "indirect.tv_license": {
    "label": "TV licence fee exemption",
-   "amount_text": "Fee exempt (period unconfirmed)",
-   "summary": "TV licence fee exemption for households whose home was destroyed.",
+   "amount_text": "2 months waived (once decided)",
+   "summary": "TV licence fee waived for 2 months for households with a confirmed damage report in a special disaster zone (decided per disaster by the broadcasting commission).",
    "where": "KBS fee call center (1588-1801) / KEPCO",
    "docs": [
     "Damage confirmation"
    ],
-   "basis": "Broadcasting Act Enforcement Decree art. 44 (licence-fee exemption) · Regulation art. 12"
+   "basis": "Broadcasting Act Enforcement Decree art. 44(1)12 · commission decision per disaster"
   },
   "indirect.water_sewage": {
    "label": "Water & sewage bill reduction",
@@ -572,6 +572,29 @@
     "Bank account in your name"
    ],
    "basis": "Relief Fund Management and Operation Regulation art. 7-2-3 (amended 2026-05-27)"
+  },
+  "indirect.highschool_tuition_farm": {
+   "label": "High-school tuition waiver (farm/fishery households)",
+   "amount_text": "Up to ₩1M for 6 months",
+   "summary": "Tuition waived for 6 months for high-school students in households whose main farming/fishing livelihood lost 50% or more.",
+   "where": "School administration office / provincial education office",
+   "docs": [
+    "Damage confirmation",
+    "Enrollment certificate"
+   ],
+   "basis": "Regulation art. 4(1)1(c) · Annex 1 notes 1–2"
+  },
+  "cash.farm_livelihood": {
+   "label": "Living support for farm/fishery households",
+   "amount_text": "Monthly rate by household size (2025: ₩730,500 for 1 person, emergency-welfare rate) × months by damage — not computed",
+   "summary": "Living costs for households whose main livelihood (crops, livestock, boats, aquaculture) lost 50% or more of total holdings.",
+   "where": "Community center / city-county agriculture division",
+   "docs": [
+    "Damage report",
+    "Farm-business registration",
+    "Photos"
+   ],
+   "basis": "Regulation art. 4(1)1(c) · Annex 1 §1(c)1) and note 1"
   }
  },
  "steps": {

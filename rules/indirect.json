@@ -411,24 +411,18 @@
       },
       "group": "indirect",
       "label": "고등학생 수업료 감면",
-      "summary": "피해 가구 고등학생 자녀 수업료를 최대 100만원 범위에서 6개월간 감면.",
+      "summary": "주택이 전파·반파·유실된 세대(세입자 포함)의 고등학생 수업료를 최대 100만원 범위에서 6개월간 면제. 침수만 된 세대는 제외.",
       "amount_krw": null,
       "amount_text": "최대 100만원 범위 6개월",
       "unit": "인",
       "conditions": {
         "housing": [
           "own",
-          "rent",
-          "shop",
-          "farm"
+          "rent"
         ],
         "damage": [
-          "flood",
           "half",
-          "full",
-          "goods",
-          "injury",
-          "death"
+          "full"
         ]
       },
       "channel": "apply",
@@ -438,12 +432,50 @@
         "피해사실확인서",
         "재학증명서"
       ],
-      "basis": "초·중등교육법 시행령 제97조(수업료 감면) · 규정 제12조",
-      "basis_url": "https://www.law.go.kr/법령/초·중등교육법시행령",
+      "basis": "규정 제4조①1호나목·별표1 비고2 · 초·중등교육법 시행령 제97조(수업료 감면)",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
       "effective_from": "2025-07-01",
       "rate_asof": "2025-07-31",
       "confidence": "verified",
-      "notes": "고교 무상교육 대상 학교는 실효성 낮음(사립·특목고 등 수업료 징수 학교 중심)."
+      "notes": "침수·소파는 대상이 아니다(별표1 비고2). 고교 무상교육 대상 학교는 실효성 낮음(사립·특목고 등 수업료 징수 학교 중심)."
+    },
+    {
+      "id": "indirect.highschool_tuition_farm",
+      "law": {
+        "mst": "286321",
+        "name": "초·중등교육법 시행령",
+        "art": "제97조"
+      },
+      "group": "indirect",
+      "label": "고등학생 수업료 면제 (농·어·임업 피해 세대)",
+      "summary": "주생계수단인 농·어·임업 시설·작물이 50% 이상 피해를 입은 세대의 고등학생 수업료를 6개월간 면제.",
+      "amount_krw": null,
+      "amount_text": "최대 100만원 범위 6개월",
+      "unit": "인",
+      "conditions": {
+        "housing": [
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods"
+        ]
+      },
+      "channel": "apply",
+      "deadline_days_after_event": null,
+      "where": "재학 고등학교 행정실 / 시·도교육청",
+      "docs": [
+        "피해사실확인서",
+        "재학증명서"
+      ],
+      "basis": "규정 제4조①1호다목·별표1 비고1·2 · 초·중등교육법 시행령 제97조",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-07-01",
+      "rate_asof": "2025-07-31",
+      "confidence": "verified",
+      "notes": "총 소유량의 50% 이상 피해(별표1 비고1)일 때만 해당 — 피해율은 현장조사로 정해진다."
     },
     {
       "id": "indirect.sme_guarantee",
@@ -614,9 +646,9 @@
       },
       "group": "indirect",
       "label": "TV 수신료 면제",
-      "summary": "주택 멸실(전파·유실) 세대의 TV 수신료 면제.",
+      "summary": "특별재난지역에서 피해 신고가 확인된 세대의 TV 수신료를 2개월 면제(방송미디어통신위원회 재난별 의결).",
       "amount_krw": null,
-      "amount_text": "수신료 면제 (기간 미확인)",
+      "amount_text": "2개월 면제 (재난별 의결 시)",
       "unit": "세대",
       "conditions": {
         "housing": [
@@ -624,7 +656,10 @@
           "rent"
         ],
         "damage": [
-          "full"
+          "flood",
+          "half",
+          "full",
+          "goods"
         ],
         "special_zone": true
       },
@@ -634,12 +669,12 @@
       "docs": [
         "피해사실확인서"
       ],
-      "basis": "방송법 시행령 제44조(수신료 면제) · 규정 제12조",
+      "basis": "방송법 시행령 제44조①12호(위원회 지정 수상기) · 방송미디어통신위원회 재난별 의결(2025.7~8 호우분 2026-01-10 의결)",
       "basis_url": "https://www.law.go.kr/법령/방송법시행령",
       "effective_from": "2025-07-01",
       "rate_asof": null,
       "confidence": "reported",
-      "notes": "특별재난지역 추가 간접지원 목록(보도)에 포함. 전기요금 감면과 함께 처리되는 경우가 많음."
+      "notes": "시행령에 재난 면제 호가 따로 없고, 재난마다 위원회 의결로 정한다. 의결 전에는 적용되지 않으며 피해 등급(전파·침수)으로 거르지 않는다(보도 기준, 의결 원문 미확인). 신청 불필요."
     },
     {
       "id": "indirect.water_sewage",

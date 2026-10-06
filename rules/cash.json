@@ -480,6 +480,54 @@
       "rate_asof": null,
       "confidence": "estimate",
       "notes": "항목별 단가·부담률이 세분화되어 있어 본 사이트에서는 해당 가능성만 안내. 농작물 재해보험 가입 여부에 따라 조정될 수 있음."
+    },
+    {
+      "id": "cash.farm_livelihood",
+      "law": {
+        "mst": "279945",
+        "name": "자연재난 구호 및 복구 비용 부담기준 등에 관한 규정",
+        "art": "제4조",
+        "annex": "별표1"
+      },
+      "group": "cash",
+      "label": "농·어·임업 피해 가구 생계지원",
+      "summary": "주생계수단인 농작물·축산·어선·양식시설 등이 총 소유량의 50% 이상 피해를 입은 가구에 가구원 수별 생계비를 지원.",
+      "amount_krw": null,
+      "amount_text": "가구원 수별 월 단가(2025: 1인 73만500원 · 4인 187만2,700원, 긴급복지 생계지원액 준용) × 피해 정도별 개월 수 — 금액 미산정",
+      "unit": "세대",
+      "conditions": {
+        "housing": [
+          "farm"
+        ],
+        "damage": [
+          "flood",
+          "half",
+          "full",
+          "goods"
+        ],
+        "hazard": [
+          "rain",
+          "typhoon",
+          "landslide",
+          "cold",
+          "heat",
+          "any"
+        ]
+      },
+      "channel": "auto_after_report",
+      "deadline_days_after_event": 10,
+      "where": "읍·면·동 주민센터 / 시·군 농업 부서",
+      "docs": [
+        "자연재난 피해신고서",
+        "농업경영체 등록 확인서",
+        "피해 사진"
+      ],
+      "basis": "규정 제4조①1호다목 · 별표1 제1호 다목1)·비고1 (경영 안정 지원)",
+      "basis_url": "https://www.law.go.kr/lsInfoP.do?lsiSeq=279945",
+      "effective_from": "2025-11-28",
+      "rate_asof": "2025-07-31",
+      "confidence": "estimate",
+      "notes": "50% 이상 피해일 때만 해당(현장조사로 판정). 개월 수(일반작물 1~2, 채소·가축 1~5, 과수 7~11개월분 — 2025.8 농식품부 보도)와 단가 고시 원문은 미확인. 2025.7 호우 산청·서산 공고에 같은 항목이 있다. 주소득자 사망·부상 생계비는 사회재난 규정이라 여기 해당하지 않는다."
     }
   ]
 }

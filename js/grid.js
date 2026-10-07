@@ -1,5 +1,5 @@
 // AidPage — H3 grid layer for pilot districts. Shows only attributes that actually have data.
-import { getLang } from './i18n.js?v=20261006a';
+import { getLang } from './i18n.js?v=20261007a';
 export const ATTRS = [
   { id: 'shelter_min_walk', ko: '가까운 대피소 도보(분)', en: 'Walk to shelter (min)', unit: '분', unit_en: 'min', ramp: ['#eef2f8', '#9a7328'],
     def: '셀 가운데에서 가장 가까운 민방위 대피소까지 걸어가는 데 걸리는 추정 시간. 위험이 아니라 "대피에 걸리는 시간"입니다.', def_en: 'Estimated walking time from the cell centre to the nearest civil-defence shelter. Not a hazard — a measure of evacuation time.',
@@ -95,4 +95,4 @@ export function show(sgg, attrId) {
   return { attr: a, breaks, colors, only };
 }
 export function hide() { if (map && map.getSource('grid')) map.getSource('grid').setData({ type: 'FeatureCollection', features: [] }); current = null; }
-export function fmt(a, v) { if (v == null) return '—'; const x = a.pct ? v * 100 : v; const u = getLang() === 'en' ? (a.unit_en || a.unit) : a.unit; return (Math.round(x * 10) / 10).toLocaleString() + (u ? ' ' + u : ''); }
+export function fmt(a, v) { if (v == null) return '—'; const x = a.pct ? v * 100 : v; const u = getLang() !== 'ko' ? (a.unit_en || a.unit) : a.unit; return (Math.round(x * 10) / 10).toLocaleString() + (u ? ' ' + u : ''); }

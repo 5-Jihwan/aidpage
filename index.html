@@ -28,17 +28,18 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20261006a">
+<link rel="stylesheet" href="css/style.css?v=20261007a">
 </head>
 <body>
 
 <!-- 첫 진입: 질문 하나만. 나머지(지도·검색·카드)는 답한 뒤에 나온다 -->
 <div class="welcome" id="welcome" hidden>
   <div class="welcome-card" role="dialog" aria-modal="true" aria-labelledby="welH1">
-    <div class="welcome-lang" id="welLang" role="group" aria-label="언어 / Language"><button type="button" data-lang="ko">한국어</button><button type="button" data-lang="en">English</button></div>
+    <div class="welcome-lang" id="welLang" role="group" aria-label="언어 / Language"></div>
     <div class="welcome-brand"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name"><b>A</b>id<b>P</b>age</span></div>
     <h1 class="h1" id="welH1" data-i18n="landing.h1">지금 어떤 상황이세요?</h1>
     <p class="wel-lead" id="welLead" data-i18n="wel.lead">하나만 골라주세요. 상황에 맞는 것부터 보여드립니다. 입력은 서버로 가지 않습니다.</p>
+    <p class="fine xlat-note" data-i18n="wel.xlat"></p>
     <div class="welcome-grid" id="welGroups">
       <button type="button" class="wcard" data-g="proxy"><span class="card-ic">👥</span><b data-i18n="wel.proxy">대신 확인해요</b><small data-i18n="wel.proxy.s">부모님·이웃 몫을 인쇄·공유</small></button>
       <button type="button" class="wcard" data-g="damage"><span class="card-ic">🏚️</span><b data-i18n="wel.damage">피해를 입었어요</b><small data-i18n="wel.damage.s">지원금·신고 기한 확인</small></button>
@@ -81,11 +82,8 @@
     <button class="tab tab-about" data-tab="about"><span data-i18n="tab.about">방법·한계</span></button>
   </nav>
   <div class="lang-top" id="langTop">
-    <button type="button" class="lang-top-t" id="langSelT" data-i18n="lang.btn" aria-haspopup="listbox" aria-expanded="false" aria-label="언어 / Language">🌐 언어</button>
-    <div class="lang-menu" role="listbox" aria-label="언어 / Language">
-      <button type="button" role="option" data-lang="ko">한국어</button>
-      <button type="button" role="option" data-lang="en">English</button>
-    </div>
+    <button type="button" class="lang-top-t" id="langSelT" aria-haspopup="listbox" aria-expanded="false" aria-label="언어 / Language">🌐 한국어</button>
+    <div class="lang-menu" role="listbox" aria-label="언어 / Language"></div>
   </div>
 </header>
 
@@ -94,7 +92,7 @@
 <aside class="drawer" id="drawer" aria-label="설정" hidden>
   <div class="drawer-head"><b data-i18n="drawer.title">설정</b><button type="button" class="icon-btn" id="drawerX" aria-label="닫기">×</button></div>
   <section class="drawer-sec"><h4 data-i18n="drawer.more">더 보기</h4><button type="button" class="drawer-link" data-tab="about" data-i18n="tab.about">방법·한계</button><a class="drawer-link" href="atlas.html" data-i18n="drawer.dex">타입 도감</a><a class="drawer-link kakao-link" data-kakao="friend" href="#" target="_blank" rel="noopener" hidden data-i18n="kakao.add">💬 카카오톡 채널 추가</a><a class="drawer-link" href="https://github.com/5-Jihwan/aidpage" target="_blank" rel="noopener">GitHub</a><div class="fine" data-i18n="drawer.note">입력은 서버로 가지 않고 이 브라우저 안에서만 계산됩니다.</div><div class="fine mono" id="appVer"></div></section>
-  <section class="drawer-sec"><h4 data-i18n="drawer.lang">언어</h4><div class="lang pill" role="group" aria-label="언어"><button class="lang-btn" data-lang="ko">한국어</button><button class="lang-btn" data-lang="en">English</button></div></section>
+  <section class="drawer-sec"><h4 data-i18n="drawer.lang">언어</h4><div class="lang pill" role="group" aria-label="언어 / Language"></div></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.size">글씨 크기</h4><div class="size pill" role="group" aria-label="글씨 크기"><button class="size-btn" data-size="normal" data-i18n="size.normal">보통</button><button class="size-btn" data-size="big" data-i18n="size.big">큰 글씨</button></div>
     <label class="drawer-row"><input type="checkbox" id="btnContrast"><span data-i18n="size.contrast.t">글자와 배경 대비를 높입니다</span></label></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.push">재난 알림</h4>
@@ -272,6 +270,7 @@
           <li data-i18n="about.d4"></li>
           <li data-i18n="about.d5"></li>
           <li><span data-i18n="about.d3"></span> <a href="#" id="linkRules" data-i18n="about.rules">규칙 전체 보기</a></li>
+          <li data-i18n="about.cd"></li>
         </ul>
         <h3 data-i18n="about.borrow">참고한 것</h3>
         <p data-i18n="about.b1"></p>
@@ -315,6 +314,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20261006a"></script>
+<script type="module" src="js/app.js?v=20261007a"></script>
 </body>
 </html>

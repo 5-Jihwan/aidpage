@@ -95,7 +95,7 @@ const NOTE = {
 const DESIG_KINDS = new Set(['civil_defense', 'temp_housing', 'quake', 'tsunami', 'heat', 'cold', 'dust', 'chem']);
 function detailHTML(p, lngLat) {
   const k = KINDS.find(x => x.id === p.kind) || KINDS[0];
-  const en = document.documentElement.lang === 'en';
+  const en = document.documentElement.lang !== 'ko';
   const L = en ? 'en' : 'ko', note = `${p.kind === 'civil_defense' ? `<div class="pop-warn">${NOTE.cd[L]}</div>` : ''}${DESIG_KINDS.has(p.kind) ? `<div class="pop-note">${NOTE.desig[L]}</div>` : ''}`;
   return `<b>${p.name || ''}</b><br><small>${k.icon} ${en ? k.en : k.ko}${p.cap ? ` · ${p.cap}${en ? '' : '명'}` : ''}${p.type && !/^\d|^FTL|^\d{3}$/.test(p.type) ? ` · ${p.type}` : ''}<br>${p.addr || ''}${p.hours ? `<br>🕒 ${p.hours}` : ''}${p.tel ? `<br>📞 <a href="tel:${p.tel}">${p.tel}</a>` : ''}</small>${note}${map.routeLinks ? map.routeLinks(lngLat.lng, lngLat.lat, p.name) : ''}${map.srcBadge ? map.srcBadge(p.src, p.asof) : ''}`;
 }
@@ -219,7 +219,7 @@ function spiderfy(lngLat, leaves, clusterId) {
     el.style.borderColor = k.color;
     if (k.hazard) el.style.background = '#fdf1e4';
     el.textContent = k.icon;
-    el.title = lf.properties.name || (document.documentElement.lang === 'en' ? k.en : k.ko);
+    el.title = lf.properties.name || (document.documentElement.lang !== 'ko' ? k.en : k.ko);
     el.style.animationDelay = `${i * 30}ms`;
     root.appendChild(el);
     root.addEventListener('mouseenter', cancelCollapse);

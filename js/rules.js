@@ -138,7 +138,8 @@ export function diffDays(fromISO, toISO) {
 // ---------- 금액 ----------
 
 let LANG = 'ko';
-export function setRulesLang(l) { LANG = l === 'en' ? 'en' : 'ko'; }
+// 규칙 번역은 영어본뿐 — 한국어가 아니면 전부 영어 라벨
+export function setRulesLang(l) { LANG = l === 'ko' ? 'ko' : 'en'; }
 export function formatKRW(n) {
   if (n == null || Number.isNaN(n)) return '—';
   const neg = n < 0 ? '-' : '';

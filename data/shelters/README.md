@@ -4,6 +4,10 @@ Built 2026-08-23 by `scripts/build_shelters.py` (do not hand-edit). WGS84 points
 
 Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계 — 광주+전남 = `12`; from the query 시군구 for safekorea layers, else by address match within sido against `data/admin/sgg_index.json`, else null), `cap` (수용인원, int or null), `type`, `src`, `asof` (YYYY-MM-DD).
 
+## 보안·공개 범위
+- 모든 시설 정보는 행정안전부·공공데이터포털이 **공개 목적으로 배포하는 자료**를 그대로 옮긴 것이다. 비공개 대상 공간정보(출입 통제되는 국가보안목표시설·군사시설)는 포함하지 않으며, 군 관련 시설(부대·사령부·군인아파트 등)은 생성 단계에서 제외한다(`dropped_military`).
+- 원본이 비공개로 바뀌거나 기관의 제거 요청이 오면 다음 빌드에서 제거한다 — 창구는 SECURITY.md.
+
 ## Files
 
 | kind | points | file(s) | bytes |

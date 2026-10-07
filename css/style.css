@@ -630,6 +630,7 @@ html.no-fxbanner .fx-banner{display:none}
   .lang-top-t{height:32px;padding:0 9px;font-size:.78rem}
 }
 .lang-top-t:hover{background:var(--bg)}
+.lang-top-t small{font-size:.86em;font-weight:500;color:var(--mute)}
 .lang-top-t::after{content:' ▾';color:var(--mute);font-weight:400}
 .lang-menu{position:absolute;top:calc(100% + 6px);right:0;display:none;flex-direction:column;gap:2px;min-width:132px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(20,32,46,.16);padding:6px;z-index:60}
 .lang-top.is-open .lang-menu{display:flex}
@@ -649,9 +650,15 @@ html.big .lang-top-t{font-size:1rem;height:42px}
 .welcome[hidden]{display:none}
 .welcome-card{position:relative;background:#fff;border-radius:20px;max-width:560px;width:100%;padding:26px 24px 20px;box-shadow:0 24px 60px rgba(20,32,46,.28);max-height:calc(100dvh - 36px);overflow:auto}
 /* 오버레이가 떠 있는 동안 헤더 언어 버튼이 가려진다 — 외국인 첫 방문자를 위해 카드 안에도 스위치 */
-.welcome-lang{position:absolute;top:14px;right:14px;display:flex;gap:2px;border:1px solid var(--line);border-radius:999px;padding:2px;background:#fff}
-.welcome-lang button{border:0;background:none;padding:4px 10px;border-radius:999px;font-size:.8rem;color:var(--mute);cursor:pointer}
-.welcome-lang button.is-on{background:var(--bg);color:var(--ink);font-weight:700}
+.welcome-lang{display:flex;flex-wrap:wrap;gap:4px;margin:-6px 0 12px}
+.welcome-lang button{border:1px solid var(--line);background:#fff;padding:4px 10px;border-radius:999px;font-size:.8rem;color:var(--mute);cursor:pointer}
+.welcome-lang button.is-on{background:var(--bg);color:var(--ink);border-color:var(--ink);font-weight:700}
+.xlat-note:empty{display:none} .xlat-note{margin:-4px 0 12px}
+/* 언어별 글꼴 — 경기천년제목은 KS X 1001 서브셋이라 가나·간체가 섞이므로 제목까지 Noto로. Google Fonts는 i18n.js가 고른 언어일 때만 붙인다 */
+html:lang(ja){--font:"Noto Sans JP","Pretendard",system-ui,sans-serif;--display:var(--font);--label:var(--font)}
+html:lang(zh){--font:"Noto Sans SC","Pretendard",system-ui,sans-serif;--display:var(--font);--label:var(--font)}
+html:lang(vi){--font:"Noto Sans","Pretendard",system-ui,sans-serif;--display:var(--font);--label:var(--font)}
+html:lang(es),html:lang(fr){--display:var(--font);--label:var(--font)}
 .welcome-brand{display:inline-flex;align-items:center;gap:8px;margin-bottom:14px}
 .welcome-card .h1{margin-bottom:6px}
 .wel-lead{margin:0 0 14px;color:var(--mute);font-size:.92rem;line-height:1.5}

@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic } from './i18n.js?v=20261006a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20261006a';
+import { t, getLang, setLang, applyStatic, LANGS, langName, ttsLang } from './i18n.js?v=20261007a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20261007a';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260921a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -272,7 +272,7 @@ function localizeLabels() {
   const en = ['case', isSeaOfJapan(enRaw), 'East Sea', isDokdo(enRaw), 'Dokdo', enRaw];
   const koFixed = ['case', isSeaOfJapan(ko), '동해', isDokdo(ko), '독도', ko];
   const both = ['format', koFixed, {}, '\n', {}, en, { 'font-scale': 0.8, 'text-color': '#6b7a90' }];
-  const base = getLang() === 'en' ? en : ['case', ['==', ['to-string', koFixed], ['to-string', en]], koFixed, both];
+  const base = getLang() !== 'ko' ? en : ['case', ['==', ['to-string', koFixed], ['to-string', en]], koFixed, both];
   const field = ['case', milMaskExpr(), '', base];  // 군사시설명은 빈 문자열로 마스킹
   for (const l of style.layers || []) {
     if (l.type !== 'symbol' || !l.layout || !l.layout['text-field']) continue;
@@ -297,8 +297,8 @@ function hideRoadShields() {
   }
 }
 /* 시군구·읍면동 자체 라벨: EN이면 로마자(name_en), 없으면 한글 폴백 */
-const adminNameField = () => getLang() === 'en' ? ['coalesce', ['get', 'name_en'], ['get', 'name']] : ['get', 'name'];
-const landmarkNameField = () => getLang() === 'en' ? ['get', 'en'] : ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'en'], { 'font-scale': 0.8, 'text-color': '#6b7a90' }];
+const adminNameField = () => getLang() !== 'ko' ? ['coalesce', ['get', 'name_en'], ['get', 'name']] : ['get', 'name'];
+const landmarkNameField = () => getLang() !== 'ko' ? ['get', 'en'] : ['format', ['get', 'ko'], {}, '\n', {}, ['get', 'en'], { 'font-scale': 0.8, 'text-color': '#6b7a90' }];
 /* visible map area (px) after floating UI: left panel / bottom sheet / top-right stack */
 /* 패딩 합이 캔버스보다 크면 MapLibre가 'Map cannot fit within canvas'를 내고
    cameraForBounds가 undefined를 반환한다. globe 투영에서는 그 undefined의 .center를
@@ -337,13 +337,14 @@ function speak(text, btn) {
   if (!('speechSynthesis' in window)) { alert(t('tts.unsupported')); return; }
   const ss = speechSynthesis, stop = () => { speaking = false; _utts = []; if (btn) btn.classList.remove('is-on'); };
   if (speaking) { ss.cancel(); stop(); return; }
-  const lg = getLang() === 'en' ? 'en' : 'ko';
-  const voice = ss.getVoices().find(v => v.lang.toLowerCase().startsWith(lg));
+  const lg = getLang();
+  const voices = ss.getVoices(), want = ttsLang(lg).toLowerCase();
+  const voice = voices.find(v => v.lang.toLowerCase().replace('_', '-') === want) || voices.find(v => v.lang.toLowerCase().startsWith(lg));
   const parts = String(text).split(/\.\s+|\n+/).map(s => s.trim()).filter(Boolean);
   if (!parts.length) return;
   if (ss.speaking || ss.pending) ss.cancel();
   _utts = parts.map((p, i) => {
-    const u = new SpeechSynthesisUtterance(p); u.lang = lg === 'en' ? 'en-US' : 'ko-KR'; if (voice) u.voice = voice;
+    const u = new SpeechSynthesisUtterance(p); u.lang = ttsLang(lg); if (voice) u.voice = voice;
     u.rate = document.documentElement.classList.contains('big') ? 0.9 : 1;
     if (i === parts.length - 1) u.onend = stop;
     u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled') stop(); };
@@ -381,7 +382,7 @@ async function shareImage(res, inp) {
 }
 /* 데이터 출처·기준일 배지 (시설·격자·날씨 공통 형식) */
 const SRC_NAME = { 'osm+molit': ['OpenStreetMap + 국토부 지하차도 현황', 'OpenStreetMap + MOLIT underpass list'], safekorea: ['국민안전24', 'SafeKorea'], osm: ['OpenStreetMap', 'OpenStreetMap'], localdata: ['지방행정인허가데이터', 'LocalData'], datago_std: ['공공데이터포털 표준데이터', 'data.go.kr standard data'] };
-function srcBadge(src, asof) { const k = Object.keys(SRC_NAME).find(x => String(src || '').startsWith(x)); const name = k ? SRC_NAME[k][getLang() === 'en' ? 1 : 0] : (src || ''); return (name || asof) ? `<div class="src-badge">${asof ? `${t('badge.asof')} ${asof}` : ''}${asof && name ? ' · ' : ''}${name}</div>` : ''; }
+function srcBadge(src, asof) { const k = Object.keys(SRC_NAME).find(x => String(src || '').startsWith(x)); const name = k ? SRC_NAME[k][getLang() !== 'ko' ? 1 : 0] : (src || ''); return (name || asof) ? `<div class="src-badge">${asof ? `${t('badge.asof')} ${asof}` : ''}${asof && name ? ' · ' : ''}${name}</div>` : ''; }
 /* 길찾기 딥링크 (키 불필요): 카카오맵 · 구글 · 애플 */
 function routeLinks(lon, lat, name) {
   const n = encodeURIComponent(name || 'AidPage');
@@ -588,7 +589,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./access.js?v=20261006a');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
+      _simMod = await import('./access.js?v=20261007a');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
       _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
     await _simMod.openAccess();
@@ -611,10 +612,10 @@ async function syncGrid() {
   const legSpans = !leg ? '' : !leg.breaks.length
     ? `<span><i style="background:${leg.colors[0]}"></i>${gridFmt(leg.attr, leg.only)}</span>`  // 값이 전부 같은 속성
     : leg.colors.map((c, i) => `<span><i style="background:${c}"></i>${i === 0 ? '≤ ' + gridFmt(leg.attr, leg.breaks[0]) : i === leg.colors.length - 1 ? '> ' + gridFmt(leg.attr, leg.breaks[leg.breaks.length - 1]) : gridFmt(leg.attr, leg.breaks[i - 1]) + '–' + gridFmt(leg.attr, leg.breaks[i])}</span>`).join('');
-  state._gridLegend = leg ? { title: (getLang() === 'en' ? leg.attr.en : leg.attr.ko), html: legSpans + `<span class="lg-note">${t('grid.rel')} · ${t('grid.d.dark')} ${getLang() === 'en' ? (leg.attr.dark_en || '') : (leg.attr.dark || '')}</span>` } : null;
+  state._gridLegend = leg ? { title: (getLang() !== 'ko' ? leg.attr.en : leg.attr.ko), html: legSpans + `<span class="lg-note">${t('grid.rel')} · ${t('grid.d.dark')} ${getLang() !== 'ko' ? (leg.attr.dark_en || '') : (leg.attr.dark || '')}</span>` } : null;
   renderLegend(activeShelterKinds());
   // 선택 지표의 정의·출처와 "색 읽는 법"을 접지 않고 바로 보여준다 (09-07: 기준·정의가 불명확하다는 지적)
-  const en = getLang() === 'en', A = attrs.find(a => a.id === gridAttr);
+  const en = getLang() !== 'ko', A = attrs.find(a => a.id === gridAttr);
   const vals = A ? gridCells(state.sgg).map(f => f.properties[A.id]).filter(x => x != null).sort((a, b) => a - b) : [];
   const stat = A && vals.length ? t('grid.d.cells', { n: vals.length.toLocaleString(), m: gridFmt(A, vals[Math.floor(vals.length / 2)]), x: gridFmt(A, vals[vals.length - 1]) }) : '';
   const scale = !leg ? '' : !leg.breaks.length
@@ -657,7 +658,7 @@ const PREP_ROWS = [
 /* 격자 출처 한 줄 — 격자 파일 meta에서 조립. 서울 25구(res 9)는 서울시 침수흔적도, 전국(res 8)은 행안부 침수흔적도·산사태 이력.
    short=true(팝업 배지)면 침수·DEM·주민등록만. */
 function gridSrcText(gm, short) {
-  const en = getLang() === 'en';
+  const en = getLang() !== 'ko';
   const flood = gm.flood_src ? (en ? 'MOIS flood-trace maps (nationwide)' : '행안부 침수흔적도(전국)') : (en ? 'Seoul flood-trace maps 2010–2025' : '서울 침수흔적도 2010~2025');
   const ls = gm.landslide_src ? (en ? ' · landslide: MOIS landslide records' : ' · 산사태: 행안부 산사태 발생이력') : '';
   const dem = gm.dem ? String(gm.dem).replace(/\s*\(.*\)$/, '') : 'Copernicus GLO-30';
@@ -695,7 +696,7 @@ function initGridClick() {
   map.on('click', 'grid-fill', e => {
     if (state.simPick) return;
     const p = e.features[0].properties, attrs = gridAttrs(state.sgg);
-    const rows = attrs.map(a => `<tr><td>${getLang() === 'en' ? a.en : a.ko}</td><td class="mono">${gridFmt(a, p[a.id] == null ? null : +p[a.id])}</td></tr>`).join('') + (p.flood_years ? `<tr><td>${getLang() === 'en' ? 'Flood years' : '침수 연도'}</td><td class="mono">${String(p.flood_years).replace(/[\[\]"]/g, '')}</td></tr>` : '');
+    const rows = attrs.map(a => `<tr><td>${getLang() !== 'ko' ? a.en : a.ko}</td><td class="mono">${gridFmt(a, p[a.id] == null ? null : +p[a.id])}</td></tr>`).join('') + (p.flood_years ? `<tr><td>${getLang() !== 'ko' ? 'Flood years' : '침수 연도'}</td><td class="mono">${String(p.flood_years).replace(/[\[\]"]/g, '')}</td></tr>` : '');
     const gm = gridMeta(state.sgg) || {};
     openPopup(e.lngLat, `<b>${p.emd_name || ''}</b> <small class="mono">${p.h3}</small><table class="cell-table">${rows}</table>${srcBadge(gridSrcText(gm, true), gm.jumin_basis)}`, { closeButton: true, offset: 6 });
   });
@@ -710,7 +711,7 @@ async function initShelterUI() {
     { id: 'help', ko: '도움', en: 'Help', icon: '🆘', kinds: ['townhall', 'er', 'pharmacy', 'health', 'fire', 'police', 'meal', 'water', 'chem'] },
     { id: 'hazard', ko: '위험 지점', en: 'Hazards', icon: '⚠️', kinds: ['steep', 'wildfire_hist', 'underpass'] },
   ];
-  const en = getLang() === 'en', K = id => state.shelters.avail.find(a => a.id === id);
+  const en = getLang() !== 'ko', K = id => state.shelters.avail.find(a => a.id === id);
   const chip = k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${en ? k.en : k.ko}</span></label>`;
   const mode0 = shMode();
   const mBtn = (m, ic) => `<button type="button" class="shmode-b ${mode0 === m ? 'is-on' : ''}" data-m="${m}">${ic} ${t('sh.mode.' + m)}</button>`;
@@ -877,7 +878,7 @@ function toggleLegendLayer(key) {
 }
 function renderLegend(kinds) {
   const box = $('#mapLegend'); if (!box) return;
-  const en = getLang() === 'en';
+  const en = getLang() !== 'ko';
   const sh = kinds.map(k => state.shelters.avail.find(a => a.id === k)).filter(Boolean);
   const g = state._gridLegend, wxl = state._wxLegend;
   const gridOff = !!state._gridAvail && localStorage.getItem('safepic.gridOn') === '0';
@@ -916,7 +917,7 @@ async function renderNearest() {
   const list = await nearestShelters(origin, kinds, state.sido, 8, true);
   if (state.emd !== e.code) return;
   box.hidden = false;
-  box.innerHTML = `<h3>${t('sh.nearest')} <small class="muted">${useGps ? t('sh.fromGps') : t('sh.fromEmd')}</small></h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() === 'en' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
+  box.innerHTML = `<h3>${t('sh.nearest')} <small class="muted">${useGps ? t('sh.fromGps') : t('sh.fromEmd')}</small></h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() !== 'ko' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
   box.insertAdjacentHTML('beforeend', `${flood ? `<small class="near-note near-flood">${t('near.flood')}</small>` : ''}<small class="near-note">${t('sh.desig')}</small>`);
   applyFolds();
   $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5, padding: visiblePadding() }); openPopup(x.c, `<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}${x.p.tel ? `<br>📞 <a href="tel:${x.p.tel}">${x.p.tel}</a>` : ''}</small>${routeLinks(x.c[0], x.c[1], x.p.name)}`, { fromPanel: true }); }));
@@ -935,8 +936,8 @@ function nameOf() {
   return val;
 }
 /* 지역명 표시: EN 모드면 빌드 시 생성한 로마자(name_en 등), 없으면 한글 폴백 */
-const rn = (o, k = 'name') => o ? ((getLang() === 'en' && o[k + '_en']) || o[k] || '') : '';
-const emdDisp = ko => { if (getLang() !== 'en' || !ko) return ko; const e = (state.idx.emdBySgg.get(String(state.sgg)) || []).find(x => x.name === ko); return (e && e.name_en) || ko; };
+const rn = (o, k = 'name') => o ? ((getLang() !== 'ko' && o[k + '_en']) || o[k] || '') : '';
+const emdDisp = ko => { if (getLang() === 'ko' || !ko) return ko; const e = (state.idx.emdBySgg.get(String(state.sgg)) || []).find(x => x.name === ko); return (e && e.name_en) || ko; };
 /* 수집이 실패하면 옛 값이 파일에 남는다(09-21: 이틀 전 관측이 오늘 시각으로 표시됨) → 수집 시각이 아니라 관측 시각으로 판단 */
 const WX_MAX_AGE_H = 6;
 const tmISO = tm => /^\d{12}$/.test(String(tm || '')) ? `${tm.slice(0, 4)}-${tm.slice(4, 6)}-${tm.slice(6, 8)}T${tm.slice(8, 10)}:${tm.slice(10, 12)}:00+09:00` : null;
@@ -1001,7 +1002,7 @@ function renderCrumb() {
 }
 /* ---------- today's to-do (3 lines): warnings > situation > season ---------- */
 const WARN_EN = { '폭염': 'Heat', '호우': 'Heavy rain', '대설': 'Heavy snow', '강풍': 'Strong wind', '한파': 'Cold wave', '건조': 'Dry', '태풍': 'Typhoon', '지진': 'Earthquake', '풍랑': 'High seas', '황사': 'Yellow dust', '산사태': 'Landslide', '주의보': ' advisory', '경보': ' warning', '속보': ' bulletin', '정보': ' info' };
-const warnName = (type, level) => getLang() === 'en' ? (WARN_EN[type] || type) + (WARN_EN[level] || ' ' + level) : type + level;
+const warnName = (type, level) => getLang() !== 'ko' ? (WARN_EN[type] || type) + (WARN_EN[level] || ' ' + level) : type + level;
 /* D11: 물 재난 맥락(특보 호우·태풍·산사태 또는 침수·비 상황 카드)에서는 지하 민방위 대피시설을 권하지 않는다 */
 const floodContext = ws => (ws || []).some(w => /호우|태풍|산사태|홍수/.test(w.type || '')) || ['house_flood', 'shop_flood', 'before_rain'].includes(state.sit);
 const evacKind = ws => (ws || []).some(w => w.type === '지진') ? 'quake' : 'temp_housing';
@@ -1186,7 +1187,7 @@ function renderTip(step = 0, opts = {}) {
   if (step !== 0 && !opts.auto) state._tipManual = true;   // 사용자가 조작하면 자동 넘김 중단
   const tips = state.tips.tips, day = Math.floor(Date.now() / 86400000);
   state._tipIdx = ((state._tipIdx == null ? day : state._tipIdx) + step + tips.length) % tips.length;
-  const tp = tips[state._tipIdx], en = getLang() === 'en';
+  const tp = tips[state._tipIdx], en = getLang() !== 'ko';
   box.hidden = false;
   box.innerHTML = `<div class="tip-head"><span class="tip-label">${t('tip.title')}</span><span class="tip-nav"><button type="button" class="tip-btn" data-d="-1" aria-label="prev">‹</button><span class="mono">${state._tipIdx + 1}/${tips.length}</span><button type="button" class="tip-btn" data-d="1" aria-label="next">›</button></span></div><p class="tip-text">${en ? tp.en : tp.ko}</p><small class="tip-src">${t('tip.src')} ${en ? (tp.src_en || tp.src) : tp.src}</small>${state._tipManual ? '' : `<span class=\"tip-prog\" style=\"animation-duration:${TIP_MS()}ms\"></span>`}`;
   $$('.tip-btn', box).forEach(b => b.addEventListener('click', () => renderTip(+b.dataset.d)));
@@ -1360,7 +1361,7 @@ function ensureArrowImage() {
 const DIR8_KO = ['북', '북동', '동', '남동', '남', '남서', '서', '북서'], DIR8_EN = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 function windLabel(vec, wsd) {
   const i = Math.round((((vec || 0) % 360) + 360) % 360 / 45) % 8;  // vec = 바람이 불어오는 방향(도)
-  return getLang() === 'en' ? `${DIR8_EN[i]} ${wsd.toFixed(1)}` : `${DIR8_KO[i]}풍 ${wsd.toFixed(1)}`;
+  return getLang() !== 'ko' ? `${DIR8_EN[i]} ${wsd.toFixed(1)}` : `${DIR8_KO[i]}풍 ${wsd.toFixed(1)}`;
 }
 function applyWindArrows(on) {
   if (!map) return;
@@ -1708,21 +1709,30 @@ function initSize() {
 const RULE_L10N = ['label', 'amount_text', 'summary', 'where', 'docs', 'basis'];
 function applyRulesLang() {
   if (!state.rules || !state.rules.all) return;
-  const en = getLang() === 'en' && state.rulesEn && state.rulesEn.rules;
+  const en = getLang() !== 'ko' && state.rulesEn && state.rulesEn.rules;
   for (const r of state.rules.all) {
     if (!r._ko) { r._ko = {}; RULE_L10N.forEach(k => { r._ko[k] = r[k]; }); }
     const o = en && en[r.id];
     RULE_L10N.forEach(k => { r[k] = o && o[k] != null ? o[k] : r._ko[k]; });
   }
-  const steps = (state.rules.procedures && state.rules.procedures.steps) || [], enS = getLang() === 'en' && state.rulesEn && state.rulesEn.steps;
+  const steps = (state.rules.procedures && state.rules.procedures.steps) || [], enS = getLang() !== 'ko' && state.rulesEn && state.rulesEn.steps;
   for (const s of steps) {
     if (!s._ko) { s._ko = {}; ['label', 'summary', 'where', 'docs', 'typical_days'].forEach(k => { s._ko[k] = s[k]; }); }
     const o = enS && enS[s.id];
     ['label', 'summary', 'where', 'docs', 'typical_days'].forEach(k => { s[k] = o && o[k] != null ? o[k] : s._ko[k]; });
   }
 }
+/* 언어 버튼 3곳(상단 메뉴·서랍·첫 화면)은 LANGS에서 만든다 — 언어 추가 시 HTML 손댈 필요 없음. initWelcome보다 먼저 */
+function buildLangButtons() {
+  const opt = ([c, n], attrs) => `<button type="button" ${attrs} data-lang="${c}" lang="${c}">${n}</button>`;
+  $('#langTop .lang-menu').innerHTML = LANGS.map(l => opt(l, 'role="option"')).join('');
+  $('.drawer .lang.pill').innerHTML = LANGS.map(l => opt(l, 'class="lang-btn"')).join('');
+  $('#welLang').innerHTML = LANGS.map(l => opt(l, '')).join('');
+}
 function initLang() {
   const paint = () => {
+    /* 지금 언어를 그 언어로 + 한국어 모르는 사람도 알아보게 영어 'Language'를 덧붙임 */
+    $('#langSelT').innerHTML = `🌐 ${langName()}${getLang() === 'en' ? '' : '<small lang="en"> · Language</small>'}`;
     $$('.lang-btn').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
     $$('#langTop .lang-menu button').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
   };
@@ -1736,13 +1746,15 @@ function initLang() {
       const b = $$('.lang-btn').find(x => x.dataset.lang === mb.dataset.lang); if (b) b.click();
     }));
   }
-  $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, () => {
-    document.title = getLang() === 'en' ? 'AidPage · Disaster assistance navigator, on one page' : 'AidPage · 재난 지원제도 안내, 한 장으로';
+  onLangChanged = () => {
+    document.title = t('doc.title');
     paint(); setRulesLang(getLang()); applyRulesLang(); renderAll(); renderTip(); if (state.meta) { $('#aboutAdmin').textContent = `${state.meta.source || ''} ${state.meta.version || ''}`.trim(); $('#buildDate').textContent = state.meta.built || ''; } syncWizardLoc(); if (state.shelters.avail.length) initShelterUI();
     if (map) { localizeLabels(); ['sgg-label', 'emd-label'].forEach(id => map.getLayer(id) && map.setLayoutProperty(id, 'text-field', adminNameField())); if (map.getLayer('landmark-label')) map.setLayoutProperty('landmark-label', 'text-field', landmarkNameField()); applyWxLayer(); }
     if (state.lastResult && evaluate) { state.lastResult.res = evaluate(state.rules, state.lastResult.inp, getLang()); renderResult(state.lastResult.res, state.lastResult.inp); }
     if (state.tab === 'about') renderRulesTable();
-  })));
+  };
+  $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, onLangChanged)));
+  document.addEventListener('i18n:late', e => applyLangParam(e.detail));   // 부팅 때 3초 넘겨 도착한 사전
 }
 
 /* ---------- situation presets ---------- */
@@ -1901,7 +1913,7 @@ async function renderRegionSummary() {
   const chips = ty ? m.typeChips(ty, true) : '';
   const scope = ty && state.level === 'emd' ? `<small class="muted">${t('rg.sum.sgg')}</small>` : '';
   const dm = state.sgg ? m.demoOf(state.sgg) : null;
-  const nums = dm ? `<small class="muted desktop-only rg-nums">${t('demo.pop')} ${Number(dm.pop).toLocaleString(getLang() === 'en' ? 'en-US' : 'ko-KR')} · ${t('demo.e65')} ${(dm.e65 * 100).toFixed(1)}%</small>` : '';
+  const nums = dm ? `<small class="muted desktop-only rg-nums">${t('demo.pop')} ${Number(dm.pop).toLocaleString(getLang())} · ${t('demo.e65')} ${(dm.e65 * 100).toFixed(1)}%</small>` : '';
   box.hidden = false;
   box.innerHTML = `<span class="rg-sum-chips">${chips}${scope}${nums}</span><button type="button" class="btn btn-ghost btn-sm desktop-only" id="rgOpen">${t('rg.open')} →</button>`;
   const b = $('#rgOpen'); if (b) b.addEventListener('click', openRegionDrawer);
@@ -1975,14 +1987,12 @@ function encodeShare(inp) {
 }
 /* 공유 링크의 l= 은 서랍 언어 버튼과 같은 전체 경로(규칙 라벨 EN 전환·지도 라벨·재렌더)를 타야 한다.
    setLang()만 부르면 UI 문구만 바뀌고 rules/en.json이 적용되지 않아 결과가 한국어로 남았다(09-03 E2E 발견). */
-function applyLangParam(l) {
-  const lb = $$('.lang-btn').find(x => x.dataset.lang === l);
-  if (lb) lb.click(); else setLang(l);
-}
+let onLangChanged = () => {};   // initLang()이 채운다
+function applyLangParam(l) { return setLang(l, onLangChanged); }   // 사전 로드·전체 재렌더까지 끝나면 resolve
 async function applyShare(hash) {
   if (hash.startsWith('#g?')) {
     const p = new URLSearchParams(hash.slice(3));
-    if (p.get('l') && p.get('l') !== getLang()) applyLangParam(p.get('l'));
+    if (p.get('l') && p.get('l') !== getLang()) await applyLangParam(p.get('l'));
     if (p.get('emd') && state.idx.byEmd.has(p.get('emd'))) await selectEmd(p.get('emd')); else if (p.get('sgg') && state.idx.bySgg.has(p.get('sgg'))) await selectSgg(p.get('sgg')); else if (p.get('sido') && state.idx.sggBySido.has(p.get('sido'))) selectSido(p.get('sido'));
     const tab = p.get('tab'); if (tab && ['now', 'find', 'where', 'about'].includes(tab)) setTab(tab);
     if (p.get('view') === 'region') setTimeout(openRegionDrawer, 400);
@@ -1991,7 +2001,7 @@ async function applyShare(hash) {
   }
   if (!hash.startsWith('#r?')) return;
   const p = new URLSearchParams(hash.slice(3)), f = $('#wizard'); f.reset();
-  if (p.get('l') && p.get('l') !== getLang()) applyLangParam(p.get('l'));
+  if (p.get('l') && p.get('l') !== getLang()) await applyLangParam(p.get('l'));   // 사전이 오기 전에 결과를 그리면 한국어로 남는다
   if (p.get('h')) { const r = f.querySelector(`input[name=housing][value=${p.get('h')}]`); if (r) r.checked = true; }
   (p.get('d') || '').split(',').filter(Boolean).forEach(v => { const c = f.querySelector(`input[name=damage][value=${v}]`); if (c) c.checked = true; });
   (p.get('f') || '').split(',').filter(Boolean).forEach(v => { const c = f.querySelector(`input[name=household][value=${v}]`); if (c) c.checked = true; });
@@ -2043,7 +2053,7 @@ async function lawDoc(mst) {
   return _lawCache[mst];
 }
 function lawRefEn(s) {
-  if (getLang() !== 'en' || !s) return s;
+  if (getLang() === 'ko' || !s) return s;
   return s.replace(/^제(\d+)조(?:의(\d+))?$/, (m, a, b) => 'Art. ' + a + (b ? '-' + b : ''))
     .replace(/^별표(\d+)(?:의(\d+))?$/, (m, a, b) => 'Annex ' + a + (b ? '-' + b : ''));
 }
@@ -2061,7 +2071,7 @@ document.addEventListener('toggle', async e => {
   const doc = d.dataset.mst ? await lawDoc(d.dataset.mst) : null;
   const parts = [];
   if (doc) {
-    const en = getLang() === 'en', lawName = (en && doc.name_en) || doc.name || '';
+    const en = getLang() !== 'ko', lawName = (en && doc.name_en) || doc.name || '';
     if (d.dataset.art && doc.arts && doc.arts[d.dataset.art]) parts.push(`<h5>${escapeHTML(lawName)} ${lawRefEn(d.dataset.art)}</h5>${en ? `<small class="fine">${t('law.origko')}</small>` : ''}<p>${escapeHTML(doc.arts[d.dataset.art])}</p>`);
     if (d.dataset.annex && doc.annexes && doc.annexes[d.dataset.annex]) parts.push(`<h5>${lawRefEn(d.dataset.annex)}</h5><pre class="law-annex">${escapeHTML(doc.annexes[d.dataset.annex])}</pre>`);
     if (parts.length && (doc.effective || doc.updated)) parts.push(`<small class="fine">${t('law.asof', { d: doc.effective || doc.updated })}</small>`);
@@ -2188,7 +2198,7 @@ function regionHTML(prof) {
   return `<div class="wf-region"><b>${t('res.welfare.rg')}</b> ${t('res.welfare.rg.line', { sgg: escapeHTML(n.sggName || ''), e65: pc(prof.e65), single: pc(prof.single), ealone: pc(prof.ealone) })}${tierKey ? ` <span class="badge">${t(tierKey)}</span>` : ''}${prof.tags.map(k => `<div class="rg-tag">${t('res.welfare.rg.' + k)}</div>`).join('')}<small>${t('res.welfare.rg.src', { d: escapeHTML(prof.basis) })}</small></div>`;
 }
 async function renderWelfare(inp) {
-  const en = getLang() === 'en';
+  const en = getLang() !== 'ko';
   const [doc, tr, demo] = await Promise.all([loadWelfare(), en ? loadWelfareEn() : null, state.sgg ? loadDemo() : null]);
   const box = $('#welfareBox'); // fetch 동안 결과가 다시 그려졌으면 새 box에 그린다
   if (!doc || !doc.items || !box) return;
@@ -2215,8 +2225,7 @@ function firstVariant(res, inp, dl) {
   if (state.sit === 'no_news') return 'nonews';
   return dl && dl.days_left < 0 ? 'late' : 'report';
 }
-const _MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const fmtMD = iso => { const [, m, d] = String(iso).split('-').map(Number); return getLang() === 'en' ? `${_MON[m - 1]} ${d}` : `${m}월 ${d}일`; };
+const fmtMD = iso => { const [y, m, d] = String(iso).split('-').map(Number); return getLang() === 'ko' ? `${m}월 ${d}일` : new Date(y, m - 1, d).toLocaleDateString(getLang(), { month: 'short', day: 'numeric' }); };
 // 위저드엔 재난 종류 질문이 없어 피해 유형으로 정한다(폭염·한파는 상황 카드로만 들어온다)
 const hazardOf = d => d.includes('heat') && !d.includes('cold') ? 'heat' : d.includes('cold') && !d.includes('heat') ? 'cold' : 'rain';
 function firstBoxHTML(v, res, inp, dl, icsBtn) {
@@ -2302,7 +2311,7 @@ function renderResult(res, inp) {
   const stepsHTML = v && v !== 'shelter' ? `<div class="steps">${['report', 'survey', 'pay', 'more'].map((k, i) => `<span class="${i === (v === 'nonews' ? 1 : 0) ? 'on' : ''}">${t('step.' + k)}</span>`).join('<i></i>')}</div>` : '';
   el.innerHTML = `
     <div class="print-head"><div><b>AidPage</b> ${t('brand.sub')}</div><div>${place} · ${inp.today} · ${t(inp.proxy ? 'print.proxy' : 'print.self')}</div></div>
-    <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2></div><div class="result-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSpeak" title="${t('tts.title')}">🔊</button><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div></div>
+    <div class="result-head"><div><div class="eyebrow mono">${place}${inp.special_zone ? ' · ' + t('res.sz') : ''}</div><h2>${inp.proxy ? t('res.proxy') : t('res.mine')}</h2><div class="fine xlat-note">${t('lang.rulesEn')}</div></div><div class="result-tools"><button type="button" class="btn btn-ghost btn-sm" id="btnSpeak" title="${t('tts.title')}">🔊</button><button type="button" class="btn btn-ghost" id="btnEdit">${t('res.edit')}</button></div></div>
     ${v ? firstBoxHTML(v, res, inp, dl, icsBtn) + (inp.proxy ? proxyHTML() : '') + stepsHTML : `<div class="result-block"><h3>${t('res.todo')}</h3><ol class="todo">${(res.todo || []).map(x => `<li><div><b>${x.text || x}</b></div></li>`).join('')}</ol></div>${dlHTML}${icsBtn}`}
     ${acc('late', t('late.title'), '', lateHTML, { open: true })}
     ${inp.foreign ? `<div class="result-block foreign"><h3>${t('fr.title')}</h3><p>${t('fr.ok')}</p><p>${t('fr.cash')}</p><p>${t('fr.emergency')}</p><p>${t('fr.check')}</p><div class="fr-call">📞 ${t('fr.call')}</div></div>` : ''}
@@ -2351,7 +2360,7 @@ function renderRulesTable() {
 /* ---------- boot ---------- */
 (async function boot() {
   applyStatic();
-  if (getLang() === 'en') document.title = 'AidPage · Disaster assistance navigator, on one page';
+  document.title = t('doc.title');
   $$('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
   const goStart = () => { setTab('now'); resetNation(); const w = $('#wizard'); if (w) { w.reset(); syncWizardLoc(); } const r = $('#result'); if (r) r.hidden = true; $('#mapHint').classList.remove('is-hidden'); if (state._welOpen) state._welOpen(); };
   $('#brand').addEventListener('click', e => { e.preventDefault(); goStart(); });
@@ -2360,7 +2369,7 @@ function renderRulesTable() {
   // 계측 리스너는 부팅 시 1회만 — renderResult 안에 두면 렌더마다 중복 등록돼 비콘이 다발로 나간다(09-02 자체 검증에서 적발)
   addEventListener('beforeprint', () => stat('print'), { once: true });
   document.addEventListener('click', e => { const a = e.target.closest('a[data-stat]'); if (a) stat(a.dataset.stat); }, true);
-  initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPush(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
+  buildLangButtons(); initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPush(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
   statVisit();
   setTimeout(renderSiteStats, 6000); // 소개 탭을 열기 전에 미리 받아 둔다(요약 API 1~5초)
   // 지금 도는 앱 버전 — "구버전 캐시인가?"를 사용자가 서랍에서 10초 만에 확인

@@ -9,9 +9,9 @@ const load = async () => {
 };
 const TYPE_ICON = { '물': '💧', '산': '⛰️', '바다': '🌊', '눈': '❄️', '볕': '☀️', '땅': '🪨', '마름': '🏜️', '평온': '◌', '노년': '🧓', '홀로': '🧍', '이방': '🌐', '돌봄': '♿', '살림': '🏚️', '도심': '🏙️', '들': '🌾', '섬': '🏝️', '접경': '🪖', '교통': '🚗', '화재': '🔥' };
 const TYPE_EN = { '물': 'Water', '산': 'Mountain', '바다': 'Sea', '눈': 'Snow', '볕': 'Heat', '땅': 'Quake', '마름': 'Drought', '평온': 'Calm', '노년': 'Elderly', '홀로': 'Solo', '이방': 'Migrant', '돌봄': 'Care', '살림': 'Low-income', '도심': 'Urban', '들': 'Rural', '섬': 'Island', '접경': 'Border', '교통': 'Traffic', '화재': 'Fire' };
-const tn = k => ctx.getLang() === 'en' ? (TYPE_EN[k] || k) : k;
+const tn = k => ctx.getLang() !== 'ko' ? (TYPE_EN[k] || k) : k;
 const pct = v => (v * 100).toFixed(1) + '%';
-const fmtN = n => Number(n || 0).toLocaleString(ctx.getLang() === 'en' ? 'en-US' : 'ko-KR');
+const fmtN = n => Number(n || 0).toLocaleString(ctx.getLang());
 const esc = s => ctx.escapeHTML(s);
 
 export function typeOf(sgg) { return _types && _types.sgg ? _types.sgg[String(sgg)] : null; }
@@ -170,7 +170,7 @@ const TY_KW = { '물': ['풍수해', '침수', '재난'], '산': ['산사태', '
 async function blockSupport(s, ty) {
   const t = ctx.t; if (!ty) return '';
   if (!_welfare) _welfare = await J('data/ref/welfare.json');
-  if (ctx.getLang() === 'en' && !_welfareEn) _welfareEn = await J('data/ref/welfare_en.json');
+  if (ctx.getLang() !== 'ko' && !_welfareEn) _welfareEn = await J('data/ref/welfare_en.json');
   if (!_welfare || !_welfare.items) return '';
   const kws = [...new Set([...(TY_KW[ty.primary] || []), ...(TY_KW[ty.social] || []), ...((ty.traits || [ty.secondary]).flatMap(k => TY_KW[k] || []))])];
   const scored = [];
@@ -204,7 +204,7 @@ async function renderInner() {
   const ws = ctx.warningsFor(s.sgg, s.sido);
   const warnTag = ws.length ? `<span class="tag danger">${esc(ctx.warnName(ws[0].type, ws[0].level))}${ws.length > 1 ? ` +${ws.length - 1}` : ''}</span>` : `<span class="tag teal">${t('rg.nowarn')}</span>`;
   const UP_EN = { '구': 'gu', '시': 'si', '군': 'gun', '해안': 'coastal', '내륙': 'inland' };
-  const upperTxt = ty && ty.upper ? (ctx.getLang() === 'en' ? ty.upper.split('·').map(x => UP_EN[x] || x).join(' · ') : ty.upper) : '';
+  const upperTxt = ty && ty.upper ? (ctx.getLang() !== 'ko' ? ty.upper.split('·').map(x => UP_EN[x] || x).join(' · ') : ty.upper) : '';
   const upper = upperTxt ? `<span class="tag" title="${esc(t('rg.upper.d'))}">${esc(upperTxt)}</span>` : '';
   const sidoDist = s.level === 'sido' && _types ? await sidoDistHTML(s.sido) : '';
   const [people, hist0, fac, sup] = await Promise.all([blockPeople(s), blockHistory(s), blockFacilities(s), blockSupport(s, ty)]);

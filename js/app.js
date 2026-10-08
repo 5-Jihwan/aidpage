@@ -1,10 +1,10 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic, LANGS, langName, ttsLang } from './i18n.js?v=20261007a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20261007a';
+import { t, getLang, setLang, applyStatic, LANGS, langName, ttsLang } from './i18n.js?v=20261008a';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20261008a';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
-import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20260921a';
+import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20261008a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
-try { const m = await import('./rules.js?v=20260831d'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
+try { const m = await import('./rules.js?v=20261008a'); loadRules = m.loadRules; evaluate = m.evaluate; if (m.formatKRW) formatKRW = m.formatKRW; if (m.setRulesLang) setRulesLang = m.setRulesLang; } catch (e) { console.warn('rules.js not available', e); }
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -339,7 +339,7 @@ function speak(text, btn) {
   if (speaking) { ss.cancel(); stop(); return; }
   const lg = getLang();
   const voices = ss.getVoices(), want = ttsLang(lg).toLowerCase();
-  const voice = voices.find(v => v.lang.toLowerCase().replace('_', '-') === want) || voices.find(v => v.lang.toLowerCase().startsWith(lg));
+  const voice = voices.find(v => v.lang.toLowerCase().replace('_', '-') === want) || voices.find(v => { const x = v.lang.toLowerCase(); return x.startsWith(lg) && !(lg === 'zh' && /hk|tw|hant|yue/.test(x)); });
   const parts = String(text).split(/\.\s+|\n+/).map(s => s.trim()).filter(Boolean);
   if (!parts.length) return;
   if (ss.speaking || ss.pending) ss.cancel();
@@ -589,7 +589,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./access.js?v=20261007a');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
+      _simMod = await import('./access.js?v=20261008a');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
       _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
     await _simMod.openAccess();
@@ -1733,6 +1733,8 @@ function initLang() {
   const paint = () => {
     /* 지금 언어를 그 언어로 + 한국어 모르는 사람도 알아보게 영어 'Language'를 덧붙임 */
     $('#langSelT').innerHTML = `🌐 ${langName()}${getLang() === 'en' ? '' : '<small lang="en"> · Language</small>'}`;
+    $('#langSelT').setAttribute('aria-label', `${langName()} — 언어 / Language`);
+    $$('#welLang button').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
     $$('.lang-btn').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
     $$('#langTop .lang-menu button').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
   };
@@ -1754,7 +1756,7 @@ function initLang() {
     if (state.tab === 'about') renderRulesTable();
   };
   $$('.lang-btn').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang, onLangChanged)));
-  document.addEventListener('i18n:late', e => applyLangParam(e.detail));   // 부팅 때 3초 넘겨 도착한 사전
+  document.addEventListener('i18n:late', () => onLangChanged());   // 부팅 때 3초 넘겨 도착한 사전 — 언어는 i18n.js가 이미 바꿈
 }
 
 /* ---------- situation presets ---------- */
@@ -1827,8 +1829,7 @@ function initWelcome() {
   const paintWelLang = () => $$('#welLang button').forEach(b => b.classList.toggle('is-on', b.dataset.lang === getLang()));
   paintWelLang();
   $$('#welLang button').forEach(b => b.addEventListener('click', () => {
-    const lb = $$('.lang-btn').find(x => x.dataset.lang === b.dataset.lang); if (lb) lb.click();
-    setTimeout(paintWelLang, 0);
+    const lb = $$('.lang-btn').find(x => x.dataset.lang === b.dataset.lang); if (lb) lb.click();   // 강조는 사전 로드 뒤 paint()가
   }));
   $('#welBack').addEventListener('click', () => show('groups'));
   $('#welLocBack').addEventListener('click', () => show(locFrom));
@@ -1875,7 +1876,7 @@ function initWelcome() {
 
 /* ---------- "이 지역은" 서랍 (js/region.js lazy, 데스크톱 전용 1단계 — docs/08·10·14) ---------- */
 let _regionMod = null;
-const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20260914b'));
+const regionMod = () => _regionMod || (_regionMod = import('./region.js?v=20261008a'));
 const HIDE_SUM_SIT = new Set(['evacuating', 'injury', 'house_flood', 'shop_flood']); // 피해 직후·대피 중엔 정보 진입점 숨김(R2)
 function regionCtx() {
   return { state, t, getLang, rn, nameOf, warningsFor, warnName, gridCells, gridMeta, collect: collectShelters, escapeHTML, stat,

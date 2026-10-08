@@ -213,10 +213,12 @@ const TTS = { ko: 'ko-KR', en: 'en-US', ja: 'ja-JP', zh: 'zh-CN', vi: 'vi-VN', e
 export const ttsLang = (l = lang) => TTS[l] || l;
 const ok = l => LANGS.some(([c]) => c === l);
 /* 브라우저 언어 목록에서 처음 맞는 것, 없으면 영어(한국어 모르는 방문자일 가능성이 큼) */
-const detect = () => (navigator.languages || [navigator.language || 'ko']).map(x => String(x).toLowerCase().split('-')[0]).find(ok) || 'en';
+/* zh-TW·zh-HK·번체는 간체 사전을 주지 않고 영어로 */
+const detect = () => (navigator.languages || [navigator.language || 'ko']).map(x => String(x).toLowerCase()).map(x => /^zh-(tw|hk|mo|hant)/.test(x) ? '' : x.split('-')[0]).find(ok) || 'en';
 let lang = (() => { try { const v = localStorage.getItem('safepic.lang'); if (ok(v)) return v; } catch {} return detect(); })();
 export const langName = (l = lang) => (LANGS.find(([c]) => c === l) || LANGS[0])[1];
 export const getLang = () => lang;
+let seq = 0;   // setLang 호출 번호 — 늦게 끝난 이전 호출이 마지막 선택을 덮지 않게
 /* 사전·글꼴 지연 로드. 실패(오프라인에서 첫 선택 등)하면 영어로 떨어뜨리되, 글꼴은 성공했을 때만 붙인다 */
 async function load(l) {
   if (!DICT[l]) { try { DICT[l] = (await import(`./i18n/${l}.js?v=20261007a`)).default; } catch (e) { console.warn('i18n load failed', l, e); return 'en'; } }
@@ -228,9 +230,9 @@ async function load(l) {
 if (!DICT[lang] && !document.documentElement.hasAttribute('data-i18n-static')) {
   const want = lang, p = load(want);
   lang = await Promise.race([p, new Promise(r => setTimeout(r, 3000, 'en'))]);
-  if (lang !== want) p.then(got => { if (got === want) document.dispatchEvent(new CustomEvent('i18n:late', { detail: want })); });
+  if (lang !== want) { const s0 = seq; p.then(got => { if (got !== want || seq !== s0) return; lang = want; applyStatic(); document.dispatchEvent(new CustomEvent('i18n:late', { detail: want })); }); }
 } else if (!DICT[lang]) lang = 'en';
-export function t(key, vars) { let s = (DICT[lang] && DICT[lang][key]) ?? DICT.en[key] ?? DICT.ko[key] ?? key; if (vars) for (const k in vars) s = s.replace(`{${k}}`, vars[k]); return s; }
+export function t(key, vars) { let s = lang === 'ko' ? (DICT.ko[key] ?? key) : ((DICT[lang] && DICT[lang][key]) ?? DICT.en[key] ?? DICT.ko[key] ?? key); if (vars) for (const k in vars) s = s.replace(`{${k}}`, vars[k]); return s; }
 export function applyStatic(root = document) {
   root.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   root.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
@@ -240,4 +242,4 @@ export function applyStatic(root = document) {
   document.documentElement.lang = lang;
 }
 /* 저장은 '고른 언어'로 — 로드 실패로 영어가 떠도 다음 방문에 다시 시도한다 */
-export async function setLang(l, onChange) { const want = ok(l) ? l : 'ko'; try { localStorage.setItem('safepic.lang', want); } catch {} lang = await load(want); applyStatic(); if (onChange) onChange(lang); }
+export async function setLang(l, onChange) { const want = ok(l) ? l : 'ko', my = ++seq; try { localStorage.setItem('safepic.lang', want); } catch {} const got = await load(want); if (my !== seq) return; lang = got; applyStatic(); if (onChange) onChange(lang); }

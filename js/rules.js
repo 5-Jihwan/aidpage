@@ -205,7 +205,7 @@ const MSG = {
   },
 };
 export function evaluate(rules, rawInput, lang = 'ko') {
-  const M = MSG[lang] || MSG.ko; setRulesLang(lang);
+  const M = MSG[lang] || (lang === 'ko' ? MSG.ko : MSG.en);   // 엔진 문장은 ko/en뿐 — 다른 외국어는 영어(한국어가 섞이지 않게) setRulesLang(lang);
   const input = normalizeInput(rawInput);
   const matched = [];
   for (const r of rules.all || []) {

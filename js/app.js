@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic, LANGS, langName, ttsLang } from './i18n.js?v=20261008a';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20261008a';
+import { t, getLang, setLang, applyStatic, LANGS, langName, ttsLang } from './i18n.js?v=20261008b';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20261008b';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20261008a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -589,7 +589,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./access.js?v=20261008a');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
+      _simMod = await import('./access.js?v=20261008b');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
       _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
     await _simMod.openAccess();
@@ -2250,7 +2250,7 @@ function firstBoxHTML(v, res, inp, dl, icsBtn) {
     rows = row('first.where', where('townhall')) + px + row('first.say', t('first.say.v')) + (n ? row('first.still', t('first.still.v', { n })) : '');
     acts = `<button type="button" class="btn btn-ghost btn-sm" id="btnStill">${t('first.still.btn')}</button>` + send;
   } else {
-    doText = !dl ? t('first.do.noend') : dl.days_left === 0 ? t('first.do.today') : t('first.do.report', { date: fmtMD(dl.due), dday: `D-${dl.days_left}` });
+    doText = !dl ? t('first.do.noend') : dl.days_left === 0 ? t('first.do.today') : t('first.do.report', { date: fmtMD(dl.due), dday: t('res.dl.d', { n: dl.days_left }) });
     // ponytail: '가져갈 것'은 절차 데이터의 앞 3개(서식·신분증·사진)+통장 사본에 기대는 순서 의존. procedures.json에 first_docs 필드가 생기면 그걸로 교체
     const bring = [...(step('proc.report').docs || []).slice(0, 3), ...(step('proc.payment').docs || []).slice(0, 1), inp.housing === 'rent' ? t('first.lease') : null].filter(Boolean).map(d => d.replace(/\s*\([^)]*\)/g, ''));   // 괄호 설명은 상자에서 뺀다(전체는 '준비할 서류'에)
     rows = row('first.where', where('townhall')) + row('first.bring', bring.map(escapeHTML).join(' · ')) + px + row('first.before', t('first.photo'));

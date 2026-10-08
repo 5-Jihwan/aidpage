@@ -174,7 +174,7 @@ export const DICT = {
     'sim.legend.short': 'shortest', 'sim.legend.safe': 'avoiding',
     'sim.note': '⚠ Not a safety verdict. Road closures, river levels, dam releases and flooding happening right now are not included. Follow emergency alerts and conditions on the ground; never cross moving water.',
     'sim.src': 'Grid: flood-trace maps · Copernicus DEM · landslide records · hazard points: MOLIT · Safety24 · OSM · walking 67 m/min (civil-defense basis)',
-    'kakao.t': 'Ask on KakaoTalk', 'kakao.add': '💬 Add KakaoTalk channel', 'kakao.chat': 'Open channel →', 'kakao.s': 'Add the AidPage KakaoTalk channel and ask in plain words: "Gwanak-gu warnings", "emergency texts", "shelter", "find support". Answers use the same public data as this site; conversations are not stored.',
+    'kakao.t': 'Ask on KakaoTalk', 'kakao.add': '💬 Add KakaoTalk channel', 'kakao.chat': 'Open channel →', 'kakao.s': 'Add the AidPage KakaoTalk channel and type keywords in Korean: "관악구 특보" (warnings for Gwanak-gu), "재난문자" (emergency texts), "대피소" (shelters), "지원 찾기" (find support). The bot answers in Korean only, from the same public data as this site; conversations are not stored.',
     'rg.m.rzc': 'Collapse-risk improvement zones (density)', 'rg.m.rzs': 'Storm-surge-risk improvement zones (density)', 'rg.m.rzd': 'Chronic-drought zones (density)', 'rg.m.foreign': 'Foreign residents share', 'rg.m.disabled': 'Registered disabled share', 'rg.m.basic': 'Basic livelihood recipients share',
     'rg.feat': 'Traits', 'rg.social.none': 'No social hazard (traffic/fire) in the top 25% of its peer group', 'rg.m.traffic': 'Traffic deaths + serious injuries (per 100k)', 'rg.m.fire': 'Fire damage (per 100k)', 'rg.why.ge.kind': '≥ {v} (top 25% among districts of the same kind)', 'ty.교통.d': 'Traffic deaths and serious injuries per 100k residents in the top 25% of its peer group (gu/si/gun) — KoROAD 2025', 'ty.화재.d': 'Fire casualties and losses per resident in the top 25% of its peer group — data pending',
     'rg.inst': 'Institutions', 'rg.inst.s': 'local ordinances', 'rg.i.n': 'Disaster & safety ordinances/rules', 'rg.i.n.s': '{c} ordinances · incl. rules', 'rg.i.shared': 'city-level (shared by its gu)', 'rg.i.insurance': 'Storm & flood insurance premium support', 'rg.i.relief': 'Disaster relief & recovery support', 'rg.i.heat': 'Heat-wave measures', 'rg.i.cold': 'Cold-wave measures', 'rg.i.basic': 'Basic disaster & safety management', 'rg.i.yes': 'yes · in force {d}', 'rg.i.no': 'not found by title', 'rg.inst.n': 'National law information center, local ordinances matched by title (province-level excluded). Presence of an ordinance is not a judgment of performance.',
@@ -221,7 +221,7 @@ export const getLang = () => lang;
 let seq = 0;   // setLang 호출 번호 — 늦게 끝난 이전 호출이 마지막 선택을 덮지 않게
 /* 사전·글꼴 지연 로드. 실패(오프라인에서 첫 선택 등)하면 영어로 떨어뜨리되, 글꼴은 성공했을 때만 붙인다 */
 async function load(l) {
-  if (!DICT[l]) { try { DICT[l] = (await import(`./i18n/${l}.js?v=20261007a`)).default; } catch (e) { console.warn('i18n load failed', l, e); return 'en'; } }
+  if (!DICT[l]) { try { DICT[l] = (await import(`./i18n/${l}.js?v=20261008b`)).default; } catch (e) { console.warn('i18n load failed', l, e); return 'en'; } }
   if (FONT[l] && !document.getElementById('font-' + l)) { const k = document.createElement('link'); k.id = 'font-' + l; k.rel = 'stylesheet'; k.href = `https://fonts.googleapis.com/css2?family=${FONT[l]}:wght@400;500;700&display=swap`; document.head.appendChild(k); }
   return l;
 }

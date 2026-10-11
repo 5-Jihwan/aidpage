@@ -3,9 +3,10 @@
 같은 규칙(build_types.py classify)을 임계 사양·단위 사양만 바꿔 다시 돌려, 시군구별로 타입이 어떻게 달라지는지를 저장한다.
   임계: p70/p75 · p75/p80(기준) · p80/p85 · p75/p75(경사·홀로도 p75)
   단위: 256(기준) · 230(구를 둔 일반시 13곳을 시로 합산 — 위해 면적가중·인구 지표 인구가중·밀도 재계산, docs/22 §4)
+        · 227(보고 단위 = 230 − 세종 · 제주시 · 서귀포시, 이 셋은 {out: true})
 scripts/typology_sensitivity.py 의 앞부분(적재·run·thresholds)을 그대로 실행해 규칙 동일성을 보장한다(부트스트랩 등 무거운 분석은 실행하지 않음).
 
-출력: { meta, baseline:'p75', specs: { p70|p75|p80|p7575: {code: T}, u230: {code: T + m: 합산 시 코드} } }
+출력: { meta, baseline:'p75', specs: { p70|p75|p80|p7575: {code: T}, u230|u227: {code: T + m: 합산 시 코드} } }
   T = { p: 주 타입(근접·희미 포함), lean: '근접'|'희미'|null, b: 근거, t: 특징[], s: 사회 위해, x: 복합 }
 """
 from __future__ import annotations
@@ -65,20 +66,30 @@ def main() -> int:
         merged_rows.append(fake)
         for r in gs:
             gu_to_m[r["code"]] = fake["code"]
-    THm, SDm = thresholds(merged_rows)
-    om = {r["code"]: classify({v: (None if r[v] is None else float(r[v])) for v in METRICS}, THm, SDm, r["kind"], int(r["coastal"])) for r in merged_rows}
-    for t in om.values():
-        if t.get("lean"):
-            t["lean"]["deg"] = "근접" if t["lean"]["r"] >= 0.5 else "희미"
-    u230 = {}
-    for r in rows:
-        c = r["code"]
-        if c in gu_to_m:
-            d = slim(om[gu_to_m[c]]); d["m"] = gu_to_m[c]; d["mn"] = next(city for city, gs in groups.items() if any(x["code"] == c for x in gs))
-        else:
-            d = slim(om[c])
-        u230[c] = d
-    specs["u230"] = u230
+    city_of = {r["code"]: city for city, gs in groups.items() for r in gs}
+
+    def unit_spec(units, skip=()):
+        THm, SDm = thresholds(units)
+        om = {r["code"]: classify({v: (None if r[v] is None else float(r[v])) for v in METRICS}, THm, SDm, r["kind"], int(r["coastal"])) for r in units}
+        for t in om.values():
+            if t.get("lean"):
+                t["lean"]["deg"] = "근접" if t["lean"]["r"] >= 0.5 else "희미"
+        o = {}
+        for r in rows:
+            c = r["code"]
+            if c in skip:
+                o[c] = {"out": True}
+            elif c in gu_to_m:
+                o[c] = dict(slim(om[gu_to_m[c]]), m=gu_to_m[c], mn=city_of[c])
+            else:
+                o[c] = slim(om[c])
+        return o
+
+    specs["u230"] = unit_spec(merged_rows)
+    # 단위 227(보고 단위, docs/53·55 A1): 230에서 기초자치단체가 아닌 세종(단층)·제주 행정시 2곳을 빼고 임계를 다시 계산
+    OUT227 = {"36110", "50110", "50130"}
+    units227 = [r for r in merged_rows if r["code"] not in OUT227]
+    specs["u227"] = unit_spec(units227, OUT227)
 
     # 기준 사양이 배포본(sgg_types.json)과 같은지 확인
     ty = json.load(open(P("data", "ref", "sgg_types.json"), encoding="utf-8"))["sgg"]
@@ -87,14 +98,14 @@ def main() -> int:
         print("WARN baseline mismatch vs sgg_types.json:", len(mism), mism[:8])
 
     def chg(name):
-        return sum(1 for c in specs["p75"] if (specs[name][c]["p"], specs[name][c]["lean"] is None) != (specs["p75"][c]["p"], specs["p75"][c]["lean"] is None))
+        return sum(1 for c in specs["p75"] if not specs[name][c].get("out") and (specs[name][c]["p"], specs[name][c]["lean"] is None) != (specs["p75"][c]["p"], specs["p75"][c]["lean"] is None))
 
     meta = {
         "version": "specs-" + date.today().isoformat(), "built": date.today().isoformat(), "baseline": "p75",
         "typology_version": json.load(open(P("data", "ref", "sgg_types.json"), encoding="utf-8"))["meta"]["version"],
-        "specs": {"p70": "p70/p75", "p75": "p75/p80 (기준)", "p80": "p80/p85", "p7575": "p75/p75 (경사·홀로도 p75)", "u230": "단위 230 (통합시 13곳 합산)"},
-        "changed_vs_baseline": {k: chg(k) for k in ("p70", "p80", "p7575", "u230")},
-        "n_units_230": len(merged_rows), "n_cities_merged": len(groups), "baseline_mismatch": len(mism),
+        "specs": {"p70": "p70/p75", "p75": "p75/p80 (기준)", "p80": "p80/p85", "p7575": "p75/p75 (경사·홀로도 p75)", "u230": "단위 230 (통합시 13곳 합산)", "u227": "단위 227 (보고 단위: 230 − 세종 · 제주 행정시 2)"},
+        "changed_vs_baseline": {k: chg(k) for k in ("p70", "p80", "p7575", "u230", "u227")},
+        "n_units_230": len(merged_rows), "n_units_227": len(units227), "n_cities_merged": len(groups), "baseline_mismatch": len(mism),
         "note": "'바뀜' = 성립 주 타입 또는 성립/미성립 여부가 기준 사양과 다른 경우. 규칙·자료는 동일, 임계·단위만 다름(docs/22 §1·§4).",
     }
     with open(OUT, "w", encoding="utf-8") as f:

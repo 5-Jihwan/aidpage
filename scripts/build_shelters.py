@@ -239,6 +239,8 @@ def feature(kind, lon, lat, name, addr, cap, typ, src, asof, sgg=None):
     if not in_bounds(lon, lat):
         STATS.add(kind, "dropped_no_or_bad_coords")
         return None
+    if sgg is not None and sgg not in sgg_index()["codes"]:
+        sgg = sgg_from_point(lon, lat)   # 옛 시군구 코드로 받은 행(LEGACY_SK)
     if sgg is None:
         sgg = sgg_from_addr(addr)
     if sgg is None:
@@ -306,11 +308,16 @@ SK_LAYERS = {
 }
 
 
+# 2026-07-01 개편(인천 중·동·서구 → 제물포·영종·서해·검단구, 화성시 → 4개 구) 뒤에도 safekorea는 옛 코드로만 자료를 줌(새 코드 = 0건, 10-10 확인).
+# 옛 코드도 요청하고, 그 행은 feature()에서 위치로 새 구를 정한다.
+LEGACY_SK = {"28110", "28140", "28260", "41590"}
+
+
 def safekorea_layer(layer: str) -> dict[str, list[dict]]:
     """Fetch one 시설안전지도 layer for every 시군구 (256 codes from data/admin)."""
     table, kor = SK_LAYERS[layer]
     out = {}
-    codes = sorted(sgg_index()["codes"])
+    codes = sorted(sgg_index()["codes"] | LEGACY_SK)
     budget = float(os.environ.get("SK_BUDGET_S", "240"))  # wall-clock seconds of *new* fetching per layer
     t0 = time.time()
     skipped = []
@@ -334,6 +341,10 @@ def safekorea_layer(layer: str) -> dict[str, list[dict]]:
             return json.dumps({"sgg": sgg, "totalCnt": j.get("totalCnt"), "rows": recs},
                               ensure_ascii=False).encode("utf-8")
 
+        # 0건 저장본이 7일 넘으면 다시 받음 — 개편 직후엔 새 코드가 비어 있다가 나중에 채워짐(10-11: 광주·전남 8월 저장본 0건 → 지금은 있음)
+        cp = CACHE / name
+        if not OFFLINE and cp.exists() and time.time() - cp.stat().st_mtime > 7 * 86400 and '"rows": []' in cp.read_text(encoding="utf-8")[-200:]:
+            cp.unlink()
         if not (CACHE / name).exists() and (OFFLINE or time.time() - t0 > budget):
             skipped.append(sgg)
             continue
@@ -345,7 +356,24 @@ def safekorea_layer(layer: str) -> dict[str, list[dict]]:
         out[sgg] = j["rows"]
         if i % 32 == 0:
             print(f"  safekorea {kor}: {i + 1}/{len(codes)} sgg", flush=True)
-    SK_COVERAGE[layer] = {"fetched_sgg": len(out), "total_sgg": len(codes), "skipped_sgg": skipped}
+    # 옛 코드(LEGACY_SK) 행은 같은 구(위치로 정함) 안에 같은 이름의 행이 새 코드 결과에 있으면 뺌.
+    #  층·구마다 safekorea가 새 코드로 일부만 줌(10-11: 효행구 새 코드 1건 + 옛 화성시 코드 48건). 같은 시설도 두 결과의 좌표가 수십 m 달라 좌표로는 못 맞춤.
+    nm = lambda r: (f"{r.get('occuDate')} {clean(r.get('resn')) or ''}" if r.get("occuDate") else  # noqa: E731  산불이력 = 날짜+원인
+                    clean(r.get("rstrNm")) or clean(r.get("title")) or clean(r.get("vtAcmdfcltyNm")) or clean(r.get("facilNm")) or clean(r.get("facilityName")))
+    have = {(c, nm(r)) for c, rs in out.items() if c not in LEGACY_SK for r in rs}
+    for lc in LEGACY_SK & set(out):
+        keep = []
+        for r in out[lc]:
+            lo, la = sk_xy(r)
+            nc = sgg_from_point(lo, la) if lo is not None and la is not None else None
+            if (nc, nm(r)) not in have:
+                keep.append(r)
+        out[lc] = keep
+    # 0건 시군구 경고(10-11 교훈: 행정구역 개편 뒤 새 코드가 조용히 0건이었음). 층에 따라 0이 정상인 곳도 있어 경고만
+    zero = sorted(c for c in sgg_index()["codes"] if c in out and not out[c] and not any(sgg_from_point(*sk_xy(r)) == c for lc in LEGACY_SK & set(out) for r in out[lc] if sk_xy(r)[0] is not None))
+    if zero:
+        print(f"  ⚠ safekorea {kor}: 0건 시군구 {len(zero)}곳 {zero[:12]}{' …' if len(zero) > 12 else ''}", flush=True)
+    SK_COVERAGE[layer] = {"fetched_sgg": len(out), "total_sgg": len(codes), "skipped_sgg": skipped, "zero_sgg": zero}
     if skipped:
         FAILURES.append({"src": f"safekorea {kor}", "err": f"time budget {budget:.0f}s exhausted; {len(skipped)} of {len(codes)} 시군구 not fetched (partial layer)"})
     return out
@@ -583,6 +611,19 @@ def dms(d, m, sec):
     return d + (m or 0) / 60 + (sec or 0) / 3600
 
 
+def sk_xy(r):
+    """safekorea 행의 경위도 — 층마다 형식이 다름(lo/la · 도분초 · web mercator)."""
+    lon, lat = to_float(r.get("lo")), to_float(r.get("la"))
+    if lon is None and r.get("facilLode") is not None:  # 비상급수시설: DMS
+        lon, lat = dms(r.get("facilLode"), r.get("facilLomi"), r.get("facilLose")), dms(r.get("facilLade"), r.get("facilLami"), r.get("facilLase"))
+    if lon is None and r.get("gisCrdntPnttmLodg") is not None:  # 급경사지: DMS (시점)
+        lon, lat = dms(r.get("gisCrdntPnttmLodg"), r.get("gisCrdntPnttmLoMin"), r.get("gisCrdntPnttmLoSecnd")), dms(r.get("gisCrdntPnttmLadg"), r.get("gisCrdntPnttmLaMin"), r.get("gisCrdntPnttmLaSecnd"))
+    if lon is not None and abs(lon) > 1000:  # 산불이력: web mercator (EPSG:3857) in lo/la
+        R_ = 6378137.0
+        lon, lat = lon / R_ * 180 / math.pi, (2 * math.atan(math.exp(lat / R_)) - math.pi / 2) * 180 / math.pi
+    return lon, lat
+
+
 def make_sk_builder(kind: str, layer: str, label: str, tel_keys=("tel", "dutyTel1", "fcltyTelno", "telRmk", "shltrChargerCttpc")):
     """Generic builder for a 시설안전지도 layer: title/adres/lo/la (+tel)."""
     def build() -> list[dict]:
@@ -594,14 +635,7 @@ def make_sk_builder(kind: str, layer: str, label: str, tel_keys=("tel", "dutyTel
                 if clean(r.get("useYn")) == "N" or clean(r.get("useAt")) == "N" or clean(r.get("delYn")) == "Y":
                     STATS.add(kind, "dropped_inactive")
                     continue
-                lon, lat = to_float(r.get("lo")), to_float(r.get("la"))
-                if lon is None and r.get("facilLode") is not None:  # 비상급수시설: DMS
-                    lon, lat = dms(r.get("facilLode"), r.get("facilLomi"), r.get("facilLose")), dms(r.get("facilLade"), r.get("facilLami"), r.get("facilLase"))
-                if lon is None and r.get("gisCrdntPnttmLodg") is not None:  # 급경사지: DMS (시점)
-                    lon, lat = dms(r.get("gisCrdntPnttmLodg"), r.get("gisCrdntPnttmLoMin"), r.get("gisCrdntPnttmLoSecnd")), dms(r.get("gisCrdntPnttmLadg"), r.get("gisCrdntPnttmLaMin"), r.get("gisCrdntPnttmLaSecnd"))
-                if lon is not None and abs(lon) > 1000:  # 산불이력: web mercator (EPSG:3857) in lo/la
-                    R_ = 6378137.0
-                    lon, lat = lon / R_ * 180 / math.pi, (2 * math.atan(math.exp(lat / R_)) - math.pi / 2) * 180 / math.pi
+                lon, lat = sk_xy(r)
                 name = clean(r.get("title")) or clean(r.get("facilityName")) or clean(r.get("facilNm")) or clean(r.get("rstrNm"))
                 if r.get("occuDate"):  # 산불이력: "2017-03-10 입산자 실화"
                     od = str(r.get("occuDate")); name = f"{od[:4]}-{od[4:6]}-{od[6:8]} {clean(r.get('resn')) or ''}".strip()

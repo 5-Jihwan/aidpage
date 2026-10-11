@@ -74,6 +74,7 @@
  },
  "pharmacy": {
   "11": "pharmacy/11.geojson",
+  "12": "pharmacy/12.geojson",
   "26": "pharmacy/26.geojson",
   "27": "pharmacy/27.geojson",
   "28": "pharmacy/28.geojson",
@@ -91,6 +92,7 @@
  },
  "steep": {
   "11": "steep/11.geojson",
+  "12": "steep/12.geojson",
   "26": "steep/26.geojson",
   "27": "steep/27.geojson",
   "28": "steep/28.geojson",

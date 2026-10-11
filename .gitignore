@@ -34,3 +34,4 @@ docs/23_*
 .work_yearbook/
 # 로컬 미리보기 래퍼(배포 전 화면 확인용)
 wrap_*.html
+.work_access/

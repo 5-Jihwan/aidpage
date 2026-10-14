@@ -1,0 +1,115 @@
+/* style.css 2/3 — 반응형·추가 부품(443~556줄 구간). 10-14 500줄 규칙으로 분리 — 순서 유지: style → style_more → style_fx */
+/* ---- responsive extras ---- */
+/* coarse pointer (touch): every tappable thing at least 44px */
+@media (pointer:coarse){
+  .btn,.chip,.tab,.children button,.near-item,.opts span,.pill button,.wxsel span,.shgrp-t,.lg-toggle,.icon-btn,.locate,.route-row a,.drawer-link,.fx-x{min-height:44px}
+  .wxsel span,.chip{display:inline-flex;align-items:center}
+  .maplibregl-ctrl-group button{width:44px;height:44px}
+}
+/* large desktop: wider panel, bigger type */
+@media (min-width:1600px){ :root{--fs:17.5px} }
+/* short landscape phones: compact header */
+@media (max-height:500px){ :root{--top-h:48px} .brand-sub{display:none} }
+
+/* confidence chips in rules table */
+.conf{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.75rem;font-weight:600;white-space:nowrap;background:var(--bg2);color:var(--mute)}
+.conf-verified{background:rgba(15,157,122,.12);color:var(--teal)} .conf-reported{background:rgba(154,115,40,.12);color:var(--gold)} .conf-estimate{background:rgba(194,68,126,.12);color:var(--rose)}
+
+/* home profile in drawer */
+.prof label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.95rem;padding:6px 0}
+.prof select{height:38px;border:1px solid var(--line);border-radius:9px;padding:0 8px;font:inherit;background:#fff;color:var(--ink);max-width:55%}
+.prof-chk{display:grid;grid-template-columns:1fr 1fr;gap:0 8px} .prof-chk label{justify-content:flex-start} .prof-chk input{width:20px;height:20px;accent-color:var(--accent)}
+html.big .prof label{font-size:1.08rem}
+
+/* insurance card */
+.ins-card{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:12px} .ins-card h3{margin:0 0 6px}
+.ins-hist{font-size:.92rem;color:var(--ink);margin-bottom:4px} .ins-rate{font-size:1rem;margin-bottom:4px} .ins-rate b{color:var(--accent2)}
+
+/* resident reports */
+.reports{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px} .reports h3{margin:0 0 8px}
+.rep-item{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;align-items:start;padding:6px 0;border-bottom:1px dashed var(--line);font-size:.92rem}
+.rep-k{background:var(--bg2);border-radius:999px;padding:2px 8px;font-size:.78rem;color:var(--mute);white-space:nowrap} .rep-t{color:var(--ink)} .rep-item small{grid-column:2}
+.rep-flag{border:0;background:none;color:var(--mute);font-size:.95rem;padding:0 4px;grid-row:1/3} .rep-flag:hover{color:var(--danger)}
+.rep-form{display:grid;grid-template-columns:auto 1fr auto;gap:6px;margin-top:10px} .rep-form select,.rep-form input{height:38px;border:1px solid var(--line);border-radius:9px;padding:0 10px;font:inherit;background:#fff;color:var(--ink);min-width:0}
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .rep-form{grid-template-columns:1fr 1fr} .rep-form input{grid-column:1/3} .rep-form button{grid-column:2} }
+html.big .rep-item{font-size:1.05rem} html.big .rep-form select,html.big .rep-form input{height:46px;font-size:1.05rem}
+
+/* desktop panel edge handle: click to collapse; when collapsed a tab stays at the left edge to reopen */
+.panel-tab{position:absolute;right:-18px;top:50%;transform:translateY(-50%);width:18px;height:64px;border:1px solid var(--line);border-left:0;border-radius:0 10px 10px 0;background:#fff;box-shadow:4px 0 12px rgba(20,32,46,.08);display:flex;align-items:center;justify-content:center;color:var(--mute);padding:0;cursor:pointer;pointer-events:auto}
+.panel-tab:hover{color:var(--ink);background:var(--bg)} .panel-tab-ic{font-size:1.2rem;line-height:1}
+.panel.is-collapsed .panel-tab{position:fixed;left:0;right:auto;top:50%;transform:translateY(-50%);opacity:1;pointer-events:auto;border-left:0;width:22px;height:80px;z-index:12}
+.panel.is-collapsed .panel-tab-ic{transform:rotate(180deg)}
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){ .panel-tab{display:none} }
+
+/* language toggle: header, rightmost (desktop + mobile) */
+
+/* risk verdict line (text, not map) */
+.risk-line{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px;font-size:.95rem;line-height:1.5}
+.rl-bad{color:var(--danger);font-weight:700} .rl-warn{color:var(--gold);font-weight:600} .rl-ok{color:var(--teal);font-weight:600} .rl-sep{color:var(--mute)}
+.rl-basis{display:block;margin-top:4px;font-size:.72rem;font-family:var(--mono)}
+.todo-why{display:block;font-size:.72rem;color:var(--mute);font-family:var(--mono);margin-top:2px;line-height:1.4} .fx-why{font-size:.7rem;color:var(--mute);font-family:var(--mono);white-space:nowrap}
+.todo-src{color:var(--accent2);font-weight:700;margin-right:2px}
+.card-proxy{grid-column:1/-1;min-height:64px;flex-direction:row;align-items:center;gap:10px} .card-proxy .card-ic{margin:0}
+html.big .risk-line{font-size:1.1rem}
+
+/* mobile: opened legend becomes a slim strip right above the sheet (never a box over the map centre) */
+@media (max-width:900px), (max-width:1200px) and (orientation:portrait){
+  .map-legend:not(.is-min){left:10px;right:10px;bottom:calc(var(--sheet-h, 50dvh) + 60px);max-width:none;max-height:96px;overflow-y:auto;padding:6px 10px;border-radius:10px}
+  .map-legend:not(.is-min) .lg-row{gap:2px 8px} .map-legend:not(.is-min) .lg-row span{font-size:.72rem}
+  .map-legend:not(.is-min) .lg-toggle{position:sticky;top:0;background:rgba(255,255,255,.96);width:100%;justify-content:space-between}
+  html.big .map-legend:not(.is-min){bottom:calc(var(--sheet-h, 56dvh) + 2dvh + 62px)}
+}
+@media (max-width:900px) and (orientation:landscape), (max-height:500px) and (pointer:coarse){ .map-legend:not(.is-min){bottom:calc(var(--sheet-h, 60dvh) + 60px);max-height:70px} }
+
+/* one line for today */
+.tip-card{margin-top:14px;background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;padding:10px 14px}
+.tip-head{display:flex;justify-content:space-between;align-items:center;gap:8px} .tip-label{font-family:var(--label);font-size:.85rem;color:var(--gold);font-weight:700}
+.tip-nav{display:inline-flex;align-items:center;gap:4px;color:var(--mute);font-size:.78rem} .tip-btn{border:1px solid var(--line);background:#fff;border-radius:6px;width:26px;height:26px;line-height:1;color:var(--ink)}
+.tip-text{margin:6px 0 4px;font-size:1rem;color:var(--ink);line-height:1.5} .tip-src{font-family:var(--mono);font-size:.72rem;color:var(--mute)}
+html.big .tip-text{font-size:1.15rem} html.big .tip-btn{width:34px;height:34px}
+.tip-card{position:relative;overflow:hidden}
+.tip-prog{position:absolute;left:0;bottom:0;height:2px;width:100%;transform-origin:left;background:var(--gold);opacity:.35;animation:tipProg linear forwards}
+@keyframes tipProg{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.tip-card:hover .tip-prog,.tip-card:focus-within .tip-prog{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.tip-prog{display:none}}
+
+/* ER availability card */
+.er-card{background:#fff;border:1px solid var(--danger);border-radius:14px;padding:12px 14px;margin-bottom:12px} .er-card h3{margin:0 0 6px;border-left-color:var(--danger)}
+.er-item{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:.95rem} .er-item:last-of-type{border-bottom:0}
+.er-item b{color:var(--ink)} .er-meta{grid-column:1;color:var(--text);font-size:.88rem} .er-tel{grid-row:1/3;align-self:center;text-decoration:none;color:var(--accent2);font-weight:700;white-space:nowrap}
+.er-src{display:block;margin-top:6px;font-family:var(--mono);font-size:.72rem}
+html.big .er-item{font-size:1.08rem}
+
+/* situation bar */
+.sit-bar{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 0 8px;margin-bottom:6px;align-items:center} .sit-bar::-webkit-scrollbar{display:none}
+.sit-lbl{font-family:var(--label);font-size:.8rem;color:var(--mute);flex:none;margin-right:2px}
+.sit-chip{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 11px;font-size:.85rem;color:var(--text);white-space:nowrap}
+.sit-chip.is-on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:700} .sit-clear{color:var(--mute);padding:6px 9px}
+html.big .sit-chip{font-size:1rem;padding:8px 14px}
+/* foldable sections */
+.sec{margin-bottom:12px} .sec.is-empty{display:none}
+.sec-head{display:none;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:9px 14px;font:inherit;font-weight:700;color:var(--mute);justify-content:space-between;align-items:center}
+.sec.is-folded .sec-head{display:flex} .sec.is-folded > :not(.sec-head){display:none}
+.sec-chev{transform:rotate(-90deg);transition:transform .15s} .sec-head:hover{color:var(--ink)}
+html.big .sec-head{font-size:1.08rem;padding:12px 16px}
+
+/* late path + past hint + none option */
+.late{border-color:var(--gold)} .late-list{margin:0;padding-left:22px} .late-list li{padding:5px 0;border-bottom:1px dashed var(--line);font-size:.95rem;color:var(--ink)} .late-list li:last-child{border-bottom:0}
+.past-hint{margin-top:8px;background:#fff;border:1px solid var(--gold);border-radius:10px;padding:8px 12px;font-size:.9rem;color:var(--ink)}
+.opt-none span{border-style:dashed}
+html.big .late-list li{font-size:1.1rem}
+
+/* card & button labels in the title face (Korean), numbers stay in DM Mono */
+button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-family:var(--label)}
+.card small,.install span,.rep-form input,.prof select{font-family:var(--font);font-weight:400}
+.card b,.sec-head{font-weight:700} .chip,.sit-chip,.wxsel span,.pill button,.drawer-link{font-weight:500}
+
+/* ---------- 24시간 예보 타임라인 (단기예보 개통 시 자동 표시) ---------- */
+.wx-card .wx-src{grid-column:1/-1}
+.wx-fcst{grid-column:1/-1;display:flex;gap:2px;overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;scrollbar-width:thin}
+.wx-fcst .fs{flex:1 0 54px;min-width:54px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.wx-fcst .fs small{font-size:.68rem;color:var(--mute);font-family:var(--mono);white-space:nowrap}
+.wx-fcst .fs .ic{font-size:1.05rem;line-height:1.2}
+.wx-fcst .fs b{font-family:var(--mono);font-size:.95rem;color:var(--ink)}
+.wx-fcst .fs .pop{color:var(--accent);min-height:1em}
+

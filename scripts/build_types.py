@@ -57,6 +57,8 @@ try:
 except Exception: social = {}; SOC_TH = {}
 SOCIAL = [("traffic_r", "교통"), ("fire_r", "화재")]
 idx = {s["code"]: s for s in json.load(open(P("data", "admin", "sgg_index.json"), encoding="utf-8"))}
+_missing = sorted(set(idx) - {r["code"] for r in rows})  # 전수 확인(docs/57 C1): 탐색 CSV·인구 프로필에서 빠진 시군구는 타입도 빠진다
+assert not _missing, f"[build_types] sgg_index {len(idx)} vs 탐색 CSV {len(rows)} — 빠짐: {[(c, idx[c]['name']) for c in _missing]} (build_sgg_demo → explore_typology 재실행)"
 labels = {r["code"]: r for r in csv.DictReader(io.open(P("docs", "lib", "sgg_typology_labels_20260904.csv"), encoding="utf-8"))}
 
 

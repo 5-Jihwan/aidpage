@@ -184,9 +184,8 @@ def export_paths(sgg, G, safe, rows, cent, snap, nodes, shelters, fl):
     print(f'  paths {sgg}: {len(feats)} routes, {len(flood)} flood polygons nearby')
 
 
-def run(sgg):
-    idx = load('data/shelters/index.json')
-    sido = sgg[:2]
+def network(sgg):
+    """칸·보행망·간선 위해 표시(hz/hzd) — run()과 access_top3.py가 같이 쓴다"""
     cells = load(f'data/grid/{sgg}.geojson')['features']
     cent = {c['properties']['h3']: centroid(c['geometry']) for c in cells}
     lons = [p[0] for p in cent.values()]; lats = [p[1] for p in cent.values()]
@@ -232,7 +231,15 @@ def run(sgg):
         mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
         up = up_tree is not None and up_tree.query((mid[0] * k, mid[1] * 110540.0))[0] <= UNDERPASS_M
         G[a][b]['hz'] = i in hit_any or up; G[a][b]['hzd'] = i in hit_deep or up
+        G[a][b]['f'] = (i in hit_deep) | (up << 1) | ((i in hit_any) << 2)   # 비트: 1 깊은 침수 기록 · 2 지하차도 · 4 침수 기록(깊이 무관)
         hz += G[a][b]['hz']; hzd += G[a][b]['hzd']
+    return cells, cent, bbox, lat0, flood, G, nodes, k, snap, ups, fl, hz, hzd
+
+
+def run(sgg):
+    idx = load('data/shelters/index.json')
+    sido = sgg[:2]
+    cells, cent, bbox, lat0, flood, G, nodes, k, snap, ups, fl, hz, hzd = network(sgg)
     safe = G.edge_subgraph([(a, b) for a, b, d in G.edges(data=True) if not d['hz']])
     wheel = G.edge_subgraph([(a, b) for a, b, d in G.edges(data=True) if not d['hz'] and d.get('ft') != 'steps'])
     safe_d = G.edge_subgraph([(a, b) for a, b, d in G.edges(data=True) if not d['hzd']])

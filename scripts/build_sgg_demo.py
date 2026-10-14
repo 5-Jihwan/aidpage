@@ -69,6 +69,8 @@ def main() -> None:
            "built": __import__("datetime").date.today().isoformat(), "n": len(rows), "q": q, "sgg": rows}
     json.dump(out, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print(f"[sgg_demo] {len(rows)} sgg -> {OUT} ({os.path.getsize(OUT)//1024} KB) q={q}")
+    missing = sorted(set(idx) - set(rows))  # 09-17 정읍(52180) 교훈: 격자 인구가 비면 조용히 255곳이 된다 — 여기서 멈춘다
+    assert not missing, f"[sgg_demo] sgg_index {len(idx)} vs 산출 {len(rows)} — 빠짐: {[(c, idx[c].get('name')) for c in missing]} (격자 pop null? scripts/check_counts.py)"
 
 
 if __name__ == "__main__":

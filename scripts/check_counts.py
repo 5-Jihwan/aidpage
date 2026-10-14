@@ -82,6 +82,16 @@ def main(argv: list[str]) -> int:
                     cnt[s] = cnt.get(s, 0) + 1
             zero = codes - set(cnt)
             print(f"  {'warn' if zero else 'OK  '} {layer:16s} 지점 {sum(cnt.values()):7,d}  0건 {len(zero):3d}곳" + (f"  {name(zero)}" if zero else ""))
+        # 단일 파일 층(임시주거시설·주민센터·응급실 등) — index.json에 없고 data/shelters/<layer>.geojson 하나
+        for fn in sorted(os.listdir(P("data", "shelters"))):
+            if not fn.endswith(".geojson"):
+                continue
+            cnt = {}
+            for f in load("data", "shelters", fn).get("features", []):
+                s = str(f["properties"].get("sgg") or "")
+                cnt[s] = cnt.get(s, 0) + 1
+            zero = codes - set(cnt)
+            print(f"  {'warn' if zero else 'OK  '} {fn[:-8]:16s} 지점 {sum(cnt.values()):7,d}  0건 {len(zero):3d}곳" + (f"  {name(zero)}" if zero else ""))
 
     print("결과:", "이상 없음" if hard == 0 else f"전수 파일 결함 {hard}건 — 배포 전에 고칠 것")
     return 1 if hard else 0

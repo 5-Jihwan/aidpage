@@ -9,8 +9,8 @@
    캐시를 셸/데이터로 나눈 이유: 예전엔 참조·시설·격자까지 VERSION 캐시에 있어서,
    셸 버전을 올릴 때마다(하루 10여 회) 138MB 격자를 포함한 전부가 삭제·재다운로드됐다.
    버전을 타는 건 셸뿐이고, 데이터는 DATA_CACHE에서 배포와 무관하게 살아남는다. */
-const VERSION = 'safepic-20261014d';   // 앱 셸 전용 — 배포마다 바뀐다
-const DATA_CACHE = 'safepic-data-4';   // 참조·시설·격자 — 셸 버전을 올려도 살아남는다. 시설을 다시 만들면 번호를 올려야 기존 방문자에게 감(cacheFirst는 한 번 받으면 갱신 안 함) — 2: 10-11 개편 구 빈칸 · 3: 10-14 광주·전남 응급실·미세먼지쉼터·광주 경찰서 빈칸 · 4: 10-14 Atlas v1.7(타입 v1.4.2·대피 접근 정의 통일)
+const VERSION = 'safepic-20261014e';   // 앱 셸 전용 — 배포마다 바뀐다
+const DATA_CACHE = 'safepic-data-5';   // 참조·시설·격자 — 셸 버전을 올려도 살아남는다. 시설을 다시 만들면 번호를 올려야 기존 방문자에게 감(cacheFirst는 한 번 받으면 갱신 안 함) — 2: 10-11 개편 구 빈칸 · 3: 10-14 광주·전남 응급실·미세먼지쉼터·광주 경찰서 빈칸 · 4: 10-14 Atlas v1.7(타입 v1.4.2·대피 접근 정의 통일) · 5: 10-14 전남 코드표 정정(시설)·대피 접근 hz_all
 const FONT_CACHE = 'safepic-fonts';
 const KEEP = [VERSION, DATA_CACHE, FONT_CACHE];
 const SHELL = [   // → VERSION 캐시 (배포마다 교체)

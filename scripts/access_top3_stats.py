@@ -40,7 +40,7 @@ def main() -> int:
             if not legs or not w: continue
             f0 = legs[0][2]
             acc["n1"] += w * bool(f0 & DEEP)
-            acc["b2"] += w * (len(legs) >= 1 and all(l[2] & DEEP for l in legs))
+            acc["b2"] += w * (len(legs) >= 2 and all(l[2] & DEEP for l in legs))   # 문장 카드(access.js)와 같게: 닿는 시설 2곳 이상일 때만
             acc["lsb"] += w * bool(f0 & (16 | 32)); acc["lsa"] += w * bool(f0 & (8 | 16 | 32))
         ts = [v[1] for v in (d.get("t") or {}).values()]
         out.append(dict(code=code, name=idx.get(code, ""), pop=round(tot), b2_all3_deep=round(acc["b2"] / tot * 100, 2), n1_deep=round(acc["n1"] / tot * 100, 2),
@@ -69,7 +69,7 @@ def main() -> int:
         for m, v in A["city"].items():
             ps = [by[x] for x in v["members"]]; pp = sum(r["pop"] for r in ps) or 1
             v["alt"] = round(sum(r["b2_all3_deep"] * r["pop"] for r in ps) / pp, 2)
-        A["meta"]["alt"] = "가까운 임시주거시설 3곳 모두, 가장 짧은 길에 깊은 침수 기록(0.5 m+)이 있는 주민 % (scripts/access_top3_stats.py)"
+        A["meta"]["alt"] = "가까운 임시주거시설 3곳 모두, 가장 짧은 길에 깊은 침수 기록(0.5 m+)이나 지하차도(150 m)가 있는 주민 % — 닿는 시설 2곳 이상인 칸만 (scripts/access_top3_stats.py)"
         json.dump(A, open(ap, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":")); print("  sgg_access.json에 alt 기록")
     return 0
 

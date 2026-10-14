@@ -226,6 +226,14 @@ meta = dict(version=VERSION, built=_dt.date.today().isoformat(), unit="sgg", n=l
                      "foreign_r": "행안부 2024 지방자치단체 외국인주민 현황(2024-11-01) ÷ 주민등록 2026-07", "disabled_r": "복지부 등록장애인 현황(2024-12-31) ÷ 주민등록 2026-07", "basic_r": "한국사회보장정보원 복지사업 시군구별 수급권자 현황(2025-12, 기초생활보장 맞춤형급여) ÷ 주민등록 2026-07 (sgg_vuln.json)"},
             caveats=["기록 없음 ≠ 안전: 침수·산사태 이력은 신고·기록된 것만 담는다", "'들' 타입은 행정구역 이름(군)으로 판단한 농어촌 근사치", "'바다' 타입은 해안 접촉 여부만 본 부분 규칙(해일·태풍 강도 미반영)",
                      "서울은 침수흔적도가 촘촘해 '물' 타입이 과대 대표될 수 있음", "'산'의 지정 근거 = 붕괴위험개선지구(유형 002)만 사용(v1.2, 6유형 혼합 proxy 폐기)", "취약 3종 비율의 분모(주민등록 2026-07)는 원천 시점(2024-11·2024-12·2025-12)과 다름 — 근사", "2026 개편 지역(인천 제물포·영종·검단·서해구, 화성시 4구 등)은 취약 3종 원천에 없어 이방·돌봄·살림 판정 생략", "전국 시군구 사분위 기준 상대 판정 — 순위 아님"])
+# 전국 합산 비교값(같은 자료) — Atlas 막대 근거 줄 '공인 기준 없음 · 전국 n%'(docs/63 §2). 세대 비율은 세대 가중, 나머지는 인구 가중.
+def _nat(k, wkey):
+    num = den = 0.0
+    for c, v in sgg_out.items():
+        x, w = v["metrics"].get(k), (demo["sgg"].get(c, {}).get("hh") if wkey == "hh" else v["metrics"].get("pop"))
+        if x is not None and w: num += x * w; den += w
+    return round(num / den, 4) if den else None
+meta["nat"] = {k: _nat(k, w) for k, w in (("ealone", "hh"), ("single", "hh"), ("disabled_r", "pop"), ("basic_r", "pop"), ("traffic_r", "pop"))}
 json.dump({"meta": meta, "sgg": sgg_out}, open(P("data", "ref", "sgg_types.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
 
 # ───────── 행정동 ─────────

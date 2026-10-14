@@ -1,6 +1,6 @@
 # data/shelters — nationwide shelter points (keyless sources)
 
-Built 2026-10-11 (er·dust·police 2026-10-14: 광주·전남 옛 코드 보완) by `scripts/build_shelters.py` (do not hand-edit). WGS84 points, coords rounded to 1e-5 deg. No geocoding, no fabricated points: rows without usable coordinates are dropped (counts below). 군 시설(부대·사령부·군인아파트 등)은 공개하지 않고 제외한다(`dropped_military`).
+Built 2026-10-11 (er·dust·police 2026-10-14: 광주·전남 옛 코드 보완, 전남 코드표 정정) by `scripts/build_shelters.py` (do not hand-edit). WGS84 points, coords rounded to 1e-5 deg. No geocoding, no fabricated points: rows without usable coordinates are dropped (counts below). 군 시설(부대·사령부·군인아파트 등)은 공개하지 않고 제외한다(`dropped_military`).
 
 Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계 — 광주+전남 = `12`; from the query 시군구 for safekorea layers, else by address match within sido against `data/admin/sgg_index.json`, else null), `cap` (수용인원, int or null), `type`, `src`, `asof` (YYYY-MM-DD).
 
@@ -14,10 +14,10 @@ Props per feature: `name`, `addr`, `sgg` (5-digit 시군구 code, 2026-07 체계
 | quake | 21,475 | `quake/{sido}.geojson` x17 (see index.json) | 6,329,579 |
 | temp_housing | 15,888 | `temp_housing.geojson` | 4,233,190 |
 | fire | 750 | `fire.geojson` | 211,748 |
-| police | 2,301 | `police.geojson` | 649,820 |
+| police | 2,304 | `police.geojson` | 650,656 |
 | pharmacy | 19,754 | `pharmacy/{sido}.geojson` x16 (see index.json) | 5,781,425 |
-| er | 401 | `er.geojson` | 123,107 |
-| dust | 6,890 | `dust.geojson` | 1,983,906 |
+| er | 403 | `er.geojson` | 123,720 |
+| dust | 7,025 | `dust.geojson` | 2,021,481 |
 | water | 6,242 | `water.geojson` | 1,833,630 |
 | tsunami | 632 | `tsunami.geojson` | 169,345 |
 | meal | 1,158 | `meal.geojson` | 445,382 |

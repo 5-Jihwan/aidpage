@@ -2,7 +2,7 @@
    본 사이트는 경로 선을 그리지 않는다. 가까운 대피소 3곳마다 "걸어서 약 n분 · 가는 방향에 침수 이력 칸 n · 지하차도 근처 n"을 문장으로만 보여준다.
    계산은 전국 미리 계산(scripts/access_top3.py → data/access/<sgg>.json)을 읽는다. 옛 기기 경로 계산(sim_worker)과 선이 있는 sim.html은 10-14 폐기(docs/56 N7).
    미리 계산이 없는 자리는 직선 거리로만 안내한다. */
-import { t, getLang } from './i18n.js?v=20261014d';
+import { t, getLang } from './i18n.js?v=20261014e';
 const $ = (s, r = document) => r.querySelector(s);
 // 민방위 대피시설은 대부분 지하(공습 대비)라 침수 맥락의 이 카드에서는 뺀다. 지진옥외대피장소는 비를 피할 수 없는 공터라 뺀다.
 const SHELTER_KINDS = ['temp_housing', 'tsunami'];
@@ -11,7 +11,7 @@ let C = null;
 /* v2(10-14): 전국 미리 계산(scripts/access_top3.py) — 칸마다 가까운 임시주거시설 3곳 [번호, 거리 m, 비트].
    비트 1 깊은 침수 기록(0.5 m+) · 2 지하차도 150 m · 4 침수 기록(깊이 무관) · 16 산사태 기록 칸. (8 칸 경사·32 급경사지는 문장에 쓰지 않음 — docs/56 §5 C안: 도시 축대까지 잡혀 주민 7명 중 1명에게 경고가 붙음)
    미리 계산이 없는 자리는 직선 거리로만 안내한다. 걷는 속도는 Atlas·논문 D와 같은 48 m/분(느린 걸음). */
-const PRE = new Map(), PRE_V = '20261014a', SLOW2 = 48;
+const PRE = new Map(), PRE_V = '20261014a';
 const loadPre = sgg => { if (!PRE.has(sgg)) PRE.set(sgg, fetch(`data/access/${sgg}.json?v=${PRE_V}`).then(r => r.ok ? r.json() : null).catch(() => null)); return PRE.get(sgg); };
 function cellAt(sgg, lonlat) {
   const cs = C.gridCells(sgg); if (!cs.length) return null;
@@ -22,7 +22,7 @@ function cellAt(sgg, lonlat) {
 }
 async function runPre() {
   const d = await loadPre(S.sgg); if (!d) return false;
-  const h = cellAt(S.sgg, S.from), row = h && d.c[h]; if (!row) return false;
+  const h = cellAt(S.sgg, S.from), row = h && d.c[h]; if (!row || !row.some(Array.isArray)) return false;   // 빈 행(닿는 시설 없음)은 직선 거리 대체로
   const icon = (C.state.shelters.avail.find(a => a.id === 'temp_housing') || {}).icon || '🏫';
   const legs = row.filter(Array.isArray), extra = row.find(x => !Array.isArray(x));
   const rows = legs.map(([i, len, bits]) => ({ name: d.s[i][0], kind: getLang() === 'ko' ? '이재민 임시주거시설' : '', icon, len, bits }));
@@ -91,7 +91,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 /** 대피소 한 곳 = 이름 + 문장들 (화면·결과·인쇄 카드가 같이 쓴다, HTML 아님) */
 function describe(r) {
   if (r.bits != null) {   // v2: 가장 짧은 길 하나에 대해서만 말한다
-    const fast = Math.max(1, Math.round(r.len / WALK)), slow = Math.max(1, Math.round(r.len / SLOW2));
+    const fast = Math.max(1, Math.round(r.len / WALK)), slow = Math.max(1, Math.round(r.len / SLOW));
     const lines = [C.profile && C.profile().mob ? t('acc.walk.slow', { slow, fast }) : t('acc.walk', { fast, slow })], n0 = lines.length;
     if (r.bits & 1) lines.push(t('acc2.deep')); else if (r.bits & 4) lines.push(t('acc2.flood'));
     if (r.bits & 2) lines.push(t('acc2.underpass'));
@@ -100,21 +100,11 @@ function describe(r) {
     return { name: r.kind ? `${r.name} (${r.kind})` : r.name, lines };
   }
   const fast = Math.max(1, Math.round(r.len / WALK)), slow = Math.max(1, Math.round(r.len / SLOW));
-  const slowFirst = !!(C.profile && C.profile().mob);   // 우리 집 프로필 '거동 불편'이면 느린 걸음을 앞에
-  const lines = [slowFirst ? t('acc.walk.slow', { slow, fast }) : t('acc.walk', { fast, slow })];
-  if (!r.sum) lines.push(t('acc.nogrid'));
-  else {
-    const hz = r.sum.hz || {}, n0 = lines.length;
-    if (r.sum.flood) lines.push(t('acc.flood', { n: r.sum.flood }));
-    if (hz.underpass) lines.push(t('acc.underpass', { n: hz.underpass }));
-    if (r.sum.steep || hz.steep) lines.push(t('acc.steep', { n: (r.sum.steep || 0) + (hz.steep || 0) }));
-    if (r.sum.lslide) lines.push(t('acc.lslide', { n: r.sum.lslide }));
-    if (lines.length === n0) lines.push(t('acc.none'));
-  }
+  const lines = [C.profile && C.profile().mob ? t('acc.walk.slow', { slow, fast }) : t('acc.walk', { fast, slow }), t('acc.nogrid')];   // 직선 거리 대체(미리 계산 없음)
   return { name: r.kind ? `${r.name} (${r.kind})` : r.name, lines };
 }
 const extraLines = rows => [rows.allhz ? t('acc2.allhz') : null, rows.snap ? t('acc2.snap', { m: rows.snap }) : null,
-  rows.ts ? t('acc2.ts', { name: rows.ts.name, fast: Math.max(1, Math.round(rows.ts.len / WALK)), slow: Math.max(1, Math.round(rows.ts.len / SLOW2)) }) : null].filter(Boolean);
+  rows.ts ? t('acc2.ts', { name: rows.ts.name, fast: Math.max(1, Math.round(rows.ts.len / WALK)), slow: Math.max(1, Math.round(rows.ts.len / SLOW)) }) : null].filter(Boolean);
 const lineText = r => { const d = describe(r); return `${d.name} — ${d.lines.join(' ')}`; };
 function render() {
   const box = $('#simBox'); if (!box || !C.state.sim) return;

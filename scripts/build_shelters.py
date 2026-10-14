@@ -240,7 +240,7 @@ def feature(kind, lon, lat, name, addr, cap, typ, src, asof, sgg=None):
         STATS.add(kind, "dropped_no_or_bad_coords")
         return None
     if sgg is not None and sgg not in sgg_index()["codes"]:
-        sgg = sgg_from_point(lon, lat)   # 옛 시군구 코드로 받은 행(LEGACY_SK)
+        sgg = sgg_from_point(lon, lat) or GJ_JN_OLD.get(sgg)   # 옛 시군구 코드로 받은 행(LEGACY_SK·GJ_JN_OLD)
     if sgg is None:
         sgg = sgg_from_addr(addr)
     if sgg is None:
@@ -311,13 +311,18 @@ SK_LAYERS = {
 # 2026-07-01 개편(인천 중·동·서구 → 제물포·영종·서해·검단구, 화성시 → 4개 구) 뒤에도 safekorea는 옛 코드로만 자료를 줌(새 코드 = 0건, 10-10 확인).
 # 옛 코드도 요청하고, 그 행은 feature()에서 위치로 새 구를 정한다.
 LEGACY_SK = {"28110", "28140", "28260", "41590"}
+# 10-14: 광주·전남 통합(sido 12) 뒤에도 일부 층(응급의료센터·미세먼지쉼터·광주 경찰서)은 옛 코드(광주 29xxx·전남 46xxx)로만 자료를 줌(새 12xxx = 0건).
+# 다른 층(임시주거시설·무더위쉼터 등)은 새 코드로 잘 와서 이름 대조로는 중복이 남을 수 있음 → 옛 코드 결과는 대응 새 코드가 0건일 때만 쓴다.
+GJ_JN_OLD = {**{"46" + c[2:]: c for c in ("12110", "12130", "12150", "12170", "12190", "12710", "12720", "12730", "12740", "12750", "12760",
+                                          "12770", "12780", "12790", "12800", "12810", "12820", "12830", "12840", "12850", "12860", "12870")},
+             "29110": "12210", "29140": "12240", "29155": "12270", "29170": "12300", "29200": "12330"}
 
 
 def safekorea_layer(layer: str) -> dict[str, list[dict]]:
     """Fetch one 시설안전지도 layer for every 시군구 (256 codes from data/admin)."""
     table, kor = SK_LAYERS[layer]
     out = {}
-    codes = sorted(sgg_index()["codes"] | LEGACY_SK)
+    codes = sorted(sgg_index()["codes"] | LEGACY_SK | set(GJ_JN_OLD))
     budget = float(os.environ.get("SK_BUDGET_S", "240"))  # wall-clock seconds of *new* fetching per layer
     t0 = time.time()
     skipped = []
@@ -356,6 +361,9 @@ def safekorea_layer(layer: str) -> dict[str, list[dict]]:
         out[sgg] = j["rows"]
         if i % 32 == 0:
             print(f"  safekorea {kor}: {i + 1}/{len(codes)} sgg", flush=True)
+    for old, new in GJ_JN_OLD.items():   # 새 코드에 자료가 있으면 옛 코드 결과는 버림(중복 방지)
+        if out.get(new) and old in out:
+            out[old] = []
     # 옛 코드(LEGACY_SK) 행은 같은 구(위치로 정함) 안에 같은 이름의 행이 새 코드 결과에 있으면 뺌.
     #  층·구마다 safekorea가 새 코드로 일부만 줌(10-11: 효행구 새 코드 1건 + 옛 화성시 코드 48건). 같은 시설도 두 결과의 좌표가 수십 m 달라 좌표로는 못 맞춤.
     nm = lambda r: (f"{r.get('occuDate')} {clean(r.get('resn')) or ''}" if r.get("occuDate") else  # noqa: E731  산불이력 = 날짜+원인
@@ -370,7 +378,7 @@ def safekorea_layer(layer: str) -> dict[str, list[dict]]:
                 keep.append(r)
         out[lc] = keep
     # 0건 시군구 경고(10-11 교훈: 행정구역 개편 뒤 새 코드가 조용히 0건이었음). 층에 따라 0이 정상인 곳도 있어 경고만
-    zero = sorted(c for c in sgg_index()["codes"] if c in out and not out[c] and not any(sgg_from_point(*sk_xy(r)) == c for lc in LEGACY_SK & set(out) for r in out[lc] if sk_xy(r)[0] is not None))
+    zero = sorted(c for c in sgg_index()["codes"] if c in out and not out[c] and not any(sgg_from_point(*sk_xy(r)) == c for lc in (LEGACY_SK | set(GJ_JN_OLD)) & set(out) for r in out[lc] if sk_xy(r)[0] is not None))
     if zero:
         print(f"  ⚠ safekorea {kor}: 0건 시군구 {len(zero)}곳 {zero[:12]}{' …' if len(zero) > 12 else ''}", flush=True)
     SK_COVERAGE[layer] = {"fetched_sgg": len(out), "total_sgg": len(codes), "skipped_sgg": skipped, "zero_sgg": zero}

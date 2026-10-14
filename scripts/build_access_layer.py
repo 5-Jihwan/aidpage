@@ -32,7 +32,11 @@ def load(code):
 
 def slim(rows):
     s = summarize(rows)
-    return {'hz': s['pct_hz_on_shortest_deep'], 'hz_all': s['pct_hz_on_shortest'], 'far60': s['pct_far_60min_slow'],
+    # 10-14: hz_all을 hz(깊은 기록)와 같은 제외 규칙(갇힌 주민만 제외)으로 다시 셈. summarize의 pct_hz_on_shortest는
+    #  '이미 기록 구역 안에 사는 주민'을 빼서 넓은 기준이 좁은 기준보다 작게 나오는 역전이 58곳 있었음(서초 31.3 vs 23.7).
+    P = sum(r['pop'] or 0 for r in rows) or 1
+    hz_all = round(100 * sum(r['pop'] or 0 for r in rows if r['hz_on_shortest'] == 1 and not r['trapped']) / P, 1)
+    return {'hz': s['pct_hz_on_shortest_deep'], 'hz_all': hz_all, 'far60': s['pct_far_60min_slow'],
             'far30': s['pct_far_30min_slow'], 'med': s['median_safe_min_slow'], 'pop': s['pop'],
             'snap': s['pct_snap_over_300m']}   # 길에서 300 m+ 떨어진 주민 % — 섬·지도 길 결측 표시용
 

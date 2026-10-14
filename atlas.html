@@ -8,7 +8,7 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%231a5fc4'/%3E%3Cg transform='translate(72 72) scale(0.7200)'%3E%3Cpath d='M256 40 96 104v152c0 108 68 176 160 216 92-40 160-108 160-216V104z' fill='%23fff'/%3E%3Ccircle cx='256' cy='176' r='30' fill='%231a5fc4'/%3E%3Crect x='228' y='228' width='56' height='150' rx='16' fill='%231a5fc4'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
-<link rel="stylesheet" href="css/style.css?v=20261011a">
+<link rel="stylesheet" href="css/style.css?v=20261014b">
 <style>
   :root{--c-물:#2a67cf;--c-산:#66872a;--c-바다:#0f95a8;--c-마름:#c47f22;--c-none:#e3e8f0;--c-교통:#c2447e;--c-trait:#9a7328;--c-inst:#0f4a9e;--rail-w:300px;--top-h:56px}
   html,body{height:100%}
@@ -98,7 +98,9 @@
   .dxbars{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px}
   .bar{display:grid;grid-template-columns:1fr auto;gap:0 8px;font-size:.78rem;color:var(--mute);padding:3px 0}
   .bar .l{white-space:nowrap} .bar .l small{font-family:var(--mono);font-size:.6rem;color:var(--gold);margin-left:6px} .bar .n{font-family:var(--mono);color:var(--ink);font-weight:500;text-align:right;white-space:nowrap} .bar .n.over{color:var(--accent2)}
-  .bar .t{grid-column:1/-1;height:7px;border-radius:4px;background:var(--bg2);position:relative;margin-top:3px}
+  .refnote{font-size:.74rem;color:var(--mute);margin:10px 0 0;line-height:1.5}
+.bar .ref{grid-column:1/-1;font-size:.7rem;color:var(--mute);margin-top:3px;line-height:1.35} .bar .ref.hit{color:var(--ink)} .bar .ref b{font-weight:600}
+.bar .t{grid-column:1/-1;height:7px;border-radius:4px;background:var(--bg2);position:relative;margin-top:3px}
   .bar .t i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:#c7d3e6;width:var(--w)} .bar.over .t i{background:var(--accent)}
   .bar .t em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--gold);left:50%;border-radius:1px}
   .bar .t b.of{position:absolute;right:-12px;top:-4px;font-size:.7rem;color:var(--accent)}
@@ -109,6 +111,8 @@
   .it b{color:var(--ink);font-weight:600;font-size:.8rem;display:flex;gap:5px;align-items:center}
   .it small{font-family:var(--mono);font-size:.62rem} .it.has{background:#f2f6fd;border-color:#cfdcf4} .it.has b{color:var(--c-inst)} .it:not(.has){opacity:.55}
   .inst-sum{font-size:.82rem;color:var(--mute);margin-bottom:8px} .inst-sum b{color:var(--ink)}
+  .peers{margin-top:18px} .peers summary{cursor:pointer;font-weight:700;font-size:1rem} .peers summary small{font-weight:400;color:var(--mute);font-size:.8rem;margin-left:4px}
+  .peers .pl{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 6px} .peers .pl button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font-size:.82rem;cursor:pointer;color:var(--ink)} .peers .pl button:hover{border-color:var(--tc)} .peers .pl small{color:var(--mute);margin-left:4px;font-size:.72rem}
   .sp-nav{display:flex;align-items:center;gap:8px;margin-top:22px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}
   .sp-nav .nb{border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 12px;font:inherit;font-size:.84rem;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;align-items:flex-start;min-width:120px}
   .sp-nav .nb small{font-family:var(--mono);font-size:.6rem;color:var(--mute);letter-spacing:.05em} .sp-nav .nb:hover{background:var(--bg)} .sp-nav .nb.next{align-items:flex-end;margin-left:auto}
@@ -132,7 +136,8 @@
   .pro .q{border-left:3px solid var(--blue);padding:4px 0 4px 14px;margin:14px 0;font-family:var(--display);font-size:1.06rem;line-height:1.6}
   .pro .thr{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px} .pro .thr span{border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:.8rem;line-height:1.35;background:var(--bg2,#f7f9fc)} .pro .thr b{display:block;font-family:var(--mono);font-size:1rem;font-weight:500}
   .pro ol,.pro ul{margin:6px 0 10px;padding-left:1.2em;font-size:.95rem;line-height:1.8} .pro li b{font-weight:700}
-  .pro .go{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px} .pro .go button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font:inherit;font-size:.9rem;cursor:pointer;color:var(--ink)} .pro .go button.pri{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+  .pro .go{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px} .pro .go button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font:inherit;font-size:.9rem;cursor:pointer;color:var(--ink)} .pro .go a.mailbtn{display:inline-block;border:1px solid var(--c-inst);color:var(--c-inst);border-radius:999px;padding:9px 16px;font-size:.9rem;text-decoration:none;font-weight:700}
+.go button.pri{background:var(--c-inst);border-color:var(--c-inst);color:#fff;font-weight:700}
   #toc .pro-link{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-weight:700;padding:8px 12px;cursor:pointer;color:var(--ink);border-bottom:1px solid var(--line)} #toc .pro-link.is-cur{color:var(--blue)}
   .dx-map{height:100%;position:relative}
   #map{position:absolute;inset:0}
@@ -209,7 +214,7 @@
 <canvas id="cv" hidden></canvas>
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script type="module">
-import { DICT } from './js/i18n.js?v=20261011a';
+import { DICT } from './js/i18n.js?v=20261014b';
 const V = '20260912a';
 const ICON = { '물': '💧', '산': '⛰️', '바다': '🌊', '눈': '❄️', '볕': '☀️', '땅': '🪨', '마름': '🏜️', '노년': '🧓', '홀로': '🧍', '이방': '🌐', '돌봄': '♿', '살림': '🏚️', '도심': '🏙️', '들': '🌾', '섬': '🏝️', '접경': '🪖', '교통': '🚗', '화재': '🔥' };
 const COL = { '물': '#2a67cf', '산': '#66872a', '바다': '#0f95a8', '마름': '#c47f22', '교통': '#c2447e', trait: '#9a7328', inst: '#0f4a9e', none: '#e3e8f0' };
@@ -229,8 +234,8 @@ const UI = {
     'st.prim': '자연 위해 타입 분포 · 인구 가중 %', 'st.soc': '사회 위해 분포 · 인구 가중 %', 'st.sec': '특징(첫째) 분포 · 인구 가중 %', 'cov.note': '시·도에는 단일 타입을 붙이지 않습니다. 아래 카드는 이름순입니다.', nodist: '시·도 분포 자료 없음',
     'b.nat': '자연 위해', 'b.soc': '사회 위해', 'b.none': '해당 없음', 'b.bold': '굵게', 'b.bold.t': '인구밀도 상위 25% — 노출 큼', 'b.zone': '지정', 'b.complex': '복합', 'b.edge': '경계 {n}', 'b.edge.t': '임계 ±5% 안: {l}', hz: '성립 위해', 'hz.t': '표준화 초과치(같은 단위 전국 p75 기준). 가장 큰 것이 주 타입',
     'tr.k': '특징 · 서열 없는 묶음', 'tr.none': '특징 없음 — 인구·구조 지표 중 전국 상위 25%에 드는 것이 없음', why: '왜 이 타입인가', 'why.s': '금색 금 = 기준선(막대 절반) · 넘으면 파랑 · ▸ = 기준의 2배 초과', 'g.nat': '자연 · 이력·지형', 'g.ppl': '사람 · 주민등록', 'g.soc': '사회 · 같은 {k} 유형 안 기준', p25: '상위 25%', p20: '상위 20%',
-    'm.flood': '침수 이력 셀', 'm.ls': '산사태 이력 셀', 'm.slope': '평균 경사', 'm.rzf': '침수위험지구 밀도', 'm.e65': '65세 이상', 'm.ealone': '65세 이상 1인세대', 'm.single': '1인세대', 'm.dens': '인구밀도', 'm.foreign': '외국인 주민', 'm.dis': '장애·아동', 'm.basic': '수급·주거취약', 'm.traffic': '교통 사망+중상/10만', 'm.fire': '화재', wait: '자료 대기',
-    inst: '제도·조례', 'inst.s': '국가법령정보센터 자치법규 · 보유 여부만', 'inst.n': '재난·안전 자치법규 <b>{n}건</b>{o} · 전국 중위 {m}건{sh}', 'inst.o': ' (조례 {c})', 'inst.sh': ' · 공유 조례', 'inst.has': '보유 · ', 'inst.no': '표식 없음', 'inst.none': '조례 자료 없음', acc: '대피 접근', 'acc.s': '물 재난 때 이재민 임시주거시설까지 걸어서 · OSM 보행망 + 과거 침수 기록 · 길 안내 아님', 'acc.hz': '가장 짧은 길이 깊은 침수 기록(0.5 m 이상)을 지나는 주민 {v}%', 'acc.hz.s': '모든 침수 기록을 넣으면 {v}%', 'acc.far': '느린 걸음(분당 48 m)으로 1시간 넘게 걸리는 주민 {v}%', 'acc.far.s': '30분 넘게 {v}% · 주민 절반은 {m}분 안에 닿음', 'acc.city': '{c} 전체(보고 단위): 침수 기록 통과 {h}% · 1시간 넘게 {f}%', 'acc.wait': '계산 중입니다({d}/{t}곳 끝남).', 'acc.snap': '주민 {v}%가 지도의 길에서 300 m 넘게 떨어진 곳에 삽니다(배로만 닿는 섬, 지도에 빠진 마을길) — 이런 곳은 실제와 다를 수 있습니다.', 'acc.note': '침수 기록은 지역마다 조사된 정도가 달라(서울이 가장 촘촘) 다른 지역과 견주는 데 쓰지 마세요.', 'acc.na': '계산 전', 'acc.m.hz': '가장 짧은 길이 깊은 침수 기록을 지나는 주민 비율', 'acc.m.far60': '느린 걸음으로 1시간 넘는 주민 비율', 'inst.jeju': '제주시·서귀포시는 행정시라 자체 조례가 없습니다 — 제주특별자치도 조례가 적용됩니다.',
+    'm.flood': '침수 이력 셀', 'm.ls': '산사태 이력 셀', 'm.slope': '평균 경사', 'm.rzf': '침수위험지구 밀도', 'm.e65': '65세 이상', 'm.ealone': '65세 이상 1인세대', 'm.single': '1인세대', 'm.dens': '인구밀도', 'm.foreign': '외국인 주민', 'm.dis': '등록장애인', 'm.basic': '기초생활 수급권자', 'm.traffic': '교통 사망+중상/10만', 'm.fire': '화재', wait: '자료 대기',
+    inst: '제도·조례', 'inst.s': '국가법령정보센터 자치법규 · 보유 여부만', 'inst.n': '재난·안전 자치법규 <b>{n}건</b>{o} · 전국 중위 {m}건{sh}', 'inst.o': ' (조례 {c})', 'inst.sh': ' · 공유 조례', 'inst.has': '보유 · ', 'inst.no': '표식 없음', 'inst.none': '조례 자료 없음', acc: '대피 접근', 'acc.s': '물 재난 때 이재민 임시주거시설까지 걸어서 · OSM 보행망 + 과거 침수 기록 · 길 안내 아님', 'acc.hz': '가장 짧은 길이 깊은 침수 기록(0.5 m 이상)을 지나는 주민 {v}%', 'acc.hz.s': '모든 침수 기록을 넣으면 {v}%', 'acc.alt': '가까운 3곳 모두 그런 길 {v}%', 'acc.far': '느린 걸음(분당 48 m)으로 1시간 넘게 걸리는 주민 {v}%', 'acc.far.s': '30분 넘게 {v}% · 주민 절반은 {m}분 안에 닿음', 'acc.city': '{c} 전체(보고 단위): 침수 기록 통과 {h}% · 1시간 넘게 {f}%', 'acc.wait': '계산 중입니다({d}/{t}곳 끝남).', 'acc.snap': '주민 {v}%가 지도의 길에서 300 m 넘게 떨어진 곳에 삽니다(배로만 닿는 섬, 지도에 빠진 마을길) — 이런 곳은 실제와 다를 수 있습니다.', 'peer': '같은 타입의 다른 곳', 'peer.s': '주 타입 {t} · {k} · 가나다순', 'peer.none': '이 조합은 이곳 하나뿐입니다.', 'peer.note': '서열이 아니라 참고할 이웃입니다. 같은 타입이라도 조례·재정·기록은 다를 수 있어 카드마다 확인하세요.', 'dl.h': '정리된 데이터가 필요하면', 'dl.p': '판본 {v}의 표(CSV)와 데이터 사전은 <b>메일 신청 후 이용 동의서</b>를 받고 보내 드립니다. 소속·용도·쓰려는 범위를 적어 주세요. 동의서에는 인용 표기, 재배포 금지, <b>순위·서열 매기기에 쓰지 않기</b>가 들어갑니다. 신청 기록은 운영자 메일에만 남고 이 사이트는 아무것도 저장하지 않습니다.', 'dl.mail': '메일로 신청하기', 'acc.note': '침수 기록은 지역마다 조사된 정도가 달라(서울이 가장 촘촘) 다른 지역과 견주는 데 쓰지 마세요.', 'acc.na': '계산 전', 'acc.m.hz': '가장 짧은 길이 깊은 침수 기록을 지나는 주민 비율', 'acc.m.far60': '느린 걸음으로 1시간 넘는 주민 비율', 'inst.jeju': '제주시·서귀포시는 행정시라 자체 조례가 없습니다 — 제주특별자치도 조례가 적용됩니다.',
     prev: '◀ 이전', next: '다음 ▶', tomap: '🗺️ 도감 지도에서 위치 보기', site: '본 사이트 지도 →', region: '이 지역은 →', save: '🖼️ 카드 이미지 저장', foot: '인구 {p}명 · 자료: {s}<br>같은 단위 전국 상위 25% 임계에 따른 설명형 분류입니다. 순위가 아니며, 기록이 없다는 것이 안전하다는 뜻은 아닙니다.',
     'why.water.zone': '침수 이력이 아니라 침수위험개선지구 밀도({v}/100km²)로 성립', 'why.water': '침수 이력 셀 비율 {v} — 전국 상위 25% 기준 {t} 이상', 'why.mt.zone': '산사태 이력이 아니라 붕괴위험개선지구 지정으로 성립', 'why.mt': '산사태 이력 {v} 또는 평균 경사 {s}° — 기준({t} / {st}°) 이상', 'why.sea': '해안 접촉 지역', 'why.sea.rz': ' · 해일위험개선지구 {v}/100km²', 'why.sea.p': ' (해일·태풍 강도 자료 대기 중인 부분 규칙)', 'why.dry': '상습가뭄재해지구 지정({v}/100km²)',
     'why.lean': '위해 타입 기준(전국 상위 25%)에 못 미침 — 가장 가까운 위해는 {top}(기준의 {r}%). 기준 대비 {list}. 기록 없음 ≠ 안전',
@@ -248,8 +253,8 @@ const UI = {
     'st.prim': 'Natural hazard types · population-weighted %', 'st.soc': 'Social hazard · population-weighted %', 'st.sec': 'First trait · population-weighted %', 'cov.note': 'Provinces get no single type. Cards below are in name order.', nodist: 'No province distribution',
     'b.nat': 'Natural hazard', 'b.soc': 'Social hazard', 'b.none': 'none', 'b.bold': 'bold', 'b.bold.t': 'population density top 25% — high exposure', 'b.zone': 'zoned', 'b.complex': 'multi', 'b.edge': 'edge {n}', 'b.edge.t': 'within ±5% of a threshold: {l}', hz: 'Hazards met', 'hz.t': 'standardised exceedance over the national p75; the largest is the primary type',
     'tr.k': 'Traits · unordered set', 'tr.none': 'No trait — no population or structure indicator in the national top 25%', why: 'Why this type', 'why.s': 'gold tick = threshold (half bar) · blue when exceeded · ▸ = over 2× threshold', 'g.nat': 'Natural · history & terrain', 'g.ppl': 'People · resident registration', 'g.soc': 'Social · threshold within the same {k} class', p25: 'top 25%', p20: 'top 20%',
-    'm.flood': 'Cells with flood history', 'm.ls': 'Cells with landslide history', 'm.slope': 'Mean slope', 'm.rzf': 'Flood-zone density', 'm.e65': 'Aged 65+', 'm.ealone': 'One-person 65+', 'm.single': 'One-person households', 'm.dens': 'Population density', 'm.foreign': 'Foreign residents', 'm.dis': 'Disability/children', 'm.basic': 'Welfare/housing', 'm.traffic': 'Traffic deaths+serious /100k', 'm.fire': 'Fire', wait: 'pending',
-    inst: 'Ordinances', 'inst.s': 'national law information center · presence only', 'inst.n': 'Disaster & safety local rules <b>{n}</b>{o} · national median {m}{sh}', 'inst.o': ' ({c} ordinances)', 'inst.sh': ' · shared', 'inst.has': 'yes · ', 'inst.no': 'not found', 'inst.none': 'No ordinance data', acc: 'Evacuation access', 'acc.s': 'walking to temporary housing in a flood · OSM path network + past flood records · not route guidance', 'acc.hz': '{v}% of residents whose shortest path crosses a deep (≥0.5 m) flood record', 'acc.hz.s': '{v}% counting all flood records', 'acc.far': '{v}% of residents more than an hour away at a slow pace (48 m/min)', 'acc.far.s': 'over 30 min: {v}% · half of residents within {m} min', 'acc.city': 'Whole {c} (reporting unit): flood crossing {h}% · over an hour {f}%', 'acc.wait': 'Still computing ({d}/{t} done).', 'acc.snap': '{v}% of residents live over 300 m from a mapped path (islands reached only by boat, village roads missing from the map) — figures here may differ from reality.', 'acc.note': 'Flood records are surveyed more densely in some places (Seoul most of all); do not use these figures to compare areas.', 'acc.na': 'not yet', 'acc.m.hz': 'share whose shortest path crosses a deep flood record', 'acc.m.far60': 'share over an hour away at a slow pace', 'inst.jeju': 'Jeju City and Seogwipo are administrative cities with no ordinances of their own — Jeju Special Self-Governing Province ordinances apply.',
+    'm.flood': 'Cells with flood history', 'm.ls': 'Cells with landslide history', 'm.slope': 'Mean slope', 'm.rzf': 'Flood-zone density', 'm.e65': 'Aged 65+', 'm.ealone': 'One-person 65+', 'm.single': 'One-person households', 'm.dens': 'Population density', 'm.foreign': 'Foreign residents', 'm.dis': 'Registered disability', 'm.basic': 'Basic livelihood eligibility', 'm.traffic': 'Traffic deaths+serious /100k', 'm.fire': 'Fire', wait: 'pending',
+    inst: 'Ordinances', 'inst.s': 'national law information center · presence only', 'inst.n': 'Disaster & safety local rules <b>{n}</b>{o} · national median {m}{sh}', 'inst.o': ' ({c} ordinances)', 'inst.sh': ' · shared', 'inst.has': 'yes · ', 'inst.no': 'not found', 'inst.none': 'No ordinance data', acc: 'Evacuation access', 'acc.s': 'walking to temporary housing in a flood · OSM path network + past flood records · not route guidance', 'acc.hz': '{v}% of residents whose shortest path crosses a deep (≥0.5 m) flood record', 'acc.hz.s': '{v}% counting all flood records', 'acc.alt': 'all 3 nearest by such routes {v}%', 'acc.far': '{v}% of residents more than an hour away at a slow pace (48 m/min)', 'acc.far.s': 'over 30 min: {v}% · half of residents within {m} min', 'acc.city': 'Whole {c} (reporting unit): flood crossing {h}% · over an hour {f}%', 'acc.wait': 'Still computing ({d}/{t} done).', 'acc.snap': '{v}% of residents live over 300 m from a mapped path (islands reached only by boat, village roads missing from the map) — figures here may differ from reality.', 'peer': 'Other places of the same type', 'peer.s': 'primary {t} · {k} · alphabetical', 'peer.none': 'This combination occurs only here.', 'peer.note': 'Neighbours for reference, not a ranking. Ordinances, finances and records may still differ, check each card.', 'dl.h': 'If you need the compiled data', 'dl.p': 'The table (CSV) and data dictionary for release {v} are sent <b>on request by email, after a data-use agreement</b>. Please include your affiliation, purpose and intended use. The agreement covers citation, no redistribution, and <b>no ranking of places</b>. Requests stay in the maintainer’s mailbox; this site stores nothing.', 'dl.mail': 'Request by email', 'acc.note': 'Flood records are surveyed more densely in some places (Seoul most of all); do not use these figures to compare areas.', 'acc.na': 'not yet', 'acc.m.hz': 'share whose shortest path crosses a deep flood record', 'acc.m.far60': 'share over an hour away at a slow pace', 'inst.jeju': 'Jeju City and Seogwipo are administrative cities with no ordinances of their own — Jeju Special Self-Governing Province ordinances apply.',
     prev: '◀ Prev', next: 'Next ▶', tomap: '🗺️ Show on dex map', site: 'Main site map →', region: 'About this area →', save: '🖼️ Save card image', foot: 'Population {p} · sources: {s}<br>Descriptive classification by national top-25% thresholds within the same unit. Not a ranking; no record does not mean safe.',
     'why.water.zone': 'Set by flood-risk zone density ({v}/100km²), not by flood history', 'why.water': 'Cells with flood history {v} — national top-25% threshold {t}', 'why.mt.zone': 'Set by designated collapse-risk zones, not landslide history', 'why.mt': 'Landslide history {v} or mean slope {s}° — thresholds {t} / {st}°', 'why.sea': 'Coastal contact', 'why.sea.rz': ' · tsunami-risk zones {v}/100km²', 'why.sea.p': ' (partial rule; storm-surge data pending)', 'why.dry': 'Designated drought zones ({v}/100km²)',
     'why.lean': 'Below every hazard threshold (national top 25%) — closest is {top} at {r}% of it. Shares: {list}. No record ≠ safe',
@@ -401,7 +406,7 @@ function locSticker(r) {
 /* ── card ── */
 const bar = (l, v, thr, fmt, opts = {}) => {
   const na = v == null; const w = na || !thr ? 0 : Math.min(v / (thr * 2), 1) * 100; const over = !na && thr != null && v >= thr;
-  return `<div class="bar ${over ? 'over' : ''} ${na ? 'na' : ''}"><span class="l">${l}${thr != null ? `<small>${opts.tl || T('p25')} ${fmt(thr)}</small>` : ''}</span><span class="n ${over ? 'over' : ''}">${fmt(v)}</span><span class="t"><i style="--w:${w.toFixed(1)}%"></i>${thr != null ? '<em></em>' : ''}${!na && thr && v > thr * 2 ? '<b class="of">▸</b>' : ''}</span></div>`;
+  return `<div class="bar ${over ? 'over' : ''} ${na ? 'na' : ''}"><span class="l">${l}${thr != null ? `<small>${opts.tl || T('p25')} ${fmt(thr)}</small>` : ''}</span><span class="n ${over ? 'over' : ''}">${fmt(v)}</span><span class="t"><i style="--w:${w.toFixed(1)}%"></i>${thr != null ? '<em></em>' : ''}${!na && thr && v > thr * 2 ? '<b class="of">▸</b>' : ''}</span>${opts.ref ? `<span class="ref ${opts.refHit ? 'hit' : ''}">${opts.ref}</span>` : ''}</div>`;
 };
 function primaryWhy(s) {
   const m = s.metrics || {};
@@ -458,10 +463,44 @@ function accHtml(r) {
   const p1 = v => v == null ? '—' : v.toFixed(1);
   const m = SP?.specs?.u230?.[r.code]?.m, c = m && AC.city[m];
   const city = c ? `<small class="muted">${T('acc.city', { c: esc(c.name), h: p1(c.hz), f: p1(c.far60) })}</small>` : '';
-  return h + city + `<div class="rec"><div class="it ${a.hz ? 'has' : ''}"><b>${T('acc.hz', { v: p1(a.hz) })}</b><small>${T('acc.hz.s', { v: p1(a.hz_all) })}</small></div>`
+  return h + city + `<div class="rec"><div class="it ${a.hz ? 'has' : ''}"><b>${T('acc.hz', { v: p1(a.hz) })}</b><small>${T('acc.hz.s', { v: p1(a.hz_all) })}${a.alt > 0 ? ' · ' + T('acc.alt', { v: p1(a.alt) }) : ''}</small></div>`
     + `<div class="it ${a.far60 ? 'has' : ''}"><b>${T('acc.far', { v: p1(a.far60) })}</b><small>${T('acc.far.s', { v: p1(a.far30), m: a.med ?? '—' })}</small></div></div>`
     + `<small class="muted">${(a.snap ?? 0) >= 5 ? T('acc.snap', { v: p1(a.snap) }) + ' ' : ''}${T('acc.note')}</small>`;
 }
+const peerKey = s => `${s.primary}|${s.lean ? s.lean.deg : ''}|${s.kind || ''}`;
+const degTxt = d => L === 'en' ? (d === '근접' ? 'near' : 'faint') : d;
+function peerHtml(r) {
+  const k = peerKey(r.s), ps = rows.filter(x => x.code !== r.code && peerKey(x.s) === k).sort((a, b) => nm(a).localeCompare(nm(b), L === 'en' ? 'en' : 'ko'));
+  const sub = T('peer.s', { t: esc(tn(r.s.primary) + (r.s.lean ? ` (${degTxt(r.s.lean.deg)})` : '')), k: esc(r.s.kind || '') });
+  if (!ps.length) return `<h3>${T('peer')} <small>${sub}</small></h3><div class="inst-sum">${T('peer.none')}</div>`;
+  return `<details class="peers"${ps.length <= 12 ? ' open' : ''}><summary>${T('peer')} <small>${sub} · ${ps.length}</small></summary><div class="pl">${ps.map(x => `<button type="button" data-c="${x.code}">${esc(nm(x))}<small>${esc(sidoNm(x))}</small></button>`).join('')}</div><p class="fine">${T('peer.note')}</p></details>`;
+}
+/* D1 데이터 요청(10-14 사용자 결정): 공개 내려받기 대신 메일 신청 + 이용 동의서. 파일은 scripts/export_atlas_data.py로 운영자가 만든다 */
+const DL_TO = 'ojh121523@gmail.com';
+const dlMail = () => `mailto:${DL_TO}?subject=${encodeURIComponent(`[AidPage Atlas] 데이터 이용 신청 (${Ty.meta.version || ''})`)}&body=${encodeURIComponent('이름:\n소속:\n용도(연구·교육·행정 등):\n쓰려는 범위(필요한 열·지역):\n결과물 형태(논문·보고서 등):\n\n이용 동의서를 받은 뒤 파일을 보내 드립니다.')}`;
+/* 막대 근거 한 줄(docs/61, 10-14): 공인 기준이 시군구 값에 바로 맞는 지표는 기준과 해당 여부, 법이 '지정·기록'만 정한 지표는 그 사실,
+   기준이 없는 지표는 "공인 기준 없음 · 전국 값"을 쓴다. 출처는 짧게, 자세한 조문은 방법 보기/docs/61. */
+const NAT = { ealone: .136, single: .426, disabled_r: .053, basic_r: .057, traffic_r: 103.9 };
+function refOf(k, m, s) {
+  const pc = v => (v * 100).toFixed(1) + '%', en = L === 'en';
+  switch (k) {
+    case 'flood_r': return m.flood_r > 0 ? { t: en ? 'Flood traces on record <small>(Natural Disaster Countermeasures Act art. 21)</small>' : '침수흔적 기록 있음 <small>(자연재해대책법 제21조 침수흔적도)</small>', hit: 1 } : { t: en ? 'No flood trace on record — not the same as safe' : '침수흔적 기록 없음 — 안전하다는 뜻은 아님' };
+    case 'ls_r': { const n = en ? ' · official hazard ratings score each slope on site, so no threshold for a municipal share' : ' · 법정 위험 판정은 사면마다 현장 점수라 시군구 비율 문턱은 없음'; return m.ls_r > 0 ? { t: (en ? 'Landslide on record' : '산사태 발생 기록 있음') + `<small>${n}</small>`, hit: 1 } : { t: (en ? 'No landslide on record — not the same as safe' : '산사태 발생 기록 없음 — 안전하다는 뜻은 아님') + `<small>${n}</small>` }; }
+    case 'slope': return { t: en ? 'Statutory steep slope (34°+) is defined per slope face, not comparable to an average' : '법정 급경사지(34° 이상)는 비탈면 하나 기준이라 평균과 견주지 않음 <small>(급경사지법 시행령 제2조)</small>' };
+    case 'rzf': { const n = (m.rz_flood || 0); return n ? { t: en ? `${n} designated flood-risk improvement zone(s) <small>(Natural Disaster Countermeasures Act art. 12; designated for recorded or expected damage; no density threshold)</small>` : `법정 침수위험지구 <b>${n}곳</b> 지정 <small>(자연재해대책법 제12조 · 기록 또는 예상 위험으로 지정, 밀도 문턱 없음)</small>`, hit: 1 } : { t: en ? 'No designated flood-risk zone' : '법정 침수위험지구 지정 없음' }; }
+    case 'e65': { const v = m.e65; if (v == null) return null; const lv = v >= .2 ? (en ? 'super-aged (20%+)' : '초고령화사회(20% 이상)') : v >= .14 ? (en ? 'aged (14–20%)' : '고령사회(14~20%)') : (en ? 'ageing (7–14%)' : '고령화사회(7~14%)');
+      return { t: (en ? 'Reference: ' : '기준: ') + `<b>${lv}</b> <small>(${en ? 'Statistics Korea SGIS; only 7% is the UN 1956 line' : '통계청 고령화 단계 기준 · UN 기준은 7%만'})</small>`, hit: v >= .2 }; }
+    case 'foreign_r': { const v = m.foreign_r; if (v == null) return null; const cnt = Math.round(v * (m.pop || 0)), hit = v >= .05 || cnt >= 10000;
+      return { t: (hit ? (en ? '<b>Meets</b> ' : '<b>해당</b> ') : (en ? 'Below ' : '미해당 ')) + (en ? 'the MOIS foreign-resident concentration area line (10,000+ or 5%+)' : '외국인주민 집중거주지역 기준(1만 명 이상 또는 5% 이상)') + ` <small>(${en ? 'MOIS 2025; includes naturalised citizens and their children' : '행정안전부 2025 · 귀화자·자녀 포함'})</small>`, hit }; }
+    case 'dens': return { t: en ? 'OECD/EU urban centre is 1,500+/km² on a 1 km² grid — average shown for reference' : '참고: OECD·EU 도시 중심 1,500명/km²+는 1 km² 격자 기준(평균과 단위 다름) <small>(Eurostat 2021)</small>' };
+    default: if (NAT[k] == null || m[k] == null) return null;
+      { const x = m[k] / NAT[k], xr = x >= 0.95 && x <= 1.05 ? (en ? 'about the same as' : '비슷') : (en ? `${x.toFixed(1)}× ` : `의 ${x.toFixed(1)}배`);
+        const nat = k === 'traffic_r' ? num(NAT[k], 1) + (en ? '/100k' : '명/10만') : pc(NAT[k]);
+        const tail = k === 'traffic_r' ? (en ? ' <small>(serious = ≥3 weeks of treatment; differs from the international MAIS3+ definition)</small>' : ' <small>(중상 = 3주 이상 치료 진단 · 국제 기준과 다름)</small>') : '';
+        return { t: en ? `No official threshold · ${typeof xr === 'string' && xr.startsWith('about') ? xr + ' the national ' + nat : xr + 'the national ' + nat} (same data)${tail}` : `공인 기준 없음 · 전국 ${nat}${xr === '비슷' ? '과 비슷' : xr}(같은 자료)${tail}` }; }
+  }
+}
+const rb = (k, m, s) => { const r = refOf(k, m, s); return r ? { ref: r.t, refHit: r.hit } : {}; };
 function card(r) {
   const s = r.s, m = r.m, o = r.o, tc = COL[s.primary] || COL.none;
   const hz = s.hazards && s.hazards.length ? `<div class="hz">${T('hz')} · ${s.hazards.map(h => `${ICON[h]} <b>${tn(h)} ${s.scores?.[h] != null ? s.scores[h].toFixed(2) : ''}</b>`).join(' · ')} <span title="${esc(T('hz.t'))}">ⓘ</span></div>` : '';
@@ -486,16 +525,18 @@ function card(r) {
       <h3>${T('why')} <small>${T('why.s')}</small></h3>
       <div class="dxbars">
         <div class="grp">${T('g.nat')}</div>
-        ${bar(T('m.flood'), m.flood_r, TH.flood_r, pct)}${bar(T('m.ls'), m.ls_r, TH.ls_r, pct)}${bar(T('m.slope'), m.slope, TH.slope80, v => v == null ? '—' : num(v, 1) + '°', { tl: T('p20') })}${bar(T('m.rzf'), m.rzf, TH.rzf, v => v == null ? '—' : num(v, 1) + '/100km²')}
+        ${bar(T('m.flood'), m.flood_r, TH.flood_r, pct, rb('flood_r', m, s))}${bar(T('m.ls'), m.ls_r, TH.ls_r, pct, rb('ls_r', m, s))}${bar(T('m.slope'), m.slope, TH.slope80, v => v == null ? '—' : num(v, 1) + '°', { tl: T('p20'), ...rb('slope', m, s) })}${bar(T('m.rzf'), m.rzf, TH.rzf, v => v == null ? '—' : num(v, 1) + '/100km²', rb('rzf', m, s))}
         <div class="grp">${T('g.ppl')}</div>
-        ${bar(T('m.e65'), m.e65, TH.e65, pct)}${bar(T('m.ealone'), m.ealone, TH.ealone, pct)}${bar(T('m.single'), m.single, TH.single80, pct, { tl: T('p20') })}${bar(T('m.dens'), m.dens, TH.dens, v => v == null ? '—' : num(v) + '/km²')}${bar(T('m.foreign'), m.foreign_r, TH.foreign_r, pct)}${bar(T('m.dis'), m.disabled_r, TH.disabled_r, pct)}${bar(T('m.basic'), m.basic_r, TH.basic_r, pct)}
+        ${bar(T('m.e65'), m.e65, TH.e65, pct, rb('e65', m, s))}${bar(T('m.ealone'), m.ealone, TH.ealone, pct, rb('ealone', m, s))}${bar(T('m.single'), m.single, TH.single80, pct, { tl: T('p20'), ...rb('single', m, s) })}${bar(T('m.dens'), m.dens, TH.dens, v => v == null ? '—' : num(v) + '/km²', rb('dens', m, s))}${bar(T('m.foreign'), m.foreign_r, TH.foreign_r, pct, rb('foreign_r', m, s))}${bar(T('m.dis'), m.disabled_r, TH.disabled_r, pct, rb('disabled_r', m, s))}${bar(T('m.basic'), m.basic_r, TH.basic_r, pct, rb('basic_r', m, s))}
         <div class="grp">${T('g.soc', { k: esc(s.kind) })}</div>
-        ${bar(T('m.traffic'), m.traffic_r, s.social_q?.traffic_r, v => num(v))}<div class="bar na"><span class="l">${T('m.fire')}</span><span class="n">${T('wait')}</span><span class="t"><i></i></span></div>
+        ${bar(T('m.traffic'), m.traffic_r, s.social_q?.traffic_r, v => num(v), rb('traffic_r', m, s))}<div class="bar na"><span class="l">${T('m.fire')}</span><span class="n">${T('wait')}</span><span class="t"><i></i></span></div>
       </div>
+      <p class="refnote">${L === 'en' ? '"Top 25%" is a position in the national distribution, not a safety standard, and can shift when other places change. Each line under a bar cites the law, agency definition or national value it rests on; where none exists it says so.' : '"상위 25%"는 전국 분포 안의 위치일 뿐 안전 기준을 넘었다는 뜻이 아니며, 다른 지역 값이 바뀌면 달라질 수 있습니다. 막대 아래 줄은 법령·기관 정의·전국 값 중 근거가 있는 것을 밝히고, 없으면 없다고 씁니다.'}</p>
       <h3>${T('inst')} <small>${T('inst.s')}</small></h3>
       ${instHtml}
       ${recHtml(r)}
       ${accHtml(r)}
+      ${peerHtml(r)}
       <div class="sp-nav" id="spNav"></div>
     </div>
   </article>
@@ -513,6 +554,7 @@ function show(code, keep = false) {
   $$('#spNav .nb').forEach(b => b.addEventListener('click', () => { show(b.dataset.c); $('#book').scrollTop = 0; }));
   $('#toMap').addEventListener('click', () => { setView('map'); focusMap(code); });
   $('#saveImg').addEventListener('click', () => exportCard(r));
+  $$('#book .peers button[data-c]').forEach(b => b.addEventListener('click', () => { show(b.dataset.c); $('#book').scrollTop = 0; }));
   $$('#toc li').forEach(li => li.classList.toggle('is-cur', li.dataset.c === code)); $$('#toc .ch > button').forEach(b => b.classList.remove('is-cur'));
   if (!keep) { $(`#toc li[data-c="${code}"]`)?.scrollIntoView({ block: 'nearest' }); $('#book').scrollTop = 0; markSeen(code); history.replaceState(null, '', '#c=' + code); }
   if (map && view === 'map') focusMap(code);
@@ -530,6 +572,7 @@ function showIntro() {
     <h3>${T('pro.h3')}</h3><ul><li>${T('pro.n1')}</li><li>${T('pro.n2')}</li><li>${T('pro.n3')}</li><li>${T('pro.n4', { f: nF, n: rows.length })}</li></ul>
     <h3>${T('pro.h4')}</h3><p>${T('pro.p4a')}</p><p>${T('pro.p4b')}</p>
     <h3>${T('pro.h5')}</h3><ul><li>${T('pro.r1')}</li><li>${T('pro.r2')}</li><li>${T('pro.r3')}</li></ul>
+    <h3>${T('dl.h')}</h3><p>${T('dl.p', { v: esc(Ty.meta.version || '') })}</p><div class="go"><a class="mailbtn" href="${dlMail()}">${T('dl.mail')}</a></div>
     <div class="go"><button type="button" class="pri" id="proGo1">${T('pro.go1')}</button><button type="button" id="proGo2">${T('pro.go2')}</button><button type="button" id="proGo3">${T('pro.go3')}</button></div></div>`;
   $('#proGo1').addEventListener('click', () => showCover(sidos[0].code)); $('#proGo2').addEventListener('click', random); $('#proGo3').addEventListener('click', () => setView('map'));
   $$('#toc li').forEach(li => li.classList.remove('is-cur')); $$('#toc .ch > button').forEach(b => b.classList.remove('is-cur')); const pl = $('#proLink'); if (pl) pl.classList.add('is-cur');

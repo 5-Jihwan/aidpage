@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use the AidPage typology (도감) or its data, please cite it as below. 이 유형화·데이터를 쓰시면 아래와 같이 인용해 주세요."
 type: dataset
-title: "AidPage Atlas — rule-based, rank-free multi-lens profiles of Korean municipalities (v1.5) with national disaster-assistance thresholds, recorded outcomes and evacuation access"
-version: "dex-v1.5"
+title: "AidPage Atlas — rule-based, rank-free multi-lens profiles of Korean municipalities (v1.7) with national disaster-assistance thresholds, recorded outcomes and evacuation access"
+version: "dex-v1.7"
 date-released: "2026-10-11"
 authors:
   - given-names: Jihwan
@@ -25,6 +25,7 @@ abstract: >-
   OSM path network per H3 cell and population-weighted), a 227-unit reporting specification
   (230 minus Sejong and Jeju's two administrative cities), and fills facility gaps in districts
   created by the 2026-07-01 reorganisation. Types are unchanged from v1.4.1.
+ v1.7 (2026-10-14) adds a reference line under every indicator bar citing the statute, agency definition or national value it rests on (only two indicators have official thresholds applicable to municipal values: ageing stages 7/14/20% and the MOIS foreign-resident concentration rule), a same-type peer list, an 'all three nearest shelters' evacuation line, unifies the all-records evacuation share with the deep-record rule, restores Jeongeup's traffic value (types v1.4.2) and corrects two labels (registered disability; basic livelihood eligibility). Data are provided on request with a data-use agreement.
 keywords:
   - disaster risk
   - Korea

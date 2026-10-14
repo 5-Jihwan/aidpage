@@ -180,6 +180,21 @@ def fetch_flood(boundary):
     return out
 
 
+# 산사태 발생이력(행안부, 9,656지점) — 전국·서울 빌더가 같이 쓴다. ⚠원천에 서울·부산·인천 지점이 없다(10-14 확인, 우면산 2011도 없음) → 0은 '기록 없음'.
+def load_landslide():
+    pts = []
+    with open(os.path.join(ROOT, "data", "ref", "sd", "ls_hist.jsonl"), encoding="utf-8") as f:
+        for l in f:
+            r = json.loads(l)
+            try:
+                pts.append({"geometry": gpd.points_from_xy([float(r["XMAP_CRTS"])], [float(r["YMAP_CRTS"])])[0]})
+            except (TypeError, ValueError, KeyError):
+                continue
+    g = gpd.GeoDataFrame(pts, crs=3857)
+    print(f"산사태 지점: {len(g)}")
+    return g
+
+
 def cell_poly(h):
     # h3 v4 returns (lat, lng) pairs
     return Polygon([(lng, lat) for lat, lng in h3.cell_to_boundary(h)])

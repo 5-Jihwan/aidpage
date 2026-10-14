@@ -25,7 +25,7 @@ from shapely.geometry import Point, Polygon
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 from build_grid import (ROOT, RES, NULL_SLOTS, JUMIN, JUMIN_YM, UA, FLOOD_SEQ,  # noqa: E402
-                        _post, _csv_rows, _num, cell_poly)
+                        _post, _csv_rows, _num, cell_poly, load_landslide)
 from compute_shelter_walk import build as shelter_walk  # noqa: E402
 
 WD = os.path.join(ROOT, ".work_grid")
@@ -179,7 +179,7 @@ def sample(arr, tr, poly):
     return float(np.nanmean(vals))
 
 
-def build_sgg(sgg, emd_all, flood, flood_sidx):
+def build_sgg(sgg, emd_all, flood, flood_sidx, ls_sidx):
     emd = emd_all[emd_all["sgg_code"].astype(str) == sgg].reset_index(drop=True)
     if emd.empty:
         print(f"{sgg}: 행정동 없음, skip")
@@ -225,13 +225,15 @@ def build_sgg(sgg, emd_all, flood, flood_sidx):
         props["flood_hist_n"] = len(yrs)
         props["flood_years"] = sorted(yrs)
         props["flood_depth_max_m"] = dmax
+        p3857 = gpd.GeoSeries([poly], crs=4326).to_crs(3857).iloc[0]   # 산사태 지점은 EPSG:3857(전국 빌더와 같은 셈법, 10-14 추가)
+        props["landslide_hist_n"] = int(len(ls_sidx.query(p3857, predicate="intersects")))
         coords = [[round(x, 5), round(y, 5)] for x, y in poly.exterior.coords]
         feats.append({"type": "Feature", "properties": props,
                       "geometry": {"type": "Polygon", "coordinates": [coords]}})
     fc = {"type": "FeatureCollection", "name": f"grid_{sgg}_h3r{RES}",
           "meta": {"sgg_code": sgg, "h3_res": RES, "n_cells": len(feats),
                    "dem": "Copernicus GLO-30 (N37E126+E127)", "crs": "EPSG:4326",
-                   "jumin_basis": "-".join(JUMIN_YM), "flood_years_covered": sorted(FLOOD_SEQ)},
+                   "jumin_basis": "-".join(JUMIN_YM), "flood_years_covered": sorted(FLOOD_SEQ), "landslide_src": "행안부 산사태 발생이력(서울 지점 없음 — 기록 없음 ≠ 안전)"},
           "features": feats}
     out = os.path.join(ROOT, "data", "grid", f"{sgg}.geojson")
     with open(out, "w", encoding="utf-8") as f:
@@ -252,10 +254,11 @@ def main():
     emd_all = gpd.read_file(os.path.join(ROOT, "data", "admin", "kr_emd.geojson"))
     flood = load_flood_seoul()
     flood_sidx = flood.sindex
+    ls_sidx = load_landslide().sindex
     for i, sgg in enumerate(seoul, 1):
         print(f"--- [{i}/{len(seoul)}] {sgg}")
         try:
-            build_sgg(sgg, emd_all, flood, flood_sidx)
+            build_sgg(sgg, emd_all, flood, flood_sidx, ls_sidx)
         except Exception as e:  # noqa: BLE001
             print(f"ERROR {sgg}: {e}")
     print("done")

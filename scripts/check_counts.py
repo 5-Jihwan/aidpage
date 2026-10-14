@@ -40,11 +40,19 @@ def main(argv: list[str]) -> int:
     print("전수 파일 (빠지면 FAIL)")
     grid = {f[:-8] for f in os.listdir(P("data", "grid")) if f.endswith(".geojson")}
     row("data/grid/*.geojson", grid)
-    nopop = []
+    nopop, nokey = [], []
+    KEYS = ("flood_hist_n", "landslide_hist_n", "slope_mean")   # 10-14: 서울 빌더에 landslide_hist_n이 통째로 없던 결함 재발 방지
     for c in sorted(grid & codes):
         fs = load("data", "grid", f"{c}.geojson").get("features", [])
         if fs and not any(f["properties"].get("pop") is not None for f in fs):
             nopop.append(c)
+        if fs and any(k not in fs[0]["properties"] for k in KEYS):
+            nokey.append(c)
+    if nokey:
+        hard += 1
+        print(f"  FAIL 격자 필수 속성 {KEYS} 빠짐(빌더마다 속성이 다름): {name(nokey)}")
+    else:
+        print("  OK   격자 필수 속성 있음")
     if nopop:
         hard += 1
         print(f"  FAIL 격자 인구 속성 전부 null(주민등록 수신 실패 — 09-17 정읍 사례): {name(nopop)}")

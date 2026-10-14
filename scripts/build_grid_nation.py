@@ -27,7 +27,7 @@ from shapely.geometry import Polygon
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-from build_grid import ROOT, NULL_SLOTS, JUMIN, JUMIN_YM, cell_poly  # noqa: E402
+from build_grid import ROOT, NULL_SLOTS, JUMIN, JUMIN_YM, cell_poly, load_landslide  # noqa: E402
 from build_grid_seoul import fetch_jumin_sgg  # noqa: E402
 from compute_shelter_walk import build as shelter_walk  # noqa: E402
 
@@ -116,19 +116,6 @@ def load_flood_nation():
     print(f"침수 폴리곤: {len(fl)}")
     return fl
 
-
-def load_landslide():
-    pts = []
-    with open(os.path.join(ROOT, "data", "ref", "sd", "ls_hist.jsonl"), encoding="utf-8") as f:
-        for l in f:
-            r = json.loads(l)
-            try:
-                pts.append({"geometry": gpd.points_from_xy([float(r["XMAP_CRTS"])], [float(r["YMAP_CRTS"])])[0]})
-            except (TypeError, ValueError, KeyError):
-                continue
-    g = gpd.GeoDataFrame(pts, crs=3857)
-    print(f"산사태 지점: {len(g)}")
-    return g
 
 
 def build_sgg(sgg, emd_all, flood, flood_sidx, ls, ls_sidx):

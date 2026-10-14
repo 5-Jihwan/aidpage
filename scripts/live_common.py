@@ -222,8 +222,8 @@ def feels_like(t, reh, wsd, month):
 
 
 
-def _hub_text(url, params):
-    """API허브 typ01 텍스트(EUC-KR) — '#' 주석 제외한 데이터 행을 공백 분리 리스트로."""
+def _hub_raw(url, params):
+    """API허브 typ01 원문(EUC-KR) — 예산·죽은 서비스·오류 분류(HTTP 코드/timeout/net)를 한곳에서. 10-14: 지진 수집이 이 경로를 안 타 모든 오류가 'parse'로 묻혔음."""
     global _calls
     base = _base(url)
     if base in _DEAD:  # 403/연속 시간초과로 죽은 서비스 — 예산도 시간도 쓰지 않는다
@@ -240,6 +240,11 @@ def _hub_text(url, params):
         raise HttpError(e.code)
     except Exception as e:  # noqa: BLE001
         raise HttpError("timeout" if "timed out" in str(e) else "net")
-    return [ln.split() for ln in txt.splitlines() if ln and not ln.startswith("#")]
+    return txt
+
+
+def _hub_text(url, params):
+    """API허브 typ01 텍스트 — '#' 주석 제외한 데이터 행을 공백 분리 리스트로."""
+    return [ln.split() for ln in _hub_raw(url, params).splitlines() if ln and not ln.startswith("#")]
 
 

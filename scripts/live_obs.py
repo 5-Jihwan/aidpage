@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 import live_common as lc
 from live_common import *  # noqa: F401,F403
-from live_common import (_DEAD, _DEAD_WHY, _TMO, _base, _hub_text, _note_slow)  # noqa: F401
+from live_common import (_DEAD, _DEAD_WHY, _TMO, _base, _hub_raw, _hub_text, _note_slow)  # noqa: F401
 
 # --------------------------------------------------------------------------- 4b. 기상청 API허브 — 종관관측(ASOS) 시간자료 → 시도 대표값, 지진통보
 HUB_SFC = "https://apihub.kma.go.kr/api/typ01/url/kma_sfctm2.php"
@@ -73,12 +73,7 @@ def fetch_quake(prev):
         sec["status"] = "no_key"
         return sec
     try:
-        if lc._calls >= MAX_CALLS:
-            raise HttpError("budget")
-        lc._calls += 1
-        req = urllib.request.Request(HUB_EQK + "?" + urllib.parse.urlencode({"authKey": KEY_HUB}), headers={"User-Agent": "safepic/1.0"})
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-            txt = r.read().decode("euc-kr", "replace")
+        txt = _hub_raw(HUB_EQK, {})
         for ln in txt.splitlines():
             if not ln or ln.startswith("#"):
                 continue
@@ -98,7 +93,7 @@ def fetch_quake(prev):
         sec["items"] = sec["items"][:10]
     except HttpError as e:
         sec = dict(prev or {}, status=f"error:{e.code}")
-    except Exception as e:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  — 응답은 왔는데 형식이 다를 때만(네트워크·인증 오류는 위 HttpError)
         sec = dict(prev or {}, status="error:parse")
     return sec
 

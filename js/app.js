@@ -1,6 +1,6 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, setLang, applyStatic, LANGS, langName, ttsLang } from './i18n.js?v=20261014c';
-import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20261014c';
+import { t, getLang, setLang, applyStatic, LANGS, langName, ttsLang } from './i18n.js?v=20261014d';
+import { initGrid, hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt, setExtrude as setGridExtrude, ATTRS as GRID_ATTRS } from './grid.js?v=20261014d';
 import { getReports, postReport, flagReport, getVapid, pushSub, pushUnsub, getER, stat, getStatSummary } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters, KINDS as SHELTER_KINDS } from './shelters.js?v=20261008a';
 let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
@@ -589,7 +589,7 @@ async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./access.js?v=20261014c');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
+      _simMod = await import('./access.js?v=20261014d');   // S0: 본 사이트는 문장 카드만. 선이 있는 옛 시뮬레이터(sim.js)는 sim.html 샌드박스 전용
       _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
     await _simMod.openAccess();

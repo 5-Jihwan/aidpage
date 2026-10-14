@@ -1,17 +1,16 @@
 /* 대피소 접근 문장 카드 (S0, docs/25 (d)안 · docs/30 결정 S1·S4)
    본 사이트는 경로 선을 그리지 않는다. 가까운 대피소 3곳마다 "걸어서 약 n분 · 가는 방향에 침수 이력 칸 n · 지하차도 근처 n"을 문장으로만 보여준다.
-   계산은 기존 sim_worker.js의 짧은 길을 '세는' 용도로만 재사용한다(피하는 길은 쓰지 않는다). 선이 있는 옛 시뮬레이터는 sim.html(연구 샌드박스)에만 남는다.
-   ponytail: 전국 배치(S2)가 끝나면 이 실시간 계산은 미리 계산된 JSON 읽기로 바뀌고 sim_worker.js는 폐기된다. */
-import { t, getLang } from './i18n.js?v=20261014c';
+   계산은 전국 미리 계산(scripts/access_top3.py → data/access/<sgg>.json)을 읽는다. 옛 기기 경로 계산(sim_worker)과 선이 있는 sim.html은 10-14 폐기(docs/56 N7).
+   미리 계산이 없는 자리는 직선 거리로만 안내한다. */
+import { t, getLang } from './i18n.js?v=20261014d';
 const $ = (s, r = document) => r.querySelector(s);
-const HZ_KINDS = ['underpass', 'steep'];
 // 민방위 대피시설은 대부분 지하(공습 대비)라 침수 맥락의 이 카드에서는 뺀다. 지진옥외대피장소는 비를 피할 수 없는 공터라 뺀다.
 const SHELTER_KINDS = ['temp_housing', 'tsunami'];
-const SLOW = 45, WALK = 67;   // m/분 — 67 = 보통 걸음 약 4 km/h(법정 기준 아님, docs/63 G4), 45 = 느린 걸음(고령·거동 불편, docs/30)
-let C = null, worker = null;
+const SLOW = 48, WALK = 67;   // m/분 — 67 = 보통 걸음 약 4 km/h(법정 기준 아님), 48 = 느린 걸음 0.8 m/s(고령·거동 불편 관행, docs/63 G4)
+let C = null;
 /* v2(10-14): 전국 미리 계산(scripts/access_top3.py) — 칸마다 가까운 임시주거시설 3곳 [번호, 거리 m, 비트].
    비트 1 깊은 침수 기록(0.5 m+) · 2 지하차도 150 m · 4 침수 기록(깊이 무관) · 16 산사태 기록 칸. (8 칸 경사·32 급경사지는 문장에 쓰지 않음 — docs/56 §5 C안: 도시 축대까지 잡혀 주민 7명 중 1명에게 경고가 붙음)
-   파일이 없는 시·군·구는 아래 옛 기기 계산(sim_worker)으로 돌아간다. 걷는 속도는 Atlas·논문 D와 같은 48 m/분(느린 걸음). */
+   미리 계산이 없는 자리는 직선 거리로만 안내한다. 걷는 속도는 Atlas·논문 D와 같은 48 m/분(느린 걸음). */
 const PRE = new Map(), PRE_V = '20261014a', SLOW2 = 48;
 const loadPre = sgg => { if (!PRE.has(sgg)) PRE.set(sgg, fetch(`data/access/${sgg}.json?v=${PRE_V}`).then(r => r.ok ? r.json() : null).catch(() => null)); return PRE.get(sgg); };
 function cellAt(sgg, lonlat) {
@@ -80,35 +79,12 @@ async function run() {
     const kinds = SHELTER_KINDS.filter(k => st.shelters.avail.some(a => a.id === k));
     const list = kinds.length ? (await C.nearestShelters(S.from, kinds, st.sido, 3)).sort((a, b) => a.d - b.d).slice(0, 3) : [];
     if (!list.length) { S.err = 'noshelter'; return; }
-    const cells = C.gridCells(S.sgg).map(f => {
-      const ring = f.geometry.coordinates[0], m = ring.length - 1; let x = 0, y = 0;
-      for (let i = 0; i < m; i++) { x += ring[i][0]; y += ring[i][1]; }
-      const p = f.properties;
-      return { h3: p.h3, c: [x / m, y / m], ring, p: { flood_hist_n: p.flood_hist_n, flood_depth_max_m: p.flood_depth_max_m, slope_mean: p.slope_mean, landslide_hist_n: p.landslide_hist_n, emd_name: p.emd_name } };
-    });
-    const hazards = [];
-    for (const k of HZ_KINDS) for (const f of await C.collectShelters([k], st.sido)) hazards.push({ lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], kind: k });
-    const rows = [];
-    for (const it of list) {
-      const r = await compute({ cells, from: S.from, to: it.c, hazards, scn: { rain: false, lslide: false } });
-      // 대피소가 격자 밖(다른 시·군·구)이면 직선 거리만 말한다 — 위험 칸은 '모름'
-      rows.push({ name: it.p.name || it.k.ko, kind: getLang() !== 'ko' ? '' : String(it.p.type || '').split(' / ').pop().replace(/\s*\(.*$/, ''), icon: it.k.icon, len: r.ok ? r.short.len_m : Math.round(it.d), sum: r.ok ? r.short.sum : null });
-    }
+    // 미리 계산이 없는 자리(칸 밖·파일 없음): 직선 거리로만 말한다 — 가는 길 정보는 '모름'(옛 기기 경로 계산 sim_worker는 10-14 폐기, docs/56 N7)
+    const rows = list.map(it => ({ name: it.p.name || it.k.ko, kind: getLang() !== 'ko' ? '' : String(it.p.type || '').split(' / ').pop().replace(/\s*\(.*$/, ''), icon: it.k.icon, len: Math.round(it.d), sum: null }));
     rows.sort((a, b) => a.len - b.len);
     S.rows = rows; C.stat && C.stat('shelter_access_shown');
   } catch (e) { console.warn('access failed', e); S.err = 'fail'; }
   finally { S.busy = false; render(); if (C.onDone) C.onDone(); }
-}
-function compute(payload) {
-  return new Promise((resolve, reject) => {
-    try {
-      if (!worker) worker = new Worker('js/sim_worker.js?v=20260914b');
-      const to = setTimeout(() => { try { worker.terminate(); } catch (e) { /* */ } worker = null; reject(new Error('timeout')); }, 20000);
-      worker.onmessage = ev => { clearTimeout(to); resolve(ev.data); };
-      worker.onerror = ev => { clearTimeout(to); worker = null; reject(ev.error || new Error(ev.message || 'worker')); };
-      worker.postMessage(payload);
-    } catch (e) { reject(e); }
-  });
 }
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -151,7 +127,7 @@ function render() {
     <div class="sim-row"><span class="lbl">${t('sim.from')}</span><span class="sim-val ${S.from ? '' : 'muted'}">${S.from ? esc(S.fromLabel) : t('sim.unset')}</span>
       <button type="button" class="btn btn-ghost btn-sm" data-act="gps"${S.busy ? ' disabled' : ''}>${t('sim.gps')}</button></div>
     ${body}
-    ${S.rows && S.rows[0] && S.rows[0].bits != null ? `<div class="fine sim-note">${t('acc2.note')}</div><div class="fine">${t('acc2.src')}</div>` : `<div class="fine sim-note">${t('acc.note')}</div><div class="fine">${t('sim.src')} · ${t('acc.slowsrc')} · <a href="sim.html" target="_blank" rel="noopener">${t('acc.sandbox')}</a></div>`}`;
+    ${S.rows && S.rows[0] && S.rows[0].bits != null ? `<div class="fine sim-note">${t('acc2.note')}</div><div class="fine">${t('acc2.src')}</div>` : `<div class="fine sim-note">${t('acc.note')}</div><div class="fine">${t('sim.src')} · ${t('acc.slowsrc')}</div>`}`;
   box.querySelector('[data-act="close"]').onclick = closeAccess;
   box.querySelector('[data-act="gps"]').onclick = useGps;
 }

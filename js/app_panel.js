@@ -1,14 +1,14 @@
 /* 실시간 조회·지역 패널·오늘 할 일·보험·제보·재난문자·팁·응급실 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang } from './i18n.js?v=20261014g';
-import { cells as gridCells } from './grid.js?v=20261014g';
+import { t, getLang } from './i18n.js?v=20261015a';
+import { cells as gridCells } from './grid.js?v=20261015a';
 import { getReports, postReport, flagReport, getER } from './api.js?v=20260914b';
 import { nearest as nearestShelters } from './shelters.js?v=20261008a';
-import { $, $$, state } from './app.js?v=20261014g';
-import { featuresWhere, map, openPopup, pipFeature, speak } from './app_map.js?v=20261014g';
-import { renderNearest, resetNation, saveShelterKinds, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261014g';
-import { getProfile } from './app_ui.js?v=20261014g';
-import { applyDrawerFx, applyFolds, closeRegionDrawer, openRegionDrawer, regionMod, renderRegionSummary, renderSitBar } from './app_wizard.js?v=20261014g';
-import { applyAlertFx } from './app_wx.js?v=20261014g';
+import { $, $$, state } from './app.js?v=20261015a';
+import { featuresWhere, map, openPopup, pipFeature, speak } from './app_map.js?v=20261015a';
+import { renderNearest, resetNation, saveShelterKinds, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261015a';
+import { getProfile } from './app_ui.js?v=20261015a';
+import { applyDrawerFx, applyFolds, closeRegionDrawer, openRegionDrawer, regionMod, renderRegionSummary, renderSitBar } from './app_wizard.js?v=20261015a';
+import { applyAlertFx } from './app_wx.js?v=20261015a';
 
 export let _nameMemo = null;
 
@@ -338,7 +338,7 @@ export function renderER() {
   const stale = E.updated && (Date.now() - Date.parse(E.updated)) > 10 * 3600 * 1000;
   box.hidden = false;
   box.innerHTML = `<h3>${t('er.title')} <small class="muted">${open.length}/${rows.length}${t('er.cnt')}</small></h3>` +
-    (open.length ? open.slice(0, 4).map(r => `<div class="er-item"><b>${r.name}</b><span class="er-meta">${t('er.beds')} <b class="mono">${r.beds}</b>${r.ct ? ' · CT' : ''}${r.mri ? ' · MRI' : ''}${r.icu ? ` · ${t('er.icu')} ${r.icu}` : ''}</span>${r.tel ? `<a href="tel:${r.tel.replace(/[^0-9-]/g, '')}" class="er-tel">📞 ${r.tel}</a>` : ''}</div>`).join('') : `<div class="muted">${t('er.none')}</div>`) +
+    (open.length ? open.slice(0, 4).map(r => `<div class="er-item"><b>${escapeHTML(r.name)}</b><span class="er-meta">${t('er.beds')} <b class="mono">${escapeHTML(r.beds)}</b>${r.ct ? ' · CT' : ''}${r.mri ? ' · MRI' : ''}${r.icu ? ` · ${t('er.icu')} ${escapeHTML(r.icu)}` : ''}</span>${r.tel ? `<a href="tel:${r.tel.replace(/[^0-9-]/g, '')}" class="er-tel">📞 ${escapeHTML(r.tel)}</a>` : ''}</div>`).join('') : `<div class="muted">${t('er.none')}</div>`) +
     `<small class="muted er-src">${t('er.src')} · ${fmtTime(E.updated)}${stale ? ` · ${t('er.stale')}` : ''} · ${t('er.call')}</small>`;
 }
 

@@ -1,6 +1,6 @@
 /* AidPage Atlas 화면 로직 — 10-14 atlas.html 인라인 스크립트에서 분리(500줄 규칙). fetch 경로는 문서 기준이라 그대로. */
-import { DICT } from './i18n.js?v=20261014g';
-import { UI, ICON, COL, TN_EN, INST, INST_MAIN, TRAITS, UPPER_EN } from './atlas_i18n.js?v=20261014g';
+import { DICT } from './i18n.js?v=20261015a';
+import { UI, ICON, COL, TN_EN, INST, INST_MAIN, TRAITS, UPPER_EN } from './atlas_i18n.js?v=20261015a';
 const V = '20260912a';
 /* ── UI strings (ko/en) ── */
 

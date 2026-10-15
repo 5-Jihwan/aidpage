@@ -14,7 +14,7 @@ binding = "CACHE"
 id = "bbc699ecd17c412e818a6d02c4db26d7"
 
 [vars]
-ALLOWED_ORIGINS = "https://5-jihwan.github.io,http://localhost:8799,http://127.0.0.1:8799"
+ALLOWED_ORIGINS = "https://5-jihwan.github.io"   # 10-15 docs/64 #11: 운영에서 로컬 출처 제외(로컬 개발은 wrangler dev --var로)
 VAPID_PUB = "BE-Kig3XCsYhyfHMZ-C2Lze1mJLiK31jqwgf4Ahs-ltkUpAJU2rcWN6_qovark19GxrXePHJ4s6N0jog8c0gj2I"
 
 # Secrets (never in this file): set with `npx wrangler secret put NAME`

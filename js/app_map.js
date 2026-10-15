@@ -1,11 +1,11 @@
 /* map · 3D 지형·건물 · 라벨 · 팝업 · 행정 경계·포커스 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang, ttsLang } from './i18n.js?v=20261014g';
-import { initGrid, setExtrude as setGridExtrude } from './grid.js?v=20261014g';
-import { $, KOREA_CENTER, MQ_MOBILE, ensureEmd, formatKRW, state } from './app.js?v=20261014g';
-import { initGridClick, initShelterUI, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261014g';
-import { acc, applyDrawerFx } from './app_wizard.js?v=20261014g';
-import { nameOf, rn } from './app_panel.js?v=20261014g';
-import { applyTyphoon, applyWxLayer } from './app_wx.js?v=20261014g';
+import { t, getLang, ttsLang } from './i18n.js?v=20261015a';
+import { initGrid, setExtrude as setGridExtrude } from './grid.js?v=20261015a';
+import { $, KOREA_CENTER, MQ_MOBILE, ensureEmd, formatKRW, state } from './app.js?v=20261015a';
+import { initGridClick, initShelterUI, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261015a';
+import { acc, applyDrawerFx } from './app_wizard.js?v=20261015a';
+import { nameOf, rn } from './app_panel.js?v=20261015a';
+import { applyTyphoon, applyWxLayer } from './app_wx.js?v=20261015a';
 
 export let map;
 

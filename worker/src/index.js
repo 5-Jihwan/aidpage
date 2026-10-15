@@ -47,7 +47,8 @@ export default {
         default: return json({ status: 'error:404' }, 404, cors);
       }
     } catch (e) {
-      return json({ status: 'error:500', message: String(e && e.message || e).slice(0, 200) }, 200, cors);
+      console.error(e);   // 10-15 docs/64 #10: 내부 메시지는 로그에만
+      return json({ status: 'error:500' }, 200, cors);
     }
   },
 };
@@ -129,7 +130,7 @@ async function er(url, env) {
 /* ---------- /law — 국가법령정보 ---------- */
 async function law(url, env) {
   const mst = url.searchParams.get('mst') || '', art = (url.searchParams.get('art') || '').slice(0, 20);
-  if (!/^\d{1,8}$/.test(mst)) return { status: 'error:400', updated: now() };
+  if (!/^\d{1,8}$/.test(mst) || (art && !/^[제0-9의조항호목①-⑳ ]{1,20}$/.test(art))) return { status: 'error:400', updated: now() };   // 10-15 #13
   if (!env.LAW_OC) return { status: 'no_key', updated: now() };
   return cached(env, `law:${mst}:${art}`, TTL.law, async () => {
     const q = new URLSearchParams({ OC: env.LAW_OC, target: 'law', MST: mst, type: 'JSON' });
@@ -248,9 +249,14 @@ async function vapidHeader(env, aud) {
   return `vapid t=${head}.${body}.${b64u(sig)}, k=${env.VAPID_PUB}`;
 }
 
+async function sameSecret(a, b) {   // 길이와 무관하게 해시로 같은 시간 비교
+  const [x, y] = await Promise.all([sha256hex(a), sha256hex(b)]);
+  let d = 0; for (let i = 0; i < x.length; i++) d |= x.charCodeAt(i) ^ y.charCodeAt(i);
+  return d === 0;
+}
 async function pushSend(req, env, cors) {
   if (req.method !== 'POST') return json({ status: 'error:405' }, 405, cors);
-  if (!env.PUSH_AUTH || req.headers.get('X-Push-Auth') !== env.PUSH_AUTH)
+  if (!env.PUSH_AUTH || !(await sameSecret(req.headers.get('X-Push-Auth') || '', env.PUSH_AUTH)))   // 10-15 #12: 상수 시간 비교
     return json({ status: 'error:403' }, 403, cors);
   const b = await req.json().catch(() => ({}));
   const sggs = new Set((b.sggs || []).map(String));       // 시군구 코드 5자리

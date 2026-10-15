@@ -221,7 +221,7 @@ export const getLang = () => lang;
 let seq = 0;   // setLang 호출 번호 — 늦게 끝난 이전 호출이 마지막 선택을 덮지 않게
 /* 사전·글꼴 지연 로드. 실패(오프라인에서 첫 선택 등)하면 영어로 떨어뜨리되, 글꼴은 성공했을 때만 붙인다 */
 async function load(l) {
-  if (!DICT[l]) { try { DICT[l] = (await import(`./i18n/${l}.js?v=20261014g`)).default; } catch (e) { console.warn('i18n load failed', l, e); return 'en'; } }
+  if (!DICT[l]) { try { DICT[l] = (await import(`./i18n/${l}.js?v=20261015a`)).default; } catch (e) { console.warn('i18n load failed', l, e); return 'en'; } }
   if (FONT[l] && !document.getElementById('font-' + l)) { const k = document.createElement('link'); k.id = 'font-' + l; k.rel = 'stylesheet'; k.href = `https://fonts.googleapis.com/css2?family=${FONT[l]}:wght@400;500;700&display=swap`; document.head.appendChild(k); }
   return l;
 }

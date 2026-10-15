@@ -1,14 +1,14 @@
 /* 선택·저장 동네·카카오·문장 카드 열기·격자·시설 층·범례·가까운 시설 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang } from './i18n.js?v=20261014g';
-import { hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt } from './grid.js?v=20261014g';
+import { t, getLang } from './i18n.js?v=20261015a';
+import { hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt } from './grid.js?v=20261015a';
 import { stat } from './api.js?v=20260914b';
 import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters } from './shelters.js?v=20261008a';
-import { $, $$, KOREA_CENTER, MQ_MOBILE, ensureEmd, state } from './app.js?v=20261014g';
-import { bboxOf, featuresWhere, fitTo, focusClip, map, openPopup, pipFeature, routeLinks, setLevelFilters, srcBadge, visiblePadding } from './app_map.js?v=20261014g';
-import { applyWindArrows, applyWxLayer } from './app_wx.js?v=20261014g';
-import { applyFolds, syncWizardLoc } from './app_wizard.js?v=20261014g';
-import { emdDisp, floodContext, renderCrumb, renderRegion, rn, warningsFor } from './app_panel.js?v=20261014g';
-import { getProfile, toast } from './app_ui.js?v=20261014g';
+import { $, $$, KOREA_CENTER, MQ_MOBILE, ensureEmd, state } from './app.js?v=20261015a';
+import { bboxOf, featuresWhere, fitTo, focusClip, map, openPopup, pipFeature, routeLinks, setLevelFilters, srcBadge, visiblePadding } from './app_map.js?v=20261015a';
+import { applyWindArrows, applyWxLayer } from './app_wx.js?v=20261015a';
+import { applyFolds, syncWizardLoc } from './app_wizard.js?v=20261015a';
+import { emdDisp, floodContext, renderCrumb, renderRegion, rn, warningsFor } from './app_panel.js?v=20261015a';
+import { getProfile, toast } from './app_ui.js?v=20261015a';
 
 export function selectSido(code) {
   Object.assign(state, { level: 'sido', sido: String(code), sgg: null, emd: null });
@@ -80,7 +80,7 @@ export async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./access.js?v=20261014g');   // S0: 본 사이트는 문장 카드만(전국 미리 계산 읽기). 옛 시뮬레이터(sim.js·sim_worker)와 선 그리는 sim.html은 10-14 폐기 샌드박스 전용
+      _simMod = await import('./access.js?v=20261015a');   // S0: 본 사이트는 문장 카드만(전국 미리 계산 읽기). 옛 시뮬레이터(sim.js·sim_worker)와 선 그리는 sim.html은 10-14 폐기 샌드박스 전용
       _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
     await _simMod.openAccess();

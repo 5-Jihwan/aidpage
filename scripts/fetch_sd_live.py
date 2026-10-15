@@ -170,6 +170,27 @@ def maybe_welfare():
         flog(f"welfare failed: {e}")
 
 
+# ⚠ pythonw(창 없음)라도 자식 git.exe가 콘솔을 새로 열어 30분마다 창이 깜빡임 → CREATE_NO_WINDOW로 억제
+NOWIN = 0x08000000 if os.name == "nt" else 0
+
+
+def git(*a):
+    return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True, creationflags=NOWIN)
+
+
+def sync_before_read():
+    """10-15: 쓰기 직전에 최신을 받는다. 예전엔 오래된 로컬 alerts.json을 읽어 전체를 쓰고 '-X theirs'로 밀어,
+    GitHub 수집기가 갱신한 지진·태풍·하천 등을 예전 값으로 되돌렸다(10-11~10-15 반복 확인)."""
+    gd = os.path.join(ROOT, ".git")
+    if any(os.path.exists(os.path.join(gd, d)) for d in ("rebase-merge", "rebase-apply")):
+        git("rebase", "--abort"); log("aborted stale rebase")
+    if not git("symbolic-ref", "--quiet", "--short", "HEAD").stdout.strip():
+        git("checkout", "-q", "main"); log("detached HEAD -> main")
+    r = git("pull", "--rebase", "--autostash", "-q")
+    if r.returncode != 0:
+        git("rebase", "--abort"); log(f"pre-pull failed (stale prev 가능): {r.stderr[:160]}")
+
+
 def main() -> int:
     try:
         prev = json.load(io.open(ALERTS_PATH, encoding="utf-8"))
@@ -197,6 +218,13 @@ def main() -> int:
     ok = {k: v.get("status") for k, v in changed.items()}
     log(f"sd sections: {ok}")
     flog(f"sections: {ok}")
+    if changed and "--push" in sys.argv:
+        # 수집(1~2분) 뒤, 쓰기 직전에 최신을 받아 그 위에 내 담당 섹션만 얹는다 — 그 사이 GitHub가 올린 지진·태풍 등 보존
+        sync_before_read()
+        try:
+            prev = json.load(io.open(ALERTS_PATH, encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            pass
     if changed:
         # 실패(error:*)만 있고 기존이 ok였던 섹션은 덮지 않는다 (신선한 데이터 보호)
         out = dict(prev)
@@ -221,13 +249,6 @@ def main() -> int:
     maybe_welfare()  # 특보·재난문자(시간 민감)를 먼저 끝낸 뒤에야 복지 목록을 보강한다
 
     if "--push" in sys.argv:
-        # ⚠ pythonw(창 없음)라도 자식 git.exe가 콘솔을 새로 열어 30분마다 창이 깜빡임
-        #   → CREATE_NO_WINDOW로 억제
-        NOWIN = 0x08000000 if os.name == "nt" else 0
-
-        def git(*a):
-            return subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True,
-                                  creationflags=NOWIN)
         # ⚠ pull --rebase 가 충돌하면 git 은 detached HEAD 로 멈춘다. 예전 구현은
         #   반환값을 보지 않고 그 위에 계속 커밋해 브랜치가 갈라지고 push 가 영구 실패했다
         #   (2026-08-29 복구). 매 실행마다 정상 상태를 먼저 보장한다.

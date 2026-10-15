@@ -174,6 +174,10 @@ def fetch_er(sgg, prev):
     groups = {}
     for s in sgg:
         groups.setdefault((s.get("sido_name", ""), egen_stage2(s)), []).append(str(s["code"]))
+    # 10-15(docs/64): 부분 수집 뒤 재시도는 못 받은 묶음만 — 예전엔 230묶음을 다시 다 물어 일 한도(MAX_CALLS)를 같이 썼다
+    retry = set(prev.get("pending") or []) if isinstance(prev, dict) and str(prev.get("status", "")).startswith("partial") else set()
+    if retry:
+        groups = {k: v for k, v in groups.items() if retry & set(v)} or groups
 
     def one(key):
         stage1, stage2 = key
@@ -194,6 +198,7 @@ def fetch_er(sgg, prev):
         return rows
 
     errs = 0; got = 0; empty = 0; budget_hit = False; deadline = _time.monotonic() + ER_BUDGET_S
+    answered = set()   # 응답을 받은 묶음(0건 포함) — 못 받은 건 pending으로 남겨 다음 재시도에서만 묻는다
     ex = ThreadPoolExecutor(max_workers=ER_WORKERS)
     futs = {ex.submit(one, k): k for k in groups}
     pending = set(futs)
@@ -208,6 +213,7 @@ def fetch_er(sgg, prev):
                 k = futs[f]
                 try:
                     rows = f.result()
+                    answered.add(k)
                     if rows:
                         for c in groups[k]:
                             sec["by_sgg"][c] = rows
@@ -228,9 +234,11 @@ def fetch_er(sgg, prev):
     if not sec["by_sgg"]:
         sec = dict(prev or {}, status="error:egen")
     else:
-        if sec["status"].startswith("partial") and isinstance(prev, dict) and prev.get("by_sgg"):
+        if (sec["status"].startswith("partial") or retry) and isinstance(prev, dict) and prev.get("by_sgg"):
             merged = dict(prev["by_sgg"]); merged.update(sec["by_sgg"]); sec["by_sgg"] = merged
             sec["fresh_sgg"] = got
+        if sec["status"].startswith("partial"):
+            sec["pending"] = sorted(c for k, v in groups.items() if k not in answered for c in v)
         if errs:
             sec["errors"] = errs
         if empty:

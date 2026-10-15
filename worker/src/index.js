@@ -9,7 +9,9 @@
    status: "ok" | "no_key" | "error:<code>" | "rate_limited". Missing key never throws. */
 
 import { kakaoSkill } from './kakao.js';
-const VERSION = '0.3.3';
+export { Store } from './store.js';
+const VERSION = '0.3.4';
+const store = env => env.STORE.get(env.STORE.idFromName('global'));   // 10-15: 집계·제보 = Durable Object(store.js)
 const TTL = { news: 3600, law: 86400, radar: 600, er: 180 };
 const RATE = { perMin: 30 };
 const ER_DAILY_MAX = 150;  // E-Gen 일 1,000건 중 Actions 수집(~750건)을 빼고 워커 몫
@@ -168,40 +170,25 @@ const REPORT = { kinds: ['shelter_closed', 'drain', 'road', 'water', 'other'], m
 async function reports(url, env) {
   const sgg = url.searchParams.get('sgg') || '';
   if (!/^\d{5}$/.test(sgg)) return { status: 'error:400', items: [] };
-  const list = (await env.CACHE.get(`rep:${sgg}`, 'json')) || [];
-  const cut = Date.now() - REPORT.ttl * 1000;
-  return { status: 'ok', updated: now(), items: list.filter(r => r.t > cut && r.flags < REPORT.hideAt).map(({ ip, ...r }) => r) };
+  const list = await store(env).listReports(sgg, REPORT.ttl, REPORT.hideAt);
+  return { status: 'ok', updated: now(), items: list };
 }
 async function report(req, env, ip) {
   let b; try { b = await req.json(); } catch { return { status: 'error:400' }; }
   const sgg = String(b.sgg || ''), kind = String(b.kind || ''), text = String(b.text || '').replace(/\s+/g, ' ').trim().slice(0, REPORT.maxText);
   if (!/^\d{5}$/.test(sgg) || !REPORT.kinds.includes(kind) || text.length < 4) return { status: 'error:400' };
   if (/https?:\/\/|www\.|\d{3}-\d{3,4}-\d{4}/.test(text)) return { status: 'error:400', message: 'no links or phone numbers' };
-  const day = Math.floor(Date.now() / 86400000), ipKey = `repip:${await hashIp(ip, env)}:${day}`;   // 10-15: IP 원문을 키 이름에 남기지 않음
-  const nIp = parseInt(await env.CACHE.get(ipKey) || '0', 10);
-  if (nIp >= REPORT.perIpDay) return { status: 'rate_limited' };
-  const key = `rep:${sgg}`, cut = Date.now() - REPORT.ttl * 1000;
-  const list = ((await env.CACHE.get(key, 'json')) || []).filter(r => r.t > cut);
-  if (list.filter(r => r.t > Date.now() - 86400000).length >= REPORT.perSggDay) return { status: 'rate_limited' };
   const lon = +b.lon, lat = +b.lat, hasPt = Number.isFinite(lon) && Number.isFinite(lat) && lon > 124 && lon < 132 && lat > 33 && lat < 39;
-  const item = { id: Math.random().toString(36).slice(2, 10), t: Date.now(), kind, text, emd: /^\d{10}$/.test(String(b.emd || '')) ? String(b.emd) : null, lon: hasPt ? +lon.toFixed(3) : null, lat: hasPt ? +lat.toFixed(3) : null, flags: 0, ip: await hashIp(ip, env) };
-  list.unshift(item);
-  await env.CACHE.put(key, JSON.stringify(list.slice(0, 200)), { expirationTtl: REPORT.ttl });
-  await env.CACHE.put(ipKey, String(nIp + 1), { expirationTtl: 86400 });
-  const { ip: _i, ...pub } = item; return { status: 'ok', item: pub };
+  const item = { id: Math.random().toString(36).slice(2, 10), t: Date.now(), kind, text, emd: /^\d{10}$/.test(String(b.emd || '')) ? String(b.emd) : null, lon: hasPt ? +lon.toFixed(3) : null, lat: hasPt ? +lat.toFixed(3) : null };
+  // 10-15(docs/64 #17): 상한 확인·저장을 DO 안에서 한 번에 — KV 읽기→쓰기 사이 동시 요청이 서로 덮던 것
+  const r = await store(env).addReport(sgg, item, await hashIp(ip, env), REPORT);
+  return r.status === 'ok' ? { status: 'ok', item: { ...item, flags: 0 } } : r;
 }
 async function flag(req, env, ip) {
   let b; try { b = await req.json(); } catch { return { status: 'error:400' }; }
   const sgg = String(b.sgg || ''), id = String(b.id || '');
   if (!/^\d{5}$/.test(sgg) || !/^[a-z0-9]{6,10}$/.test(id)) return { status: 'error:400' };
-  const fkey = `repflag:${id}:${await hashIp(ip, env)}`;
-  if (await env.CACHE.get(fkey)) return { status: 'ok', dup: true };
-  const key = `rep:${sgg}`, list = (await env.CACHE.get(key, 'json')) || [];
-  const it = list.find(r => r.id === id); if (!it) return { status: 'error:404' };
-  it.flags = (it.flags || 0) + 1;
-  await env.CACHE.put(key, JSON.stringify(list), { expirationTtl: REPORT.ttl });
-  await env.CACHE.put(fkey, '1', { expirationTtl: REPORT.ttl });
-  return { status: 'ok', flags: it.flags, hidden: it.flags >= REPORT.hideAt };
+  return store(env).flagReport(sgg, id, await hashIp(ip, env), REPORT.hideAt);
 }
 async function sha256hex(s) { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(d)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 const hashIp = async (ip, env) => (await sha256hex(ip + '|' + (env.IP_SALT || env.PUSH_AUTH || 'safepic'))).slice(0, 12);   // 10-15: 비밀 솔트
@@ -308,7 +295,8 @@ async function pushSend(req, env, cors) {
 }
 
 /* ── 익명 사용 계측 — 이벤트 이름별 일 단위 카운터. 페이로드는 {ev}뿐(지역·입력·식별자 없음).
-   KV 증분은 동시 요청에서 일부 유실될 수 있으나(비원자적) 추세 파악용으론 충분하다.
+   10-15(docs/64 #2): 증분은 Durable Object(SQLite, 원자적)로 — KV 쓰기 한도(계정 공유 1,000/일)를 집계가 다 쓰면 제보·푸시·캐시가 멈췄다.
+   10-15 이전 KV 값은 그대로 두고(동결) 조회 때 KV + DO를 더한다.
    키: stat:YYYY-MM-DD:이벤트 (400일) · visit만 월(stat:m:YYYY-MM:visit)·연(stat:y:YYYY:visit)·누적(stat:all:visit) 키를 함께 올린다(무기한).
    09-14: visit(세션당 1회)·깔때기(wiz_q2~q5·wiz_self/proxy·wiz_zero)·시도 단위 제출(sub_sido_NN)·sim_run 추가.
    sub_sido_NN 은 두 자리 시도 코드만 허용 — 시군구 이하 단위는 받지 않는다(소수 카운트 재식별 여지 차단). ── */
@@ -317,11 +305,6 @@ const STAT_EVS = new Set(['visit', 'wizard_submit', 'nearmiss_shown', 'welfare_s
 const STAT_SIDO = /^sub_sido_\d{2}$/;
 const STAT_ALLOW = ev => STAT_EVS.has(ev) || STAT_SIDO.test(ev);
 const kstDate = (ms = Date.now()) => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
-async function kvInc(env, key, ttl) {
-  const n = parseInt(await env.CACHE.get(key) || '0', 10) + 1;
-  await env.CACHE.put(key, String(n), ttl ? { expirationTtl: ttl } : {});
-  return n;
-}
 /* 최근 N일(기본 14, 최대 30) 이벤트별 카운트 + 방문 합계(오늘·이번 달·올해·누적) — 익명 집계라 공개 조회 무해.
    ?days=N 은 daily.yml 이 repo 패널(data/stats/daily.csv)로 옮길 때 쓴다.
    일별 표는 KV 읽기가 N×이벤트 수(≈25)라 2~5초 걸리고 KV 호출 한도(1,000/요청)에 걸릴 수 있어
@@ -337,18 +320,23 @@ async function statSummary(req, env) {
   if (!days) {
     const list = [];
     for (let i = 0; i < nDays; i++) list.push(kstDate(Date.now() - i * 86400e3));
-    const sidoKeys = (await env.CACHE.list({ prefix: 'stat:sido:' })).keys.map(k => k.name.slice(10)); // 등록된 시도 코드 목록
+    const sidoKeys = (await env.CACHE.list({ prefix: 'stat:sido:' })).keys.map(k => k.name.slice(10)); // 10-15 이전 시도 코드(KV)
     const evs = [...STAT_EVS, ...sidoKeys.map(c => `sub_sido_${c}`)];
+    const dob = await store(env).scan('stat:2');   // DO 일별 카운터 전부(stat:YYYY-…)
+    const legacy = list.filter(d => d <= '2026-10-15');   // KV엔 10-15까지만 있다
     days = {};
     for (const d of list) {
       const row = {};
-      await Promise.all(evs.map(async ev => { const v = await env.CACHE.get(`stat:${d}:${ev}`); if (v) row[ev] = +v; }));
+      if (legacy.includes(d)) await Promise.all(evs.map(async ev => { const v = await env.CACHE.get(`stat:${d}:${ev}`); if (v) row[ev] = +v; }));
+      for (const [k, n] of Object.entries(dob)) if (k.startsWith(`stat:${d}:`)) { const ev = k.slice(16); row[ev] = (row[ev] || 0) + n; }
       if (Object.keys(row).length) days[d] = row;
     }
     cachedAt = now();
     await env.CACHE.put(ckey, JSON.stringify({ today, at: cachedAt, days }), { expirationTtl: SUMMARY_TTL });
   }
-  const [t, m, y, all] = await Promise.all([env.CACHE.get(`stat:${today}:visit`), env.CACHE.get(`stat:m:${today.slice(0, 7)}:visit`), env.CACHE.get(`stat:y:${today.slice(0, 4)}:visit`), env.CACHE.get('stat:all:visit')]);
+  const vk = [`stat:${today}:visit`, `stat:m:${today.slice(0, 7)}:visit`, `stat:y:${today.slice(0, 4)}:visit`, 'stat:all:visit'];
+  const [kv, dov] = await Promise.all([Promise.all(vk.map(k => env.CACHE.get(k))), store(env).get(vk)]);
+  const [t, m, y, all] = vk.map((k, i) => +(kv[i] || 0) + (dov[k] || 0));
   return { status: 'ok', updated: now(), cached_at: cachedAt, today, visits: { today: +(t || 0), month: +(m || 0), year: +(y || 0), total: +(all || 0), since: '2026-09-14' }, days };
 }
 async function stat(req, env) {
@@ -357,8 +345,6 @@ async function stat(req, env) {
   try { ev = String((await req.json()).ev || ''); } catch (e) { /* not json */ }
   if (!STAT_ALLOW(ev)) return { status: 'bad' };
   const d = kstDate(); // KST 일자
-  await kvInc(env, `stat:${d}:${ev}`, 400 * 86400);
-  if (ev === 'visit') await Promise.all([kvInc(env, `stat:m:${d.slice(0, 7)}:visit`), kvInc(env, `stat:y:${d.slice(0, 4)}:visit`), kvInc(env, 'stat:all:visit')]);
-  else if (STAT_SIDO.test(ev)) { const c = ev.slice(9); if (!await env.CACHE.get(`stat:sido:${c}`)) await env.CACHE.put(`stat:sido:${c}`, '1'); }
+  await store(env).inc(ev === 'visit' ? [`stat:${d}:visit`, `stat:m:${d.slice(0, 7)}:visit`, `stat:y:${d.slice(0, 4)}:visit`, 'stat:all:visit'] : [`stat:${d}:${ev}`]);
   return { status: 'ok' };
 }

@@ -9,6 +9,15 @@ name = "RL"
 namespace_id = "1001"
 simple = { limit = 30, period = 60 }
 
+# 10-15(docs/64 #2·#17): 익명 집계·주민 제보 = Durable Object(SQLite, 무료 플랜) — KV 쓰기 한도와 분리, 제보·신고 원자적 처리
+[[durable_objects.bindings]]
+name = "STORE"
+class_name = "Store"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Store"]
+
 [[kv_namespaces]]
 binding = "CACHE"
 id = "bbc699ecd17c412e818a6d02c4db26d7"

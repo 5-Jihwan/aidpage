@@ -182,6 +182,9 @@ def fetch_er(sgg, prev):
         code = root.findtext(".//resultCode")
         if code not in (None, "00"):
             raise HttpError("egen" + str(code))
+        rr = root.findtext(".//returnReasonCode")   # 10-15: 할당량 초과(22)·미등록 키(30) 봉투엔 resultCode가 없어 '0건 성공'으로 새던 것
+        if rr and rr not in ("00", "0"):
+            raise HttpError("kma" + rr)
         rows = []
         for it in root.iter("item"):
             g = lambda k: (it.findtext(k) or "").strip()

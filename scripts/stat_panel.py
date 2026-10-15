@@ -81,8 +81,10 @@ def main() -> int:
     if v:
         today = j.get("today") or ""
         visits = read_rows(VISITS, ("date",))
-        visits[(today,)] = {"date": today, "today": str(v.get("today", 0)), "month": str(v.get("month", 0)), "year": str(v.get("year", 0)), "total": str(v.get("total", 0))}
-        write_rows(VISITS, ["date", "today", "month", "year", "total"], visits)
+        visits[(today,)] = {"date": today, "today_at_0420": str(v.get("today", 0)), "month": str(v.get("month", 0)), "year": str(v.get("year", 0)), "total": str(v.get("total", 0))}
+        for r in visits.values():   # 10-15: 옛 열 이름 이전
+            if "today" in r: r["today_at_0420"] = r.pop("today")
+        write_rows(VISITS, ["date", "today_at_0420", "month", "year", "total"], visits)   # 일별 확정 방문 수는 daily.csv event=visit
 
     print(f"stat panel: {len(daily)} rows ({n_new} updated), visits total={v.get('total') if v else '-'}")
     return 0

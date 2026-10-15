@@ -9,7 +9,7 @@
    status: "ok" | "no_key" | "error:<code>" | "rate_limited". Missing key never throws. */
 
 import { kakaoSkill } from './kakao.js';
-const VERSION = '0.3.2';
+const VERSION = '0.3.3';
 const TTL = { news: 3600, law: 86400, radar: 600, er: 180 };
 const RATE = { perMin: 30 };
 const ER_DAILY_MAX = 150;  // E-Gen 일 1,000건 중 Actions 수집(~750건)을 빼고 워커 몫
@@ -44,7 +44,6 @@ export default {
         case '/push/unsub': return json(await pushUnsub(req, env), 200, cors);
         case '/push/send': return pushSend(req, env, cors);
         case '/kakao/skill': return json(await kakaoSkill(req, env), 200, cors);
-        case '/route': return json(await route(url, env), 200, cors);
         default: return json({ status: 'error:404' }, 404, cors);
       }
     } catch (e) {
@@ -53,25 +52,6 @@ export default {
   },
 };
 
-/* ---------- /route — 카카오모빌리티 도보 길찾기 프록시 (2단계 준비 + 키 승인 자가검증)
-   ?from=lon,lat&to=lon,lat → { status, len_m, sec, coords:[[lon,lat]...] }. status: no_key | ok | error:<http> (401=키 오류, 403=제휴 미승인) */
-const KAKAO_WALK = 'https://apis-navi.kakaomobility.com/affiliate/walking/v1/directions';   // 제휴 전용
-const KAKAO_CAR = 'https://apis-navi.kakaomobility.com/v1/directions';                      // 공개 (플랫폼 REST 키)
-async function route(url, env) {
-  if (!env.KAKAO_REST_KEY) return { status: 'no_key', updated: now() };
-  const from = url.searchParams.get('from') || '', to = url.searchParams.get('to') || '';
-  if (!/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(from) || !/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(to)) return { status: 'error:400', updated: now() };
-  const mode = url.searchParams.get('mode') === 'car' ? 'car' : 'walk';
-  return cached(env, `route:${mode}:${from}|${to}`, 3600, async () => {
-    const r = await fetch(`${mode === 'car' ? KAKAO_CAR : KAKAO_WALK}?origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`, { headers: { Authorization: `KakaoAK ${env.KAKAO_REST_KEY}` } });
-    if (!r.ok) return { status: `error:${r.status}`, updated: now(), body: (await r.text()).slice(0, 200) };
-    const j = await r.json();
-    const rt = (j.routes || [])[0]; if (!rt) return { status: 'error:noroute', updated: now() };
-    const coords = [];
-    for (const sec of rt.sections || []) for (const rd of sec.roads || []) { const v = rd.vertexes || []; for (let i = 0; i + 1 < v.length; i += 2) coords.push([v[i], v[i + 1]]); }
-    return { status: 'ok', mode, updated: now(), len_m: rt.summary && rt.summary.distance, sec: rt.summary && rt.summary.duration, coords };
-  });
-}
 /* ---------- helpers ---------- */
 const now = () => new Date().toISOString();
 function json(obj, status, headers) { return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers } }); }
@@ -81,11 +61,10 @@ function corsHeaders(origin, env) {
   return ok ? { 'Access-Control-Allow-Origin': origin || '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Vary': 'Origin' } : {};
 }
 async function rateLimited(env, ip) {
-  const key = `rl:${ip}:${Math.floor(Date.now() / 60000)}`;
-  const n = parseInt(await env.CACHE.get(key) || '0', 10) + 1;
-  // KV writes are the scarce resource (1,000/day free) — only write every 5th hit after the first
-  if (n === 1 || n % 5 === 0) await env.CACHE.put(key, String(n), { expirationTtl: 120 });
-  return n > RATE.perMin;
+  // 10-15(code-review): 옛 KV 카운터는 '첫 번째·5의 배수'만 저장해 다시 읽으면 늘 1 → 2에서 멈춰 한 번도 걸리지 않았고,
+  //   KV 쓰기 한도(1,000/일)를 갉아먹다 한도가 차면 여기서 예외 → 모든 요청 1101. 바인딩(RL)은 KV를 쓰지 않는다.
+  //   바인딩이 없거나 실패하면 막지 않는다(가용성 우선 — 남용 방지는 쓰기 경로의 자체 상한이 2차로 막음).
+  try { return env.RL ? !(await env.RL.limit({ key: ip })).success : false; } catch { return false; }
 }
 async function cached(env, key, ttl, producer) {
   const hit = await env.CACHE.get(key, 'json');
@@ -101,7 +80,7 @@ async function news(url, env) {
   const sgg = url.searchParams.get('sgg') || '', name = (url.searchParams.get('name') || '').slice(0, 40);
   if (!/^\d{5}$/.test(sgg) || !name) return { status: 'error:400', updated: now(), items: [] };
   if (!env.BIGKINDS_KEY) return { status: 'no_key', updated: now(), items: [] };
-  return cached(env, `news:${sgg}`, TTL.news, async () => {
+  return cached(env, `news:${sgg}:${name}`, TTL.news, async () => {
     const to = new Date(), from = new Date(Date.now() - 7 * 86400000);
     const d = x => x.toISOString().slice(0, 10);
     const body = { access_key: env.BIGKINDS_KEY, argument: { query: `"${name}" AND ${DISASTER_Q}`, published_at: { from: d(from), until: d(to) }, sort: { date: 'desc' }, return_from: 0, return_size: 8, fields: ['title', 'published_at', 'provider', 'news_id', 'hilight'] } };
@@ -125,7 +104,7 @@ async function er(url, env) {
   const name = (url.searchParams.get('name') || '').slice(0, 20);
   if (!/^\d{5}$/.test(sgg) || !sido || !name) return { status: 'error:400', updated: now(), rows: [] };
   if (!env.DATA_GO_KR_KEY) return { status: 'no_key', updated: now(), rows: [] };
-  return cached(env, `er:${sgg}`, TTL.er, async () => {
+  return cached(env, `er:${sgg}:${sido}:${name}`, TTL.er, async () => {
     const bkey = `erbudget:${Math.floor(Date.now() / 86400000)}`;
     const n = parseInt(await env.CACHE.get(bkey) || '0', 10) + 1;
     if (n > ER_DAILY_MAX) return { status: 'rate_limited', updated: now(), rows: [] };
@@ -197,14 +176,14 @@ async function report(req, env, ip) {
   const sgg = String(b.sgg || ''), kind = String(b.kind || ''), text = String(b.text || '').replace(/\s+/g, ' ').trim().slice(0, REPORT.maxText);
   if (!/^\d{5}$/.test(sgg) || !REPORT.kinds.includes(kind) || text.length < 4) return { status: 'error:400' };
   if (/https?:\/\/|www\.|\d{3}-\d{3,4}-\d{4}/.test(text)) return { status: 'error:400', message: 'no links or phone numbers' };
-  const day = Math.floor(Date.now() / 86400000), ipKey = `repip:${ip}:${day}`;
+  const day = Math.floor(Date.now() / 86400000), ipKey = `repip:${await hashIp(ip, env)}:${day}`;   // 10-15: IP 원문을 키 이름에 남기지 않음
   const nIp = parseInt(await env.CACHE.get(ipKey) || '0', 10);
   if (nIp >= REPORT.perIpDay) return { status: 'rate_limited' };
   const key = `rep:${sgg}`, cut = Date.now() - REPORT.ttl * 1000;
   const list = ((await env.CACHE.get(key, 'json')) || []).filter(r => r.t > cut);
   if (list.filter(r => r.t > Date.now() - 86400000).length >= REPORT.perSggDay) return { status: 'rate_limited' };
   const lon = +b.lon, lat = +b.lat, hasPt = Number.isFinite(lon) && Number.isFinite(lat) && lon > 124 && lon < 132 && lat > 33 && lat < 39;
-  const item = { id: Math.random().toString(36).slice(2, 10), t: Date.now(), kind, text, emd: /^\d{10}$/.test(String(b.emd || '')) ? String(b.emd) : null, lon: hasPt ? +lon.toFixed(4) : null, lat: hasPt ? +lat.toFixed(4) : null, flags: 0, ip: await hashIp(ip) };
+  const item = { id: Math.random().toString(36).slice(2, 10), t: Date.now(), kind, text, emd: /^\d{10}$/.test(String(b.emd || '')) ? String(b.emd) : null, lon: hasPt ? +lon.toFixed(3) : null, lat: hasPt ? +lat.toFixed(3) : null, flags: 0, ip: await hashIp(ip, env) };
   list.unshift(item);
   await env.CACHE.put(key, JSON.stringify(list.slice(0, 200)), { expirationTtl: REPORT.ttl });
   await env.CACHE.put(ipKey, String(nIp + 1), { expirationTtl: 86400 });
@@ -214,7 +193,7 @@ async function flag(req, env, ip) {
   let b; try { b = await req.json(); } catch { return { status: 'error:400' }; }
   const sgg = String(b.sgg || ''), id = String(b.id || '');
   if (!/^\d{5}$/.test(sgg) || !/^[a-z0-9]{6,10}$/.test(id)) return { status: 'error:400' };
-  const fkey = `repflag:${id}:${await hashIp(ip)}`;
+  const fkey = `repflag:${id}:${await hashIp(ip, env)}`;
   if (await env.CACHE.get(fkey)) return { status: 'ok', dup: true };
   const key = `rep:${sgg}`, list = (await env.CACHE.get(key, 'json')) || [];
   const it = list.find(r => r.id === id); if (!it) return { status: 'error:404' };
@@ -224,7 +203,7 @@ async function flag(req, env, ip) {
   return { status: 'ok', flags: it.flags, hidden: it.flags >= REPORT.hideAt };
 }
 async function sha256hex(s) { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(d)].map(x => x.toString(16).padStart(2, '0')).join(''); }
-const hashIp = async ip => (await sha256hex(ip + '|safepic')).slice(0, 12);
+const hashIp = async (ip, env) => (await sha256hex(ip + '|' + (env.IP_SALT || env.PUSH_AUTH || 'safepic'))).slice(0, 12);   // 10-15: 비밀 솔트
 
 /* ---------- /push — 웹 푸시 (특보·재난문자 알림) ----------
    페이로드 없는 push(RFC8030)만 보낸다 → RFC8291 암호화가 필요 없고,
@@ -236,14 +215,16 @@ const PUSH_TTL = 180 * 86400;
 
 async function subKey(endpoint) { return 'psub:' + await sha256hex(endpoint); }
 
+// 10-15(docs/64): 브라우저 푸시 서비스(크롬·엣지 FCM, 파이어폭스, 윈도, 애플)만 받는다
+const PUSH_HOSTS = /^https:\/\/(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|[a-z0-9-]+\.notify\.windows\.com|web\.push\.apple\.com)\//;
 async function pushSub(req, env) {
   if (req.method !== 'POST') return { status: 'error:405' };
   const b = await req.json().catch(() => null);
-  if (!b || !b.endpoint || !/^https:\/\//.test(b.endpoint)) return { status: 'error:bad_sub' };
+  if (!b || !b.endpoint || !PUSH_HOSTS.test(b.endpoint) || String(b.endpoint).length > 1000) return { status: 'error:bad_sub' };
   const rec = { endpoint: b.endpoint, keys: b.keys || null,
                 sgg: String(b.sgg || '').slice(0, 5), sido: String(b.sido || '').slice(0, 2),
                 t: now() };
-  await env.CACHE.put(await subKey(b.endpoint), JSON.stringify(rec), { expirationTtl: PUSH_TTL });
+  await env.CACHE.put(await subKey(b.endpoint), JSON.stringify(rec), { expirationTtl: PUSH_TTL, metadata: { sgg: rec.sgg, sido: rec.sido } });
   return { status: 'ok' };
 }
 
@@ -275,24 +256,35 @@ async function pushSend(req, env, cors) {
   const sggs = new Set((b.sggs || []).map(String));       // 시군구 코드 5자리
   const sidos = new Set((b.sidos || []).map(String));     // 시도 코드 2자리
   const all = b.all === true;                             // 전국 발송(재난문자 '전국')
+  // 10-15(code-review): 대상이 비면 보내지 않는다 — 예전 조건은 빈 본문 {}이 전국 발송이 됐다
+  if (!all && sggs.size === 0 && sidos.size === 0) return json({ status: 'ok', matched: 0, sent: 0, note: 'no_target' }, 200, cors);
+  const offset = Math.max(0, parseInt(b.offset, 10) || 0), LIMIT = 40;   // 무료 플랜 하위 요청 50 — 남는 건 next로 이어 보낸다
 
-  const targets = [];
+  const keys = [];
   let cursor;
   do {
     const page = await env.CACHE.list({ prefix: 'psub:', cursor });
     for (const k of page.keys) {
-      const rec = await env.CACHE.get(k.name, 'json');
-      if (!rec || !rec.endpoint) continue;
-      if (all || sggs.has(rec.sgg) || sidos.has(rec.sido) || (rec.sgg && sggs.size === 0 && sidos.size === 0))
-        targets.push({ key: k.name, endpoint: rec.endpoint });
+      const m = k.metadata;   // 새 구독은 지역이 메타데이터에 있다 → get 없이 거른다
+      if (m && !(all || sggs.has(m.sgg) || sidos.has(m.sido))) continue;
+      keys.push(k.name);
     }
     cursor = page.list_complete ? null : page.cursor;
   } while (cursor);
+  const targets = [];
+  for (const name of keys) {
+    const rec = await env.CACHE.get(name, 'json');
+    if (!rec || !rec.endpoint) continue;
+    if (all || sggs.has(rec.sgg) || sidos.has(rec.sido)) targets.push({ key: name, endpoint: rec.endpoint });
+  }
+  const total = targets.length;
+  const batch = targets.slice(offset, offset + LIMIT);
+  const next = offset + LIMIT < total ? offset + LIMIT : null;
 
   let sent = 0, gone = 0, failed = 0;
   const auds = new Map();
-  for (let i = 0; i < targets.length; i += 20) {
-    await Promise.all(targets.slice(i, i + 20).map(async (t) => {
+  for (let i = 0; i < batch.length; i += 20) {
+    await Promise.all(batch.slice(i, i + 20).map(async (t) => {
       try {
         const aud = new URL(t.endpoint).origin;
         if (!auds.has(aud)) auds.set(aud, await vapidHeader(env, aud));
@@ -306,7 +298,7 @@ async function pushSend(req, env, cors) {
       } catch { failed++; }
     }));
   }
-  return json({ status: 'ok', matched: targets.length, sent, gone, failed }, 200, cors);
+  return json({ status: 'ok', matched: total, sent, gone, failed, next }, 200, cors);
 }
 
 /* ── 익명 사용 계측 — 이벤트 이름별 일 단위 카운터. 페이로드는 {ev}뿐(지역·입력·식별자 없음).

@@ -3,7 +3,6 @@
 .work_admin/
 Thumbs.db
 __pycache__/
-data/live/.hot
 data/live/*.tmp
 .work_shelters/
 .work_grid/

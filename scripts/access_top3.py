@@ -93,8 +93,9 @@ def main(args) -> int:
         out = os.path.join(DST, f'{sgg}.json')
         if args == ['all'] and os.path.exists(out): continue
         d = build(sgg)
-        with open(out, 'w', encoding='utf-8') as f:
+        with open(out + '.tmp', 'w', encoding='utf-8') as f:
             json.dump(d, f, ensure_ascii=False, separators=(',', ':'))
+        os.replace(out + '.tmp', out)   # 'all' 재실행이 반쪽 파일을 완료로 보지 않게(10-15)
         print(sgg, len(d['s']), 'shelters', len(d['c']), 'cells', os.path.getsize(out) // 1024, 'KB', flush=True)
     return 0
 

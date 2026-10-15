@@ -64,7 +64,12 @@ def overpass(sgg, bbox, what='walk'):
         try:
             with urllib.request.urlopen(req, timeout=240) as r:
                 d = json.load(r)
-            json.dump(d, open(cache, 'w', encoding='utf-8'))
+            if 'runtime error' in str(d.get('remark', '')).lower() or 'timed out' in str(d.get('remark', '')).lower():
+                raise RuntimeError('overpass remark: ' + str(d.get('remark'))[:120])   # 200인데 잘린 결과 — 캐시하지 않고 재시도(10-15)
+            tmp = cache + '.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                json.dump(d, f)
+            os.replace(tmp, cache)   # 중간에 끊겨도 반쪽 파일이 캐시로 남지 않게
             return d
         except Exception as ex:  # Overpass는 붐비면 429/504 — 잠깐 쉬고 재시도
             print('  overpass retry', attempt + 1, ex)

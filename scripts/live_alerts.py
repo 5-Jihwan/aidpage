@@ -154,6 +154,12 @@ _WARN_RE = re.compile(r"(" + "|".join(WARN_TYPES) + r")\s*(경보|주의보)\s*[
 _SEA_RE = re.compile(r"바다|해상|먼바다|앞바다|평수구역")
 
 
+def _sido_abbr(s):
+    """경상북도→경북, 충청남도→충남, 전라북도→전북(그 외 앞 두 글자: 서울·부산·강원·전북특별자치도→전북 …)."""
+    s = (s or "").strip()
+    return s[0] + s[2] if s[:2] in ("경상", "충청", "전라") and len(s) > 2 else s[:2]
+
+
 def match_area_codes(area_text, sgg):
     """Best-effort mapping of KMA area text (e.g. '서울', '경기도(수원, 성남)', '전북(진안)') to sgg codes.
     해상 구역(먼바다 등)은 육지 시군구에 매칭하지 않는다 — '남해동부먼바다'가 남해군에 걸리던 오탐 방지."""
@@ -164,7 +170,7 @@ def match_area_codes(area_text, sgg):
     inner = " ".join(re.findall(r"\((.*?)\)", area_text))
     for row in sgg:
         sn, nm = row.get("sido_name", ""), row.get("name", "")
-        sido_hit = bool(base) and (base in sn or sn[:2] == base[:2])
+        sido_hit = bool(base) and (base in sn or _sido_abbr(sn) == _sido_abbr(base))   # 10-15: 경상북도≠경상남도
         if inner:
             if sido_hit and nm and nm.rstrip("시군구") in inner:
                 codes.add(str(row["code"]))

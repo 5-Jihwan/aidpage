@@ -3,6 +3,12 @@ main = "src/index.js"
 compatibility_date = "2026-08-01"
 workers_dev = true
 
+# 10-15: IP당 분당 요청 제한 — Rate Limiting 바인딩(KV 쓰기 안 씀). 기간은 10 또는 60초만 허용.
+[[ratelimits]]
+name = "RL"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
 [[kv_namespaces]]
 binding = "CACHE"
 id = "bbc699ecd17c412e818a6d02c4db26d7"

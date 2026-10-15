@@ -87,7 +87,9 @@ _DEAD = set()  # service base URLs that answered 403/401 (or kept timing out) th
 
 
 def _base(url):
-    return url.rsplit("/", 1)[0]
+    """차단(_DEAD) 단위. safetydata는 /V2/api/<데이터셋> 하나하나가 별개 승인이라 데이터셋까지(10-15 code-review)."""
+    u = url.split("?", 1)[0]
+    return u if "safetydata.go.kr/V2/api/" in u else u.rsplit("/", 1)[0]
 
 
 def http_get(url: str, params: dict | None = None, raw_key: str | None = None) -> str:
@@ -145,20 +147,22 @@ def get_json(url, params=None, raw_key=None):
     if _base(url) in _DEAD:
         raise HttpError(_DEAD_WHY.get(_base(url), "403"))
     try:
-        txt = http_get(url, params, raw_key)
-    except HttpError as e:
+        return _parse_json(http_get(url, params, raw_key))
+    except HttpError as e:   # 10-15: '미등록 키'는 HTTP 200 + XML로 와서 예전엔 허브 대체가 안 돌았음 → 파싱까지 이 안에서
         hub = next((url.replace(k, v) for k, v in HUB_MAP.items() if url.startswith(k)), None)
         if hub and KEY_HUB and e.code in ("403", "401", "kma30", "kma31", "kma32") and _base(hub) not in _DEAD:
             try:
-                txt = http_get(hub, dict(params or {}, authKey=KEY_HUB))
+                return _parse_json(http_get(hub, dict(params or {}, authKey=KEY_HUB)))
             except HttpError as e2:
                 if e2.code in ("403", "401"):
                     _DEAD.add(_base(hub)); _DEAD.add(_base(url))
                 raise
-        else:
-            if e.code in ("403", "401"):
-                _DEAD.add(_base(url))
-            raise
+        if e.code in ("403", "401"):
+            _DEAD.add(_base(url))
+        raise
+
+
+def _parse_json(txt):
     try:
         return json.loads(txt)
     except ValueError:
@@ -175,12 +179,16 @@ def load_json(path, default):
         return default
 
 
-def save_json(path, obj):
+def save_json(path, obj, lines=False):
+    """lines=True: 최상위 키마다 한 줄(alerts.json) — Actions·로컬 두 수집기가 다른 섹션을 고쳐도 git이 줄 단위로 합친다(10-15)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-        f.write("\n")
+        if lines and isinstance(obj, dict):
+            f.write("{\n" + ",\n".join(json.dumps(k, ensure_ascii=False) + ":" + json.dumps(obj[k], ensure_ascii=False, separators=(",", ":"), sort_keys=True) for k in sorted(obj)) + "\n}\n")
+        else:
+            json.dump(obj, f, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+            f.write("\n")
     os.replace(tmp, path)
 
 

@@ -51,7 +51,7 @@ if os.path.exists(_kp):
             k, v = ln.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip())
 
-from fetch_live import (ALERTS_PATH, SD_KEY, now_kst, log,  # noqa: E402
+from fetch_live import (ALERTS_PATH, SD_KEY, now_kst, log, save_json,  # noqa: E402
                         fetch_warnings_sd, fetch_prewarn_sd, fetch_landslide_sd, fetch_messages)
 import fetch_welfare  # noqa: E402 — 경로(OUT)·키(KEYS)는 저쪽이 단일 출처
 
@@ -114,17 +114,25 @@ def push_notify(out):
                         if rec.get("sido_name") and rec["sido_name"] in rg:
                             sidos.add(str(rec["code"])[:2])
         if allmsg or sggs or sidos:
-            body = json.dumps({"all": allmsg, "sggs": sorted(sggs), "sidos": sorted(sidos)}).encode()
-            req = urllib.request.Request(PUSH_URL, data=body, method="POST",
-                                         headers={"Content-Type": "application/json",
-                                                  "X-Push-Auth": auth,
-                                                  # Cloudflare가 Python-urllib UA를 봇 차단(1010)함
-                                                  "User-Agent": "aidpage-collector"})
-            try:
-                with urllib.request.urlopen(req, timeout=20) as r:
-                    log(f"push_notify: {r.read().decode()[:120]}")
-            except Exception as e:  # noqa: BLE001 — 발송 실패는 수집을 막지 않는다
-                log(f"push_notify failed: {e}")
+            offset = 0
+            for _ in range(25):   # 워커는 한 번에 40건 — next가 있으면 이어서(10-15)
+                body = json.dumps({"all": allmsg, "sggs": sorted(sggs), "sidos": sorted(sidos), "offset": offset}).encode()
+                req = urllib.request.Request(PUSH_URL, data=body, method="POST",
+                                             headers={"Content-Type": "application/json",
+                                                      "X-Push-Auth": auth,
+                                                      # Cloudflare가 Python-urllib UA를 봇 차단(1010)함
+                                                      "User-Agent": "aidpage-collector"})
+                try:
+                    with urllib.request.urlopen(req, timeout=20) as r:
+                        txt = r.read().decode()
+                    log(f"push_notify: {txt[:120]}")
+                    nxt = json.loads(txt).get("next")
+                except Exception as e:  # noqa: BLE001 — 발송 실패는 수집을 막지 않는다
+                    log(f"push_notify failed: {e}")
+                    break
+                if not nxt:
+                    break
+                offset = nxt
 
     json.dump(cur, io.open(PUSH_STATE, "w", encoding="utf-8"))
 
@@ -237,8 +245,7 @@ def main() -> int:
             wrote.append(k)
         if wrote:
             out["updated"] = now_kst().isoformat(timespec="seconds")
-            json.dump(out, io.open(ALERTS_PATH, "w", encoding="utf-8"), ensure_ascii=False,
-                      separators=(",", ":"))
+            save_json(ALERTS_PATH, out, lines=True)   # Actions와 같은 형식(10-15)
             log(f"wrote {ALERTS_PATH} sections={wrote}")
             push_notify(out)
         else:

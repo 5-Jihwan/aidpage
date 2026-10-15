@@ -105,7 +105,7 @@ def main():
         log("all sections no_key: leaving placeholder files untouched (no commit churn)")
     else:
         save_json(WEATHER_PATH, weather)
-        save_json(ALERTS_PATH, alerts)
+        save_json(ALERTS_PATH, alerts, lines=True)
         save_json(AIR_PATH, air)
         if er.get("status") != "no_key":
             save_json(ER_PATH, er)

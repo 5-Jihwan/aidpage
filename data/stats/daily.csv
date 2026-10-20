@@ -115,4 +115,7 @@ date,event,count
 2026-10-18,region_open_m,3
 2026-10-18,visit,3
 2026-10-19,visit,1
-2026-10-20,visit,3
+2026-10-20,js_error_d,1
+2026-10-20,region_open,1
+2026-10-20,visit,6
+2026-10-21,visit,1

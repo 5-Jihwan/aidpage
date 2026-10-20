@@ -1,81 +1,20 @@
 /* AidPage — "이 지역은" 서랍 (오른쪽, 데스크톱 전용 1단계). docs/08·10·14 설계.
    역할 분리: 왼쪽 패널 = 지금(특보·대피소·할 일), 이 서랍 = 이 지역은(구조·이력·시설 총량·지원 미리보기).
    한 항목 한 집: 특보는 태그 1개만, 가까운 대피소는 총량 행만. 순위 숫자 없음, 사분위 띠까지만.
+   타입(도감) 표시는 2026-10-20 Atlas 분리로 뺐다. 타입은 '지원 미리보기' 키워드 고르기(blockSupport)에만 안 보이게 쓴다.
    lazy import — 평소 0바이트. app.js가 open(ctx) 호출 시 ctx로 상태·도우미를 넘긴다(전역 import 없음). */
 let ctx = null, root = null, mobile = false, topic = 'all', _types = null, _demo = null, _rz = null, _sidoDis = null, _welfare = null, _welfareEn = null, _ordin = null;
 const J = u => fetch(u, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null);
 const load = async () => {
   [_types, _demo, _rz, _sidoDis, _ordin] = await Promise.all([_types || J('data/ref/sgg_types.json'), _demo || J('data/ref/sgg_demo.json'), _rz || J('data/ref/riskzone_by_sgg.json'), _sidoDis || J('data/ref/sido_disaster.json'), _ordin || J('data/ref/sgg_ordin.json')]);
 };
-const TYPE_ICON = { '물': '💧', '산': '⛰️', '바다': '🌊', '눈': '❄️', '볕': '☀️', '땅': '🪨', '마름': '🏜️', '평온': '◌', '노년': '🧓', '홀로': '🧍', '이방': '🌐', '돌봄': '♿', '살림': '🏚️', '도심': '🏙️', '들': '🌾', '섬': '🏝️', '접경': '🪖', '교통': '🚗', '화재': '🔥' };
-const TYPE_EN = { '물': 'Water', '산': 'Mountain', '바다': 'Sea', '눈': 'Snow', '볕': 'Heat', '땅': 'Quake', '마름': 'Drought', '평온': 'Calm', '노년': 'Elderly', '홀로': 'Solo', '이방': 'Migrant', '돌봄': 'Care', '살림': 'Low-income', '도심': 'Urban', '들': 'Rural', '섬': 'Island', '접경': 'Border', '교통': 'Traffic', '화재': 'Fire' };
-const tn = k => ctx.getLang() !== 'ko' ? (TYPE_EN[k] || k) : k;
 const pct = v => (v * 100).toFixed(1) + '%';
 const fmtN = n => Number(n || 0).toLocaleString(ctx.getLang());
 const esc = s => ctx.escapeHTML(s);
 
 export function typeOf(sgg) { return _types && _types.sgg ? _types.sgg[String(sgg)] : null; }
-export function typesLoaded() { return !!_types; }
-export async function ensureTypes() { if (!_types) _types = await J('data/ref/sgg_types.json'); return _types; }
 export async function ensureDemo() { if (!_demo) _demo = await J('data/ref/sgg_demo.json'); return _demo; }
 export function demoOf(sgg) { return _demo && _demo.sgg ? _demo.sgg[String(sgg)] : null; }
-
-/* "왜 이 타입인가" — 규칙 v1.1을 값 대 임계로 그대로 보여준다(docs/14·16). 임계는 sgg_types.meta.thresholds(전국 p75, 경사·1인세대는 p80). */
-export function whyHTML(ty) {
-  if (!ty || !_types || !_types.meta) return '';
-  const t = ctx.t, th = _types.meta.thresholds || {}, m = ty.metrics || {};
-  const P = v => (v * 100).toFixed(1) + '%', D = v => v.toFixed(1) + '°', K = v => Number(v).toLocaleString() + '/km²', Z = v => Number(v).toFixed(1) + '/100km²';
-  const ge = (label, v, thv, q) => `<li><b>${label}</b> ${v} <span class="rg-ge">${t(q === 80 ? 'rg.why.ge80' : 'rg.why.ge', { v: thv })}</span></li>`;
-  const lt = (label, v, thv) => `<li class="calm"><b>${label}</b> ${v} <span class="rg-ge">${t('rg.why.lt', { v: thv })}</span></li>`;
-  const rows = [];
-  for (const h of ty.hazards || []) {
-    if (h === '물') {
-      if (m.flood_r >= th.flood_r) rows.push(ge(t('rg.m.flood'), P(m.flood_r), P(th.flood_r)));
-      if (th.rzf > 0 && m.rzf >= th.rzf) rows.push(ge(t('rg.m.rzf'), Z(m.rzf), Z(th.rzf)) + (ty.basis === 'zone' ? `<li class="tip">${t('ty.basis.zone.d')}</li>` : ''));
-    } else if (h === '산') {
-      if (m.ls_r >= th.ls_r) rows.push(ge(t('rg.m.ls'), P(m.ls_r), P(th.ls_r)));
-      if (th.slope80 && m.slope >= th.slope80) rows.push(ge(t('rg.m.slope'), D(m.slope), D(th.slope80), 80));
-      if (th.rzc > 0 && m.rzc >= th.rzc) rows.push(ge(t('rg.m.rzc'), Z(m.rzc), Z(th.rzc)) + (ty.basis === 'zone' ? `<li class="tip">${t('ty.basis.zone.d')}</li>` : ''));
-    } else if (h === '바다') rows.push(`<li><b>${t('rg.m.coast')}</b> <span class="rg-ge">${t('ty.바다.d')}</span></li>` + (m.rzs > 0 ? `<li><b>${t('rg.m.rzs')}</b> ${Z(m.rzs)}</li>` : ''));
-    else if (h === '마름') rows.push(`<li><b>${t('rg.m.rzd')}</b> ${Z(m.rzd)}</li>`);
-  }
-  if (!rows.length) { // v1.4 근접·희미: 성립한 위해 없음 — 가장 가까운 위해와 기준 대비 비율, 그리고 무엇이 임계 아래였나
-    if (ty.lean && ty.lean.cand) rows.push(`<li class="tip">${t('rg.lean.line', { list: Object.entries(ty.lean.cand).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${TYPE_ICON[k] || ''} ${tn(k)} ${Math.round(v * 100)}%`).join(' · ') })}</li>`);
-    rows.push(lt(t('rg.m.flood'), P(m.flood_r || 0), P(th.flood_r)), lt(t('rg.m.ls'), P(m.ls_r || 0), P(th.ls_r)), lt(t('rg.m.slope'), D(m.slope || 0), D(th.slope80 || th.slope)));
-  }
-  // 사회 위해(v1.3): 같은 행정유형 내 p75 — 임계는 시군구마다 다르므로 metrics에 실린 값(traffic_q)을 쓴다
-  if (ty.social === '교통' && m.traffic_r != null) rows.push(`<li><b>${t('rg.m.traffic')}</b> ${Number(m.traffic_r).toFixed(1)} <span class="rg-ge">${t('rg.why.ge.kind', { v: Number(m.traffic_q || 0).toFixed(1) })}</span></li>`);
-  else if (ty.social === '화재' && m.fire_r != null) rows.push(`<li><b>${t('rg.m.fire')}</b> ${Number(m.fire_r).toFixed(1)} <span class="rg-ge">${t('rg.why.ge.kind', { v: Number(m.fire_q || 0).toFixed(1) })}</span></li>`);
-  else if (m.traffic_r != null) rows.push(lt(t('rg.m.traffic'), Number(m.traffic_r).toFixed(1), Number(m.traffic_q || 0).toFixed(1)));
-  // 특징(v1.3): 해당하는 것 전부, 서열 없음
-  const traits = ty.traits || (ty.secondary ? [ty.secondary] : []);
-  if (traits.length) rows.push(`<li class="rg-feat-h"><b>${t('rg.feat')}</b></li>`);
-  for (const sec of traits) {
-    if (sec === '노년') rows.push(ge(t('rg.m.e65'), P(m.e65), P(th.e65)), ge(t('rg.m.ealone'), P(m.ealone), P(th.ealone)));
-    else if (sec === '홀로') rows.push(ge(t('rg.m.single'), P(m.single), P(th.single80 || th.single), 80));
-    else if (sec === '이방') rows.push(ge(t('rg.m.foreign'), P(m.foreign_r), P(th.foreign_r)));
-    else if (sec === '돌봄') rows.push(ge(t('rg.m.disabled'), P(m.disabled_r), P(th.disabled_r)));
-    else if (sec === '살림') rows.push(ge(t('rg.m.basic'), P(m.basic_r), P(th.basic_r)));
-    else if (sec === '도심') rows.push(ge(t('rg.m.dens'), K(Math.round(m.dens)), K(Math.round(th.dens))));
-    else if (sec === '들') rows.push(`<li><b>${t('rg.m.gun')}</b> <span class="rg-ge">${t('ty.들.d')}</span></li>`);
-  }
-  if (ty.bold) rows.push(`<li><b>${t('rg.why.bold')}</b> ${K(Math.round(m.dens))} <span class="rg-ge">${t('rg.why.ge', { v: K(Math.round(th.dens)) })}</span></li>`);
-  const edge = ty.edge && ty.edge.length ? `<li class="tip">${t('rg.why.edge', { l: ty.edge.map(tn).join(', ') })}</li>` : '';
-  return `<details class="rg-why" ${matchMedia('(min-width:901px)').matches ? 'open' : ''}><summary>${t('rg.why.t')}</summary><ul>${rows.join('')}${edge}</ul><small>${t('rg.why.foot', { v: _types.meta.version || '' })}</small></details>`;
-}
-
-/* 타입 칩 HTML — 요약 줄(패널)과 서랍 헤더가 공유. 서열 없음: 굵게=노출 상위 25%, [복합]=위해 2종 이상 */
-export function typeChips(ty, small) {
-  if (!ty) return '';
-  const t = ctx.t;
-  const chip = (k, cls) => `<span class="ty-chip ${cls} ${small ? 'sm' : ''}" title="${esc(t('ty.' + k + '.d'))}">${TYPE_ICON[k] || ''} ${tn(k)}</span>`;
-  const lean = ty.basis === 'lean' && ty.lean;
-  const basis = lean ? `<span class="ty-flag lean" title="${esc(t(ty.lean.deg === '근접' ? 'ty.basis.lean.d' : 'ty.basis.faint.d'))}">${t(ty.lean.deg === '근접' ? 'ty.basis.lean' : 'ty.basis.faint')} ${Math.round(ty.lean.r * 100)}%</span>` : (ty.primary === '물' || ty.primary === '산') && ty.basis === 'zone' ? `<span class="ty-flag basis" title="${esc(t('ty.basis.zone.d'))}">${t('ty.basis.zone')}</span>` : '';
-  const traits = ty.traits || (ty.secondary ? [ty.secondary] : []);
-  const shown = small ? traits.slice(0, 3) : traits, more = traits.length - shown.length;
-  const featHTML = traits.length ? `<span class="ty-traits"><span class="ty-feat-label">${t('rg.feat')}</span>${shown.map(k => chip(k, 'ty-t')).join('')}${more > 0 ? `<span class="ty-chip ty-t ${small ? 'sm' : ''} none">+${more}</span>` : ''}</span>` : '';
-  return `<span class="ty-pair">${chip(ty.primary, 'ty-p' + (ty.bold ? ' bold' : '') + (lean ? ' lean' : ''))}${basis}<i class="ty-dot">·</i>${ty.social ? chip(ty.social, 'ty-s2') : `<span class="ty-chip ty-s2 ${small ? 'sm' : ''} none" title="${esc(t('rg.social.none'))}">—</span>`}${featHTML}${ty.complex ? `<span class="ty-flag" title="${esc(t('ty.complex.d'))}">${t('ty.complex')}</span>` : ''}${ty.edge && ty.edge.length ? `<span class="ty-flag edge" title="${esc(t('ty.edge.d'))}">?</span>` : ''}</span>`;
-}
 
 function tier(v, q) { if (!q || v == null) return ''; return v >= q.p75 ? 'hi' : v >= q.p50 ? 'mid' : 'lo'; }
 function band(v, q, lv) { const tr = tier(v, q); return tr ? `<span class="rg-band ${tr}">${ctx.t(`demo.tier.${tr}.${lv}`)}</span>` : ''; }
@@ -203,14 +142,10 @@ async function renderInner() {
   const ty = s.level === 'sgg' ? typeOf(s.sgg) : null;
   const ws = ctx.warningsFor(s.sgg, s.sido);
   const warnTag = ws.length ? `<span class="tag danger">${esc(ctx.warnName(ws[0].type, ws[0].level))}${ws.length > 1 ? ` +${ws.length - 1}` : ''}</span>` : `<span class="tag teal">${t('rg.nowarn')}</span>`;
-  const UP_EN = { '구': 'gu', '시': 'si', '군': 'gun', '해안': 'coastal', '내륙': 'inland' };
-  const upperTxt = ty && ty.upper ? (ctx.getLang() !== 'ko' ? ty.upper.split('·').map(x => UP_EN[x] || x).join(' · ') : ty.upper) : '';
-  const upper = upperTxt ? `<span class="tag" title="${esc(t('rg.upper.d'))}">${esc(upperTxt)}</span>` : '';
-  const sidoDist = s.level === 'sido' && _types ? await sidoDistHTML(s.sido) : '';
   const [people, hist0, fac, sup] = await Promise.all([blockPeople(s), blockHistory(s), blockFacilities(s), blockSupport(s, ty)]);
   const hist = hist0 + blockInstitutions(s);
   root.innerHTML = `${mobile ? '' : `<div class="rg-head"><div><div class="eyebrow">${t('rg.eyebrow')}</div><h3>${esc(name)}</h3></div><button type="button" class="rg-x" aria-label="${t('rg.close')}">✕</button></div>`}
-    <div class="rg-tags">${ty ? typeChips(ty) : ''}${upper}${warnTag}</div>${ty ? whyHTML(ty) : ''}${ty ? `<a class="rg-dex" href="atlas.html#c=${s.sgg}&l=${ctx.getLang()}">${t('rg.dex')}</a>` : ''}${sidoDist}
+    <div class="rg-tags">${warnTag}</div>
     <div class="rg-filters">${['all', 'people', 'history', 'facility', 'support'].map(k => `<button type="button" class="chip ${topic === k ? 'is-on' : ''}" data-topic="${k}">${t('rg.topic.' + k)}</button>`).join('')}</div>
     <div class="rg-body">${people}${hist}${fac}${sup}</div>
     <p class="rg-src">${t('rg.src')}</p>`;
@@ -221,12 +156,6 @@ async function renderInner() {
   const f = root.querySelector('.rg-find'); if (f) f.addEventListener('click', () => { ctx.stat('region_to_find'); ctx.goFind(); });
 }
 function applyTopic() { root.querySelectorAll('.rg-blk').forEach(b => { b.hidden = topic !== 'all' && b.dataset.topic !== topic; }); }
-async function sidoDistHTML(sido) {
-  const st = await J('data/ref/sido_types.json'); const d = st && st.sido && st.sido[String(sido)]; if (!d) return '';
-  const bar = (obj) => Object.entries(obj).filter(([k]) => k !== '—').sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, v]) => { const base = k.replace(/\(.*\)$/, ''), deg = (/\((.+)\)$/.exec(k) || [])[1]; return `<span class="rg-dist${deg ? ' lean' : ''}"><i>${TYPE_ICON[base] || ''}</i>${tn(base)}${deg ? ' ' + ctx.t(deg === '근접' ? 'ty.basis.lean' : 'ty.basis.faint') : ''} <b>${v.toFixed(0)}%</b></span>`; }).join('');
-  return `<div class="rg-sido"><small>${ctx.t('rg.sido.dist', { n: d.n_sgg })}</small><div>${bar(d.primary_pct)}</div>${d.social_pct ? `<div>${bar(d.social_pct)}</div>` : ''}<div>${bar(d.secondary_pct)}</div></div>`;
-}
-
 export function init(c) { ctx = c; if (!init._esc) { init._esc = true; addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen()) close(true); }); } }
 export function isOpen() { return !!(root && !root.hidden); }
 export function isMobile() { return mobile; }

@@ -25,7 +25,7 @@ import urllib.request
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = (['index.html', 'atlas.html', 'dex.html', 'sim.html', 'worker/src/kakao.js']
+FILES = (['index.html', 'sim.html', 'worker/src/kakao.js']
          + sorted(glob.glob(os.path.join(ROOT, 'js', '*.js')))
          + sorted(glob.glob(os.path.join(ROOT, 'rules', '*.json')))
          + [os.path.join(ROOT, 'data', 'ref', f) for f in ('tips.json', 'psych_centers.json', 'welfare.json', 'welfare_en.json')])

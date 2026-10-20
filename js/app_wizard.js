@@ -1,13 +1,13 @@
 /* 지역 서랍·접힘·방문 집계·지원 찾기 마법사·결과·근거 조문·복지서비스·인쇄·규칙표 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang, setLang } from './i18n.js?v=20261015a';
-import { meta as gridMeta, cells as gridCells } from './grid.js?v=20261015a';
+import { t, getLang, setLang } from './i18n.js?v=20261020a';
+import { meta as gridMeta, cells as gridCells } from './grid.js?v=20261020a';
 import { stat, getStatSummary } from './api.js?v=20260914b';
 import { collect as collectShelters, nearest as nearestShelters } from './shelters.js?v=20261008a';
-import { $, $$, MQ_MOBILE, evaluate, formatKRW, state } from './app.js?v=20261015a';
-import { escapeHTML, nameOf, rn, warnName, warningsFor } from './app_panel.js?v=20261015a';
-import { _simMod, activeShelterKinds, renderLegend, saveShelterKinds, selectEmd, selectSgg, selectSido, syncShelterLayers } from './app_layers.js?v=20261015a';
-import { OPEN, SITS, SIT_ICON, SIT_KEY, applySituation, onLangChanged, setTab } from './app_ui.js?v=20261015a';
-import { downloadICS, map, routeLinks, shareImage, speak } from './app_map.js?v=20261015a';
+import { $, $$, MQ_MOBILE, evaluate, formatKRW, state } from './app.js?v=20261020a';
+import { escapeHTML, nameOf, rn, warnName, warningsFor } from './app_panel.js?v=20261020a';
+import { _simMod, activeShelterKinds, renderLegend, saveShelterKinds, selectEmd, selectSgg, selectSido, syncShelterLayers } from './app_layers.js?v=20261020a';
+import { OPEN, SITS, SIT_ICON, SIT_KEY, applySituation, onLangChanged, setTab } from './app_ui.js?v=20261020a';
+import { downloadICS, map, routeLinks, shareImage, speak } from './app_map.js?v=20261020a';
 
 export let _regionMod = null;
 
@@ -47,15 +47,13 @@ export async function renderRegionSummary() {
     }
     paintRgTabs();
   } else if (tabs) tabs.hidden = true;
-  const m = await regionMod(); m.init(regionCtx()); await m.ensureTypes(); await m.ensureDemo();
+  const m = await regionMod(); m.init(regionCtx()); await m.ensureDemo();
   const sig = `${state.level}|${state.sgg}|${state.sit}|${getLang()}`; if (box.dataset.sig === sig) return; box.dataset.sig = sig;
-  const ty = state.sgg ? m.typeOf(state.sgg) : null;
-  const chips = ty ? m.typeChips(ty, true) : '';
-  const scope = ty && state.level === 'emd' ? `<small class="muted">${t('rg.sum.sgg')}</small>` : '';
   const dm = state.sgg ? m.demoOf(state.sgg) : null;
+  const scope = dm && state.level === 'emd' ? `<small class="muted desktop-only">${t('rg.sum.sgg')}</small>` : '';
   const nums = dm ? `<small class="muted desktop-only rg-nums">${t('demo.pop')} ${Number(dm.pop).toLocaleString(getLang())} · ${t('demo.e65')} ${(dm.e65 * 100).toFixed(1)}%</small>` : '';
-  box.hidden = false;
-  box.innerHTML = `<span class="rg-sum-chips">${chips}${scope}${nums}</span><button type="button" class="btn btn-ghost btn-sm desktop-only" id="rgOpen">${t('rg.open')} →</button>`;
+  box.hidden = false; box.classList.add('desktop-only');   // 타입 칩이 빠져 휴대폰에선 보일 것이 없다
+  box.innerHTML = `<span class="rg-sum-chips">${scope}${nums}</span><button type="button" class="btn btn-ghost btn-sm desktop-only" id="rgOpen">${t('rg.open')} →</button>`;
   const b = $('#rgOpen'); if (b) b.addEventListener('click', openRegionDrawer);
 }
 

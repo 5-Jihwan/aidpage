@@ -2,7 +2,7 @@
    본 사이트는 경로 선을 그리지 않는다. 가까운 대피소 3곳마다 "걸어서 약 n분 · 가는 방향에 침수 이력 칸 n · 지하차도 근처 n"을 문장으로만 보여준다.
    계산은 전국 미리 계산(scripts/access_top3.py → data/access/<sgg>.json)을 읽는다. 옛 기기 경로 계산(sim_worker)과 선이 있는 sim.html은 10-14 폐기(docs/56 N7).
    미리 계산이 없는 자리는 직선 거리로만 안내한다. */
-import { t, getLang } from './i18n.js?v=20261015a';
+import { t, getLang } from './i18n.js?v=20261020a';
 const $ = (s, r = document) => r.querySelector(s);
 // 민방위 대피시설은 대부분 지하(공습 대비)라 침수 맥락의 이 카드에서는 뺀다. 지진옥외대피장소는 비를 피할 수 없는 공터라 뺀다.
 const SHELTER_KINDS = ['temp_housing', 'tsunami'];

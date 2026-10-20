@@ -63,13 +63,11 @@ $('#now').textContent = '조회 ' + fmt(new Date().toISOString());
   $('#live tbody').innerHTML = rows.join('') || '<tr><td colspan="5">자료를 읽지 못했습니다.</td></tr>';
 
   const R = await Promise.all(['cash', 'relief_fund', 'procedures', 'indirect', 'insurance', 'heat_cold', 'changelog'].map(n => get(`rules/${n}.json`)));
-  const [TY, TH, WF, RZ] = await Promise.all(['data/ref/sgg_types.json', 'data/ref/sgg_threshold.json', 'data/ref/welfare.json', 'data/ref/riskzone_by_sgg.json'].map(get));
+  const [WF, RZ] = await Promise.all(['data/ref/welfare.json', 'data/ref/riskzone_by_sgg.json'].map(get));
   const conf = {}; R.forEach(d => (d && d.rules || []).forEach(r => conf[r.confidence] = (conf[r.confidence] || 0) + 1));
   const ref = [];
   R.forEach(d => d && d.meta && ref.push(`<tr><td><b>${esc(d.meta.title || '')}</b></td><td>${esc(d.meta.asof || '—')}</td><td><small>${(d.rules || d.entries || []).length}건</small></td></tr>`));
   ref.push(`<tr><td><b>규칙 확인 수준</b></td><td>—</td><td><small>원문 확인 ${conf.verified || 0} · 보도 기반 ${conf.reported || 0} · 추정 ${conf.estimate || 0} (절차 제외)</small></td></tr>`);
-  if (TY) ref.push(`<tr><td><b>Atlas 시군구 타입</b></td><td>${esc(TY.meta && (TY.meta.version || TY.meta.asof) || '—')}</td><td><small>${Object.keys(TY.sgg || {}).length}곳</small></td></tr>`);
-  if (TH) ref.push(`<tr><td><b>Atlas 국고지원 문턱</b></td><td>${esc(TH.meta && (TH.meta.version || TH.meta.asof) || '—')}</td><td><small>${Object.keys(TH.sgg || {}).length}곳</small></td></tr>`);
   if (WF) ref.push(`<tr><td><b>복지서비스 목록</b></td><td>${fmt(WF.updated)}</td><td><small>${WF.total || (WF.items || []).length}건 · 복지로 상세로 연결</small></td></tr>`);
   if (RZ) ref.push(`<tr><td><b>자연재해위험개선지구</b></td><td>${esc(RZ.asof || '—')}</td><td><small>${RZ.n_total || ''}곳</small></td></tr>`);
   $('#ref tbody').innerHTML = ref.join('');

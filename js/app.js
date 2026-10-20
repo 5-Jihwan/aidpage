@@ -1,12 +1,12 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, applyStatic } from './i18n.js?v=20261015a';
+import { t, getLang, applyStatic } from './i18n.js?v=20261020a';
 import { stat } from './api.js?v=20260914b';
-import { initMap, map } from './app_map.js?v=20261015a';
-import { activeShelterKinds, getHome, initHome, initLegendDrag, renderAll, renderHome, renderLegend, resetNation, selectEmd } from './app_layers.js?v=20261015a';
-import { escapeHTML, renderCrumb, renderTip } from './app_panel.js?v=20261015a';
-import { applyRulesLang, buildLangButtons, initCards, initLang, initPWA, initPanel, initProfile, initPush, initSize, initWelcome, reportError, setTab } from './app_ui.js?v=20261015a';
-import { applyShare, initWizard, lawDoc, lawRefEn, renderRulesTable, renderSiteStats, statVisit, syncWizardLoc } from './app_wizard.js?v=20261015a';
-import { initSearch, initWxSel } from './app_wx.js?v=20261015a';
+import { initMap, map } from './app_map.js?v=20261020a';
+import { activeShelterKinds, getHome, initHome, initLegendDrag, renderAll, renderHome, renderLegend, resetNation, selectEmd } from './app_layers.js?v=20261020a';
+import { escapeHTML, renderCrumb, renderTip } from './app_panel.js?v=20261020a';
+import { applyRulesLang, buildLangButtons, initCards, initLang, initPWA, initPanel, initProfile, initPush, initSize, initWelcome, reportError, setTab } from './app_ui.js?v=20261020a';
+import { applyShare, initWizard, lawDoc, lawRefEn, renderRulesTable, renderSiteStats, statVisit, syncWizardLoc } from './app_wizard.js?v=20261020a';
+import { initSearch, initWxSel } from './app_wx.js?v=20261020a';
 
 export let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 

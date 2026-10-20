@@ -1,9 +1,9 @@
 /* 날씨 색면·바람·태풍·특보 연출·검색 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang } from './i18n.js?v=20261015a';
-import { $, $$, state } from './app.js?v=20261015a';
-import { airFor, nameOf, rn, warnName, weatherFor } from './app_panel.js?v=20261015a';
-import { locateMe, map, setLevelFilters } from './app_map.js?v=20261015a';
-import { activeShelterKinds, renderLegend, selectEmd, selectSgg } from './app_layers.js?v=20261015a';
+import { t, getLang } from './i18n.js?v=20261020a';
+import { $, $$, state } from './app.js?v=20261020a';
+import { airFor, nameOf, rn, warnName, weatherFor } from './app_panel.js?v=20261020a';
+import { locateMe, map, setLevelFilters } from './app_map.js?v=20261020a';
+import { activeShelterKinds, renderLegend, selectEmd, selectSgg } from './app_layers.js?v=20261020a';
 
 export function initWxSel() {
   $('#wxselT').addEventListener('click', () => $('#wxsel').classList.toggle('is-open'));

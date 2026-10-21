@@ -118,4 +118,10 @@ date,event,count
 2026-10-20,js_error_d,1
 2026-10-20,region_open,1
 2026-10-20,visit,6
-2026-10-21,visit,1
+2026-10-21,nearmiss_shown,8
+2026-10-21,visit,7
+2026-10-21,welfare_shown,8
+2026-10-21,wiz_proxy,1
+2026-10-21,wiz_self,7
+2026-10-21,wizard_submit,8
+2026-10-22,visit,1

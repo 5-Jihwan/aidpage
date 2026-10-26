@@ -126,3 +126,9 @@ date,event,count
 2026-10-21,wizard_submit,8
 2026-10-22,visit,2
 2026-10-24,visit,1
+2026-10-26,nearmiss_shown,1
+2026-10-26,visit,3
+2026-10-26,welfare_shown,1
+2026-10-26,wiz_self,1
+2026-10-26,wizard_submit,1
+2026-10-27,visit,1

@@ -1,13 +1,13 @@
 /* 지역 서랍·접힘·방문 집계·지원 찾기 마법사·결과·근거 조문·복지서비스·인쇄·규칙표 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang, setLang } from './i18n.js?v=20261020a';
-import { meta as gridMeta, cells as gridCells } from './grid.js?v=20261020a';
+import { t, getLang, setLang } from './i18n.js?v=20261031b';
+import { meta as gridMeta, cells as gridCells } from './grid.js?v=20261031b';
 import { stat, getStatSummary } from './api.js?v=20260914b';
 import { collect as collectShelters, nearest as nearestShelters } from './shelters.js?v=20261008a';
-import { $, $$, MQ_MOBILE, evaluate, formatKRW, state } from './app.js?v=20261020a';
-import { escapeHTML, nameOf, rn, warnName, warningsFor } from './app_panel.js?v=20261020a';
-import { _simMod, activeShelterKinds, renderLegend, saveShelterKinds, selectEmd, selectSgg, selectSido, syncShelterLayers } from './app_layers.js?v=20261020a';
-import { OPEN, SITS, SIT_ICON, SIT_KEY, applySituation, onLangChanged, setTab } from './app_ui.js?v=20261020a';
-import { downloadICS, map, routeLinks, shareImage, speak } from './app_map.js?v=20261020a';
+import { $, $$, MQ_MOBILE, evaluate, formatKRW, state } from './app.js?v=20261031b';
+import { escapeHTML, nameOf, rn, warnName, warningsFor } from './app_panel.js?v=20261031b';
+import { _simMod, activeShelterKinds, renderLegend, saveShelterKinds, selectEmd, selectSgg, selectSido, syncShelterLayers } from './app_layers.js?v=20261031b';
+import { OPEN, SITS, SIT_ICON, SIT_KEY, applySituation, onLangChanged, setTab } from './app_ui.js?v=20261031b';
+import { downloadICS, map, routeLinks, shareImage, speak } from './app_map.js?v=20261031b';
 
 export let _regionMod = null;
 

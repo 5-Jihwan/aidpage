@@ -23,7 +23,7 @@ description: AidPage 화면 층 작업법. js/, css/, index.html, sw.js를 고�
 - `js/*.js`의 import 문과 `js/i18n.js`의 언어 파일 import
 - `sw.js`의 `VERSION`
 
-새 모듈을 만들면 `sw.js`의 `SHELL`에 넣을지 판단한다. 데이터 캐시 규칙은 `aidpage-data-build`에 있다.
+새 모듈은 `sw.js`의 `SHELL`에 넣는다. 지연 로드 모듈도 빠지면 오프라인에서 열리지 않는다. 확인은 `node scripts/offline_probe.mjs`(실제 Edge 창이 뜬다)로 하고, 모듈 이름이 늘면 스크립트 목록도 고친다. 데이터 캐시 규칙은 `aidpage-data-build`에 있다.
 
 ## 하지 않는 것
 `CONTRIBUTING.md`의 원칙을 따른다.

@@ -9,12 +9,12 @@
    캐시를 셸/데이터로 나눈 이유: 예전엔 참조·시설·격자까지 VERSION 캐시에 있어서,
    셸 버전을 올릴 때마다(하루 10여 회) 138MB 격자를 포함한 전부가 삭제·재다운로드됐다.
    버전을 타는 건 셸뿐이고, 데이터는 DATA_CACHE에서 배포와 무관하게 살아남는다. */
-const VERSION = 'safepic-20261020a';   // 앱 셸 전용 — 배포마다 바뀐다
+const VERSION = 'safepic-20261031a';   // 앱 셸 전용 — 배포마다 바뀐다
 const DATA_CACHE = 'safepic-data-5';   // 참조·시설·격자 — 셸 버전을 올려도 살아남는다. 시설을 다시 만들면 번호를 올려야 기존 방문자에게 감(cacheFirst는 한 번 받으면 갱신 안 함) — 2: 10-11 개편 구 빈칸 · 3: 10-14 광주·전남 응급실·미세먼지쉼터·광주 경찰서 빈칸 · 4: 10-14 Atlas v1.7(타입 v1.4.2·대피 접근 정의 통일) · 5: 10-14 전남 코드표 정정(시설)·대피 접근 hz_all
 const FONT_CACHE = 'safepic-fonts';
 const KEEP = [VERSION, DATA_CACHE, FONT_CACHE];
 const SHELL = [   // → VERSION 캐시 (배포마다 교체)
-  './', './index.html', './css/style.css', './css/style_more.css', './css/style_fx.css', './js/app.js', './js/app_map.js', './js/app_layers.js', './js/app_panel.js', './js/app_wx.js', './js/app_ui.js', './js/app_wizard.js', './js/i18n.js', './js/rules.js', './js/shelters.js', './js/grid.js', './js/api.js',
+  './', './index.html', './css/style.css', './css/style_more.css', './css/style_fx.css', './js/app.js', './js/app_map.js', './js/app_layers.js', './js/app_panel.js', './js/app_wx.js', './js/app_ui.js', './js/app_wizard.js', './js/i18n.js', './js/rules.js', './js/shelters.js', './js/grid.js', './js/api.js', './js/access.js', './js/region.js',
   './manifest.webmanifest',
 ];
 const SHELL_DATA = [  // → DATA_CACHE (배포와 무관하게 유지). cacheFirst가 읽는 캐시와 같아야 프리캐시가 쓸모 있다.

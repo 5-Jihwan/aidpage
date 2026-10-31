@@ -20,7 +20,7 @@ AidPage는 재난 지원 제도를 **조건 → 금액 → 근거 조문 → 기
 - 빌드가 없는 정적 사이트입니다. 저장소 루트에서 `python -m http.server`로 띄우면 됩니다.
 - 규칙을 바꾸면 `rules/en.json`(영어 오버레이)과 `rules/changelog.json`(기준 변경일 때)을 함께 고치고 `node scripts/test_rules.mjs`를 돌려 주세요.
 - 바깥 링크를 넣거나 바꾸면 `python scripts/check_links.py --core`(한국 IP에서)로 확인해 주세요. 근거 링크는 부처 누리집의 깊은 주소보다 **법령 한글주소**(`law.go.kr/법령/○○법/제N조`)를 먼저 씁니다 — 조직 개편에도 깨지지 않습니다.
-- JS를 바꾸면 `index.html`·`sw.js`의 `?v=` 태그를 올립니다.
+- JS를 바꾸면 그 파일을 가리키는 `?v=` 태그와 `sw.js`의 `VERSION`을 올립니다.
 
 ---
 *In short:* the most valuable contribution is telling us where a rule is wrong, with a source. No personal data in issues. We do not add data collection, rankings, adjudication, or routing.

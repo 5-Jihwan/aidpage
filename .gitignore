@@ -35,3 +35,6 @@ docs/23_*
 wrap_*.html
 .work_access/
 .work_export/
+
+# Claude Code 작업 공간
+.claude/worktrees/

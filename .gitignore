@@ -38,3 +38,6 @@ wrap_*.html
 
 # Claude Code 작업 공간
 .claude/worktrees/
+
+# 공인 IP 등 개인 기록 포함, 공개 금지
+docs/AidPage_할일_체크리스트_20260907.xlsx

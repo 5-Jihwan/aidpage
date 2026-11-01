@@ -23,7 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / ".work_shelters"
 OUT = ROOT / "data" / "shelters"
 ADMIN = ROOT / "data" / "admin"
-TODAY = dt.date.today().isoformat()
+FETCHED_ON = dt.date.today().isoformat()
+TODAY = os.environ.get("SHELTERS_ASOF") or FETCHED_ON  # --offline 재빌드 때 원자료를 받은 날을 넘겨 asof가 오늘로 바뀌지 않게 한다
 MAX_BYTES = 5 * 1024 * 1024  # split per sido above this (hard limit is 6 MB)
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
@@ -338,6 +339,57 @@ def sgg_from_point(lon, lat):
             return code
     return None
 
+
+
+def coord_outside_sgg(lon, lat, sgg, margin=0.05):
+    """좌표가 시군구 경계 상자(+약 5 km)를 벗어나면 True. 경계 없는 코드는 판단하지 않는다."""
+    sgg_from_point(lon, lat)  # _SGG_POLYS 채움
+    rings = [p for p in _SGG_POLYS if p[5] == sgg]
+    if not rings:
+        return False
+    return not (min(p[0] for p in rings) - margin <= lon <= max(p[2] for p in rings) + margin
+                and min(p[1] for p in rings) - margin <= lat <= max(p[3] for p in rings) + margin)
+
+
+ADDR_SIDO_NAME = {
+    "서울": "서울", "부산": "부산", "대구": "대구", "인천": "인천", "광주": "전남광주", "대전": "대전", "울산": "울산", "세종": "세종",
+    "경기": "경기", "강원": "강원", "충북": "충청북", "충청북": "충청북", "충남": "충청남", "충청남": "충청남", "전북": "전북", "전라북": "전북",
+    "전남": "전남광주", "전라남": "전남광주", "전남광주": "전남광주", "경북": "경상북", "경상북": "경상북", "경남": "경상남", "경상남": "경상남", "제주": "제주",
+}
+# '광주시'(경기)·'광주이씨'를 광주광역시로 읽지 않게 시도 꼬리말까지 맞춘다
+ADDR_SIDO = re.compile("^(" + "|".join(sorted(ADDR_SIDO_NAME, key=len, reverse=True)) + ")(?:특별자치시|특별자치도|통합특별시|특별시|광역시|도)?\\s")
+
+
+def addr_sido_wrong(addr, sido_name):
+    """주소의 첫 낱말이 시도 이름인데 시설 코드의 시도와 다르면 True. 시도가 안 적힌 주소는 판단하지 않는다."""
+    m = ADDR_SIDO.match(str(addr or "").strip().lstrip("?"))
+    return bool(m) and not sido_name.startswith(ADDR_SIDO_NAME[m.group(1)])
+
+
+def reconcile(kind, f):
+    """좌표·주소·코드가 어긋난 행을 정리한다. False면 뺀다. 지오코딩은 하지 않으므로 좌표는 고치지 못하고, 근거가 없으면 버린다.
+    10-31 전수 측정: 비상급수 214건은 코드만 틀림(좌표=주소), 지진 옥외대피장소 167건은 코드 없음, 급경사지 686건·임시주거시설 13건은 좌표가 엉뚱한 곳."""
+    p = f["properties"]
+    lon, lat = f["geometry"]["coordinates"]
+    s, addr = p["sgg"], p["addr"]
+    pt = sgg_from_point(lon, lat)
+    if not s:
+        if pt:
+            p["sgg"] = pt
+            STATS.add(kind, "fixed_sgg_empty")
+        return True
+    if not coord_outside_sgg(lon, lat, s) and not addr_sido_wrong(addr, SIDO_NAME.get(s[:2], "")):
+        return True
+    if pt and sgg_from_addr(addr) != s and sido_from_addr(addr) == pt[:2]:   # 좌표와 주소가 같은 시도 → 코드만 틀림
+        p["sgg"] = pt
+        STATS.add(kind, "fixed_sgg_code")
+        return True
+    if kind == "underpass" and pt == s:   # 주소는 국토부 목록을 이름으로만 붙인 값이라, OSM 좌표가 맞고 이름이 겹친 것
+        p["addr"] = None
+        STATS.add(kind, "fixed_addr_name_clash")
+        return True
+    STATS.add(kind, "dropped_location_conflict")
+    return False
 
 
 NOT_OBTAINABLE = [

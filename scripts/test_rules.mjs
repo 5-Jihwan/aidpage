@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RULES_DIR = path.join(ROOT, 'rules');
-const { loadRules, evaluate, formatKRW, addDays, diffDays } = await import(pathToFileURL(path.join(ROOT, 'js', 'rules.js')).href);
+const { loadRules, evaluate, formatKRW, addDays, diffDays, LABELS } = await import(pathToFileURL(path.join(ROOT, 'js', 'rules.js')).href);
 
 // ---- 0. 모든 JSON 파싱 + 필수 필드 ----
 const files = (await readdir(RULES_DIR)).filter((f) => f.endsWith('.json') && f !== 'en.json' && f !== 'changelog.json'); // en=언어 오버레이(객체), changelog=이력
@@ -208,10 +208,65 @@ test('모든 규칙이 최소 1개 입력 조합에서 매칭됨(dead rule 없�
   assert.deepEqual(dead, [], `dead rules: ${dead.join(', ')}`);
 });
 
+// ---- 16. 규칙 파일 자체의 일관성 ----
+test('conditions 값이 LABELS에 있음(오타면 그 규칙이 조용히 안 뜬다)', () => {
+  const bad = [];
+  for (const r of rules.all) for (const k of ['housing', 'damage', 'household', 'hazard']) {
+    for (const v of r.conditions[k] || []) if (!(v in LABELS[k])) bad.push(`${r.id}:${k}=${v}`);
+  }
+  assert.deepEqual(bad, []);
+});
+
+test('금액 숫자와 금액 문구가 일치', () => {
+  const bad = rules.all.filter((r) => r.amount_krw != null && !r.amount_text.includes(formatKRW(r.amount_krw))).map((r) => `${r.id}: ${r.amount_krw} / ${r.amount_text}`);
+  assert.deepEqual(bad, []);
+});
+
+test('근거 주소·날짜 형식', () => {
+  const ISO = /^\d{4}-\d{2}-\d{2}/;
+  const bad = [];
+  for (const r of rules.all) {
+    if (!/^https:\/\//.test(r.basis_url)) bad.push(`${r.id} basis_url`);
+    for (const k of ['effective_from', 'rate_asof']) if (r[k] && !ISO.test(r[k])) bad.push(`${r.id} ${k}=${r[k]}`);
+  }
+  assert.deepEqual(bad, []);
+});
+
+test('영어판이 모든 규칙·절차를 덮음', async () => {
+  const en = JSON.parse(await readFile(path.join(RULES_DIR, 'en.json'), 'utf8'));
+  assert.deepEqual(rules.all.map((r) => r.id).filter((id) => !en.rules[id]), []);
+  assert.deepEqual(rules.procedures.steps.map((s) => s.id).filter((id) => !en.steps[id]), []);
+});
+
+// ---- 17. 입력 전체 조합 ----
+test('전체 입력 조합: 깨진 값 없음, 특별재난지역 항목 안 샘, 할 일 참조 유효', () => {
+  const known = new Set([...rules.all.map((r) => r.id), ...rules.procedures.steps.map((s) => s.id)]);
+  const zoneOnly = rules.all.filter((r) => r.conditions.special_zone === true).map((r) => r.id);
+  const housings = [null, 'own', 'rent', 'shop', 'farm'];
+  const damages = [[], ['flood'], ['half'], ['full'], ['goods'], ['injury'], ['death'], ['heat'], ['cold'], ['flood', 'injury'], ['full', 'death']];
+  const hazards = ['rain', 'typhoon', 'heat', 'cold', 'quake', 'landslide', 'any'];
+  for (const lang of ['ko', 'en']) for (const housing of housings) for (const damage of damages) for (const hazard of hazards) for (const special_zone of [true, false]) for (const event_end of [null, '2026-08-15']) {
+    const input = { housing, damage, household: ['basic'], special_zone, hazard, event_end, today: '2026-08-21' };
+    const at = JSON.stringify(input);
+    const r = evaluate(rules, input, lang);
+    assert.ok(Number.isFinite(r.total_cash_krw) && r.total_cash_krw >= 0, `합계 ${at}`);
+    assert.equal(r.todo.length, 3, `할 일 수 ${at}`);
+    assert.ok(!/undefined|null|NaN/.test(r.todo.map((x) => x.text).join(' ') + r.total_cash_text), `문장 깨짐 ${at}`);
+    for (const x of r.todo) assert.ok(x.ref === null || known.has(x.ref), `없는 참조 ${x.ref} ${at}`);
+    if (!special_zone) assert.ok(!r.matched_ids.some((id) => zoneOnly.includes(id)), `특별재난지역 항목 샘 ${at}`);
+  }
+});
+
+test('마감: 윤년 2월·연말', () => {
+  assert.equal(addDays('2028-02-25', 10), '2028-03-06');
+  assert.equal(addDays('2027-02-25', 10), '2027-03-07');
+  assert.equal(diffDays('2026-12-31', '2027-01-01'), 1);
+});
+
 // ---- run ----
 let pass = 0, fail = 0;
 for (const t of tests) {
-  try { t.fn(); pass++; console.log(`  ok   ${t.name}`); }
+  try { await t.fn(); pass++; console.log(`  ok   ${t.name}`); }
   catch (e) { fail++; console.log(`  FAIL ${t.name}\n       ${e.message}`); }
 }
 console.log('\nfiles:', stats.files);

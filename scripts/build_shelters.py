@@ -335,6 +335,58 @@ def build_townhall() -> list[dict]:
     return feats
 
 
+FIRE_NAME = re.compile(r"소방서|119")
+FIRE_NOT = re.compile(r"의용|체험|훈련|식당|박물관|학교")
+
+
+def build_fire() -> list[dict]:
+    """소방서·119안전센터 — safekorea. 공식 자료가 시군구 수의 절반도 안 되는 시도(10-31: 부산·대전·세종·경남·제주, 원천 0~4건)와 0건인 시군구만 OSM으로 보충.
+    공식 자료가 채워지면 그 시도는 자동으로 보충에서 빠진다."""
+    kind = "fire"
+    feats = make_sk_builder("fire", "fire", "소방서·119안전센터")()
+    n_sgg = Counter(r["sido"] for r in sgg_index()["rows"])
+    have = Counter((f["properties"]["sgg"] or "")[:2] for f in feats)
+    gaps = {s for s, n in n_sgg.items() if have[s] < n / 2}
+    empty = sgg_index()["codes"] - {f["properties"]["sgg"] for f in feats}   # 공식 자료가 0건인 시군구
+    if not gaps and not empty:
+        return feats
+    q = '[out:json][timeout:120];area["ISO3166-1"="KR"]->.kr;(nwr["amenity"="fire_station"](area.kr););out center tags;'
+    raw = cached("osm_fire.json", lambda: http("https://overpass-api.de/api/interpreter",
+                                               data=urllib.parse.urlencode({"data": q}).encode(),
+                                               headers={"User-Agent": "safepic/0.1"}, timeout=180))
+    j = json.loads(raw)
+    norm = lambda n: re.sub(r"\s|안전센터", "", n or "")  # noqa: E731  띄어쓰기·꼬리말만 다른 이름은 같은 이름
+    seen = defaultdict(list)
+    for f in feats:  # 다른 시군구 코드로 들어간 공식 자료와도 겹치지 않게
+        seen[norm(f["properties"]["name"])].append(tuple(f["geometry"]["coordinates"]))
+    osm_day = dt.date.fromtimestamp((CACHE / "osm_fire.json").stat().st_mtime).isoformat()
+    for e in j.get("elements", []):
+        t = e.get("tags", {})
+        name = clean(t.get("name"))
+        if t.get("amenity") != "fire_station" or not name or not FIRE_NAME.search(name) or FIRE_NOT.search(name):
+            continue
+        lon = to_float(e.get("lon") or (e.get("center") or {}).get("lon"))
+        lat = to_float(e.get("lat") or (e.get("center") or {}).get("lat"))
+        sgg = sgg_from_point(lon, lat) if in_bounds(lon, lat) else None
+        if not sgg or (sgg[:2] not in gaps and sgg not in empty):
+            continue
+        key = norm(name)
+        if key == "119":  # 어느 센터인지 모르는 이름
+            continue
+        if any(abs(lon - x) + abs(lat - y) < 0.03 for x, y in seen[key]):  # 같은 이름이 약 3 km 안 = 같은 시설
+            continue
+        seen[key].append((lon, lat))
+        f = feature(kind, lon, lat, name, t.get("addr:full"), None, None, "osm", osm_day, sgg=sgg)
+        if f:
+            STATS.add(kind, "osm_added")
+            feats.append(f)
+    SOURCES[kind].append({"name": f"OpenStreetMap 소방서 (Overpass API) — 공식 자료가 빈 시도·시군구만 보충: 시도 {' '.join(sorted(gaps))}, 시군구 {len(empty)}곳",
+                          "url": "https://www.openstreetmap.org", "endpoint": "https://overpass-api.de/api/interpreter",
+                          "fetched": osm_day, "raw_rows": len(j.get("elements", [])),
+                          "license": "ODbL 1.0 — © OpenStreetMap contributors (attribution shown on map)"})
+    return feats
+
+
 def build_underpass() -> list[dict]:
     """지하차도 (위험 지점) — geometry from OpenStreetMap tunnel ways (centre point), attributes joined by name
     from 국토교통부 '시설물안전법 대상 지하차도 현황' (data.go.kr 15124755, 938 rows; addresses only, no coords).
@@ -386,7 +438,7 @@ BUILDERS = {
     "cold": build_cold,
     "quake": build_quake,
     "temp_housing": build_temp_housing,
-    "fire": make_sk_builder("fire", "fire", "소방서·119안전센터"),
+    "fire": build_fire,
     "police": make_sk_builder("police", "police", "경찰서·지구대"),
     "pharmacy": make_sk_builder("pharmacy", "pharmacy", "약국"),
     "er": make_sk_builder("er", "er", "응급의료센터"),
@@ -427,6 +479,7 @@ def main():
             FAILURES.append({"kind": kind, "err": repr(e)})
             print(f"  FAILED {kind}: {e!r}", file=sys.stderr)
             continue
+        feats = [f for f in feats if reconcile(kind, f)]
         validate(feats)
         index.pop(kind, None)
         results[kind] = write_kind(kind, feats, index)

@@ -279,7 +279,8 @@ def main() -> int:
             return 0
         # 커밋을 먼저 한다 — stash/pop 실패로 변경분이 유실되던 경로를 없앱다.
         git("add", *paths)
-        c = git("commit", "-q", "-m", f"live(sd-local) {now_kst().strftime('%Y-%m-%dT%H:%M')}")
+        # 경로를 지정해 커밋한다 — 지정하지 않으면 스테이징된 다른 작업까지 함께 공개된다(2026-11-01 사고)
+        c = git("commit", "-q", "-m", f"live(sd-local) {now_kst().strftime('%Y-%m-%dT%H:%M')}", "--", *paths)
         if c.returncode != 0:
             msg = f"commit failed: {c.stderr[:200]}"
             log(msg); flog(msg)

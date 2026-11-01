@@ -2,7 +2,7 @@
    본 사이트는 경로 선을 그리지 않는다. 가까운 대피소 3곳마다 "걸어서 약 n분 · 가는 방향에 침수 이력 칸 n · 지하차도 근처 n"을 문장으로만 보여준다.
    계산은 전국 미리 계산(scripts/access_top3.py → data/access/<sgg>.json)을 읽는다. 옛 기기 경로 계산(sim_worker)과 선이 있는 sim.html은 10-14 폐기(docs/56 N7).
    미리 계산이 없는 자리는 직선 거리로만 안내한다. */
-import { t, getLang } from './i18n.js?v=20261031b';
+import { t, getLang } from './i18n.js?v=20261101a';
 const $ = (s, r = document) => r.querySelector(s);
 // 민방위 대피시설은 대부분 지하(공습 대비)라 침수 맥락의 이 카드에서는 뺀다. 지진옥외대피장소는 비를 피할 수 없는 공터라 뺀다.
 const SHELTER_KINDS = ['temp_housing', 'tsunami'];
@@ -11,7 +11,7 @@ let C = null;
 /* v2(10-14): 전국 미리 계산(scripts/access_top3.py) — 칸마다 가까운 임시주거시설 3곳 [번호, 거리 m, 비트].
    비트 1 깊은 침수 기록(0.5 m+) · 2 지하차도 150 m · 4 침수 기록(깊이 무관) · 16 산사태 기록 칸. (8 칸 경사·32 급경사지는 문장에 쓰지 않음 — docs/56 §5 C안: 도시 축대까지 잡혀 주민 7명 중 1명에게 경고가 붙음)
    미리 계산이 없는 자리는 직선 거리로만 안내한다. 걷는 속도는 Atlas·논문 D와 같은 48 m/분(느린 걸음). */
-const PRE = new Map(), PRE_V = '20261014a';
+const PRE = new Map(), PRE_V = '20261101a';
 const loadPre = sgg => { if (!PRE.has(sgg)) PRE.set(sgg, fetch(`data/access/${sgg}.json?v=${PRE_V}`).then(r => r.ok ? r.json() : null).catch(() => null)); return PRE.get(sgg); };
 function cellAt(sgg, lonlat) {
   const cs = C.gridCells(sgg); if (!cs.length) return null;

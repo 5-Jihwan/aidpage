@@ -1,14 +1,14 @@
 /* 실시간 조회·지역 패널·오늘 할 일·보험·제보·재난문자·팁·응급실 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang } from './i18n.js?v=20261031b';
-import { cells as gridCells } from './grid.js?v=20261031b';
+import { t, getLang } from './i18n.js?v=20261101a';
+import { cells as gridCells } from './grid.js?v=20261101a';
 import { getReports, postReport, flagReport, getER } from './api.js?v=20260914b';
 import { nearest as nearestShelters } from './shelters.js?v=20261008a';
-import { $, $$, state } from './app.js?v=20261031b';
-import { featuresWhere, map, openPopup, pipFeature, speak } from './app_map.js?v=20261031b';
-import { renderNearest, resetNation, saveShelterKinds, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261031b';
-import { getProfile } from './app_ui.js?v=20261031b';
-import { applyDrawerFx, applyFolds, closeRegionDrawer, openRegionDrawer, regionMod, renderRegionSummary, renderSitBar } from './app_wizard.js?v=20261031b';
-import { applyAlertFx } from './app_wx.js?v=20261031b';
+import { $, $$, state } from './app.js?v=20261101a';
+import { featuresWhere, map, openPopup, pipFeature, speak } from './app_map.js?v=20261101a';
+import { renderNearest, resetNation, saveShelterKinds, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261101a';
+import { getProfile } from './app_ui.js?v=20261101a';
+import { applyDrawerFx, applyFolds, closeRegionDrawer, openRegionDrawer, regionMod, renderRegionSummary, renderSitBar } from './app_wizard.js?v=20261101a';
+import { applyAlertFx } from './app_wx.js?v=20261101a';
 
 export let _nameMemo = null;
 

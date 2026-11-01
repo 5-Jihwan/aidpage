@@ -1,0 +1,43 @@
+name: check
+
+# 수집 봇의 data/live 커밋은 경로 조건에 안 걸린다 — 규칙·화면·시설·참조 자료가 바뀔 때만 돈다.
+on:
+  push:
+    paths:
+      - "js/**"
+      - "rules/**"
+      - "data/shelters/**"
+      - "data/admin/**"
+      - "data/ref/**"
+      - "scripts/test_*.mjs"
+      - "scripts/check_counts.py"
+      - ".github/workflows/check.yml"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+
+      - name: Rule tests
+        run: node scripts/test_rules.mjs
+
+      - name: Safety and translation tests
+        run: node scripts/test_ui_rules.mjs
+
+      - name: Data checks
+        run: |
+          python scripts/check_counts.py --selftest
+          python scripts/check_counts.py --shelters

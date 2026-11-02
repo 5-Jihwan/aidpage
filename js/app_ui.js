@@ -1,12 +1,12 @@
 /* 탭·패널·PWA·프로필·토스트·푸시·글자 크기·언어·상황·첫 화면 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang, setLang, LANGS, langName } from './i18n.js?v=20261102b';
-import { getVapid, pushSub, pushUnsub, stat } from './api.js?v=20261102b';
-import { $, $$, MQ_MOBILE, evaluate, setRulesLang, state } from './app.js?v=20261102b';
-import { renderResult, renderRulesTable, renderSiteStats, syncWizardLoc } from './app_wizard.js?v=20261102b';
-import { adminNameField, landmarkNameField, localizeLabels, locateMe, map, panelW, syncGrid3D } from './app_map.js?v=20261102b';
-import { nameOf, renderRegion, renderTip } from './app_panel.js?v=20261102b';
-import { getHome, initShelterUI, renderAll, saveShelterKinds, syncGrid } from './app_layers.js?v=20261102b';
-import { _fxSig, applyWxLayer, resetFxDismiss, suggest } from './app_wx.js?v=20261102b';
+import { t, getLang, setLang, LANGS, langName } from './i18n.js?v=20261102d';
+import { getVapid, pushSub, pushUnsub, stat } from './api.js?v=20261102d';
+import { $, $$, MQ_MOBILE, evaluate, setRulesLang, state } from './app.js?v=20261102d';
+import { renderResult, renderRulesTable, renderSiteStats, syncWizardLoc } from './app_wizard.js?v=20261102d';
+import { adminNameField, landmarkNameField, localizeLabels, locateMe, map, panelW, syncGrid3D } from './app_map.js?v=20261102d';
+import { nameOf, renderRegion, renderTip } from './app_panel.js?v=20261102d';
+import { getHome, initShelterUI, renderAll, saveShelterKinds, syncGrid } from './app_layers.js?v=20261102d';
+import { _fxSig, applyWxLayer, resetFxDismiss, suggest } from './app_wx.js?v=20261102d';
 
 export function setTab(tab) {
   state.tab = tab;

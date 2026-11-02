@@ -1,12 +1,12 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, applyStatic } from './i18n.js?v=20261102b';
-import { stat } from './api.js?v=20261102b';
-import { initMap, map } from './app_map.js?v=20261102b';
-import { activeShelterKinds, getHome, initHome, initLegendDrag, renderAll, renderHome, renderLegend, resetNation, selectEmd } from './app_layers.js?v=20261102b';
-import { escapeHTML, renderCrumb, renderTip } from './app_panel.js?v=20261102b';
-import { applyRulesLang, buildLangButtons, initCards, initLang, initPWA, initClearDevice, initPanel, initProfile, initPush, initSize, initWelcome, reportError, setTab } from './app_ui.js?v=20261102b';
-import { applyShare, initWizard, lawDoc, lawRefEn, renderRulesTable, renderSiteStats, statVisit, syncWizardLoc } from './app_wizard.js?v=20261102b';
-import { initSearch, initWxSel } from './app_wx.js?v=20261102b';
+import { t, getLang, applyStatic } from './i18n.js?v=20261102d';
+import { stat } from './api.js?v=20261102d';
+import { initMap, map } from './app_map.js?v=20261102d';
+import { activeShelterKinds, getHome, initHome, initLegendDrag, renderAll, renderHome, renderLegend, resetNation, selectEmd } from './app_layers.js?v=20261102d';
+import { escapeHTML, renderCrumb, renderTip } from './app_panel.js?v=20261102d';
+import { applyRulesLang, buildLangButtons, initCards, initLang, initPWA, initClearDevice, initPanel, initProfile, initPush, initSize, initWelcome, reportError, setTab } from './app_ui.js?v=20261102d';
+import { applyShare, initWizard, lawDoc, lawRefEn, renderRulesTable, renderSiteStats, statVisit, syncWizardLoc } from './app_wizard.js?v=20261102d';
+import { initSearch, initWxSel } from './app_wx.js?v=20261102d';
 
 export let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 

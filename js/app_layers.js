@@ -1,14 +1,14 @@
 /* 선택·저장 동네·카카오·문장 카드 열기·격자·시설 층·범례·가까운 시설 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang } from './i18n.js?v=20261102a';
-import { hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt } from './grid.js?v=20261102a';
+import { t, getLang } from './i18n.js?v=20261102b';
+import { hasGrid, meta as gridMeta, cells as gridCells, available as gridAttrs, show as showGrid, hide as hideGrid, fmt as gridFmt } from './grid.js?v=20261102b';
 import { stat } from './api.js?v=20260914b';
-import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, nearest as nearestShelters } from './shelters.js?v=20261008a';
-import { $, $$, KOREA_CENTER, MQ_MOBILE, ensureEmd, state } from './app.js?v=20261102a';
-import { bboxOf, featuresWhere, fitTo, focusClip, map, openPopup, pipFeature, routeLinks, setLevelFilters, srcBadge, visiblePadding } from './app_map.js?v=20261102a';
-import { applyWindArrows, applyWxLayer } from './app_wx.js?v=20261102a';
-import { applyFolds, syncWizardLoc } from './app_wizard.js?v=20261102a';
-import { emdDisp, floodContext, renderCrumb, renderRegion, rn, warningsFor } from './app_panel.js?v=20261102a';
-import { getProfile, toast } from './app_ui.js?v=20261102a';
+import { initShelters, setActive as setShelters, setHeatmap as setShelterHeatmap, collect as collectShelters, HEAT_BANDS, kindName, nearest as nearestShelters } from './shelters.js?v=20261102b';
+import { $, $$, KOREA_CENTER, MQ_MOBILE, ensureEmd, state } from './app.js?v=20261102b';
+import { bboxOf, featuresWhere, fitTo, focusClip, map, openPopup, pipFeature, routeLinks, setLevelFilters, srcBadge, visiblePadding } from './app_map.js?v=20261102b';
+import { applyWindArrows, applyWxLayer } from './app_wx.js?v=20261102b';
+import { applyFolds, syncWizardLoc } from './app_wizard.js?v=20261102b';
+import { emdDisp, floodContext, renderCrumb, renderRegion, rn, warningsFor } from './app_panel.js?v=20261102b';
+import { getProfile, toast } from './app_ui.js?v=20261102b';
 
 export function selectSido(code) {
   Object.assign(state, { level: 'sido', sido: String(code), sgg: null, emd: null });
@@ -80,7 +80,7 @@ export async function openSimulator() {
   const b = $('#btnSim'); b.disabled = true;
   try {
     if (!_simMod) {
-      _simMod = await import('./access.js?v=20261102a');   // S0: 본 사이트는 문장 카드만(전국 미리 계산 읽기). 옛 시뮬레이터(sim.js·sim_worker)와 선 그리는 sim.html은 10-14 폐기 샌드박스 전용
+      _simMod = await import('./access.js?v=20261102b');   // S0: 본 사이트는 문장 카드만(전국 미리 계산 읽기). 옛 시뮬레이터(sim.js·sim_worker)와 선 그리는 sim.html은 10-14 폐기 샌드박스 전용
       _simMod.initAccess({ state, toast, t, stat, gridCells, collectShelters, nearestShelters, pipFeature, emdDisp, profile: getProfile });
     }
     await _simMod.openAccess();
@@ -199,13 +199,13 @@ export async function initShelterUI() {
   const box = $('#shsel'); if (!state.shelters.avail.length) { box.hidden = true; return; }
   box.hidden = false;
   const GROUPS = [
-    { id: 'evac', ko: '대피', en: 'Evacuate', icon: '🛡️', kinds: ['civil_defense', 'temp_housing', 'quake', 'tsunami'] },
-    { id: 'rest', ko: '쉼터', en: 'Shelters', icon: '🌡️', kinds: ['heat', 'cold', 'dust'] },
-    { id: 'help', ko: '도움', en: 'Help', icon: '🆘', kinds: ['townhall', 'er', 'pharmacy', 'health', 'fire', 'police', 'meal', 'water', 'chem'] },
-    { id: 'hazard', ko: '위험 지점', en: 'Hazards', icon: '⚠️', kinds: ['steep', 'wildfire_hist', 'underpass'] },
+    { id: 'evac', icon: '🛡️', kinds: ['civil_defense', 'temp_housing', 'quake', 'tsunami'] },
+    { id: 'rest', icon: '🌡️', kinds: ['heat', 'cold', 'dust'] },
+    { id: 'help', icon: '🆘', kinds: ['townhall', 'er', 'pharmacy', 'health', 'fire', 'police', 'meal', 'water', 'chem'] },
+    { id: 'hazard', icon: '⚠️', kinds: ['steep', 'wildfire_hist', 'underpass'] },
   ];
   const en = getLang() !== 'ko', K = id => state.shelters.avail.find(a => a.id === id);
-  const chip = k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${en ? k.en : k.ko}</span></label>`;
+  const chip = k => `<label><input type="checkbox" value="${k.id}" ${state.shelters.active.has(k.id) ? 'checked' : ''}><span>${k.icon} ${kindName(k)}</span></label>`;
   const mode0 = shMode();
   const mBtn = (m, ic) => `<button type="button" class="shmode-b ${mode0 === m ? 'is-on' : ''}" data-m="${m}">${ic} ${t('sh.mode.' + m)}</button>`;
   box.innerHTML = `<button type="button" class="wxsel-t" id="shselT">${t('sh.title')}</button>`
@@ -213,7 +213,7 @@ export async function initShelterUI() {
     + GROUPS.map(g => {
     const ks = g.kinds.map(K).filter(Boolean); if (!ks.length) return '';
     const allOn = ks.every(k => state.shelters.active.has(k.id));
-    return `<div class="shgrp"><button type="button" class="shgrp-t ${allOn ? 'is-on' : ''}" data-grp="${g.id}">${g.icon} ${en ? g.en : g.ko}</button><div class="shgrp-k">${ks.map(chip).join('')}</div></div>`;
+    return `<div class="shgrp"><button type="button" class="shgrp-t ${allOn ? 'is-on' : ''}" data-grp="${g.id}">${g.icon} ${t('kind.grp.' + g.id)}</button><div class="shgrp-k">${ks.map(chip).join('')}</div></div>`;
   }).join('');
   if (mode0 !== 'icons') setShelterHeatmap(mode0);
   $$('.shmode-b', box).forEach(b => b.addEventListener('click', () => {
@@ -395,7 +395,7 @@ export function renderLegend(kinds) {
     ? `<div class="lg-row lg-heatrow"><b>${t('legend.heat')} · ${t('legend.heat.u.' + L.u)}</b><span class="lg-bands">${L.bins.map(b => `<span class="lg-band"><i style="background:${b.c}"></i>${binLbl(b)}</span>`).join('')}</span><small class="lg-heat-s">${t('legend.heat.s', { list: sh.map(k => k.icon).join('') })}</small></div>`
     : kernMode
     ? `<div class="lg-row lg-heatrow"><b>${t('legend.heatk')}</b><span class="lg-bands">${HEAT_BANDS.map(b => `<span class="lg-band"><i style="background:${b.c}"></i>${t(b.key)}</span>`).join('')}</span><small class="lg-heat-s">${t('legend.heatk.s', { list: sh.map(k => k.icon).join('') })}</small></div>`
-    : `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${en ? k.en : k.ko}</span>`).join('')}</div>`;
+    : `<div class="lg-row">${sh.map(k => `<span><i style="background:${k.color}"></i>${k.icon} ${kindName(k)}</span>`).join('')}</div>`;
   box.innerHTML = `<button type="button" class="lg-toggle" id="lgToggle">${t('legend.title')} ${sh.length ? `<span class="lg-dots">${areaMode ? L.bins.map(b => `<i style="background:${b.c}"></i>`).join('') : kernMode ? HEAT_BANDS.map(b => `<i style="background:${b.c}"></i>`).join('') : sh.map(k => `<i style="background:${k.color}"></i>`).join('')}</span>` : ''}</button>` + shRow +
     (wxl ? onRow('wx', wxl) : wxOff ? offRow('wx', t('wx.' + state._wxLast)) : '') +
     (g ? onRow('grid', g) : gridOff ? offRow('grid', t('grid.title')) : '') + `<small class="lg-src">${t('legend.src')}</small>`;
@@ -415,7 +415,7 @@ export async function renderNearest() {
   const list = await nearestShelters(origin, kinds, state.sido, 8, true);
   if (state.emd !== e.code) return;
   box.hidden = false;
-  box.innerHTML = `<h3>${t('sh.nearest')} <small class="muted">${useGps ? t('sh.fromGps') : t('sh.fromEmd')}</small></h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${getLang() !== 'ko' ? x.k.en : x.k.ko}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
+  box.innerHTML = `<h3>${t('sh.nearest')} <small class="muted">${useGps ? t('sh.fromGps') : t('sh.fromEmd')}</small></h3>` + (list.length ? list.map((x, i) => `<button type="button" class="near-item" data-i="${i}"><span class="near-ic">${x.k.icon}</span><span class="near-main"><b>${x.p.name || '-'}</b><small>${kindName(x.k)}${x.p.cap ? ` · ${x.p.cap}` : ''}</small></span><span class="near-walk mono">${t('sh.walk', { n: x.walk })}</span></button>`).join('') : `<div class="muted" style="font-size:.9rem">${t('sh.none')}</div>`);
   box.insertAdjacentHTML('beforeend', `${flood ? `<small class="near-note near-flood">${t('near.flood')}</small>` : ''}<small class="near-note">${t('sh.desig')}</small>`);
   applyFolds();
   $$('.near-item', box).forEach(b => b.addEventListener('click', () => { const x = list[+b.dataset.i]; map.flyTo({ center: x.c, zoom: 15.5, padding: visiblePadding() }); openPopup(x.c, `<b>${x.p.name || ''}</b><br><small>${x.p.addr || ''}${x.p.tel ? `<br>📞 <a href="tel:${x.p.tel}">${x.p.tel}</a>` : ''}</small>${routeLinks(x.c[0], x.c[1], x.p.name)}`, { fromPanel: true }); }));

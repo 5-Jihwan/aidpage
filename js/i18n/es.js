@@ -799,4 +799,5 @@ export default {
   'acc2.allhz': 'Los 3 lugares más cercanos tienen un registro de inundación o un paso inferior en el camino. Es más seguro moverse pronto, antes de la lluvia.',
   'acc2.snap': 'Este punto está a unos {m} m del camino, así que los tiempos a pie son aproximados.',
   'acc2.ts': 'Si está cerca de la costa: lugar de evacuación por tsunami {name} — {fast} min a pie ({slow} min despacio). Tras un sismo fuerte, vaya primero a un lugar alto, antes que a cualquier instalación para damnificados.',
+'rep.gps': 'Adjuntar también mi ubicación (pública, redondeada a unos 100 m)', 'rep.del': 'Borrar mi reporte', 'rep.del.q': '¿Borrar este reporte?', 'link.privacy': 'Política de privacidad', 'link.terms': 'Condiciones de uso', 'device.t': 'Datos en este dispositivo', 'device.btn': 'Borrar todos los datos de este dispositivo', 'device.q': 'Se borrarán su perfil, ajustes y caché en este dispositivo y se apagarán las alertas. También perderá la opción de borrar sus reportes. ¿Continuar?',
 };

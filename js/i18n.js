@@ -1,6 +1,7 @@
 // AidPage i18n — ko/en은 이 파일에, 나머지 언어는 js/i18n/<lang>.js를 고를 때만 불러온다. Static nodes use data-i18n="key"; dynamic strings call t(key, vars).
 export const DICT = {
   ko: {
+    'rep.gps': '위치 좌표도 함께 올리기(약 100 m 단위로 공개)', 'rep.del': '내 제보 지우기', 'rep.del.q': '이 제보를 지울까요?', 'link.privacy': '개인정보 처리방침', 'link.terms': '이용안내', 'device.t': '이 기기의 데이터', 'device.btn': '이 기기 데이터 모두 지우기', 'device.q': '이 기기의 프로필·설정·캐시를 지우고 알림을 끕니다. 내가 쓴 제보를 지우는 권한도 사라집니다. 계속할까요?',
     'doc.title': 'AidPage · 재난 지원제도 안내, 한 장으로', 'about.cd': '민방위 대피시설 정보는 행정안전부 공개 자료를 그대로 옮긴 것입니다. 공습 등 민방위 사태의 공식 안내는 안전디딤돌 앱과 재난문자를 따르세요.', 'wel.xlat': '', 'lang.rulesEn': '',
     'brand.sub': '재난 지원제도 안내, 한 장으로',
     'nav.nation': '대한민국',
@@ -103,6 +104,7 @@ export const DICT = {
     'install.msg': '📲 홈 화면에 추가하면 통신이 끊겨도 내 동네 정보를 볼 수 있어요.', 'install.go': '추가', 'install.later': '나중에', 'offline.badge': '오프라인 · 저장된 정보로 표시 중', 'gps.title': '내 위치로 찾기', 'gps.unsupported': '이 브라우저는 위치 기능을 지원하지 않습니다.', 'gps.denied': '위치 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.', 'gps.fail': '위치를 가져오지 못했습니다. 동 이름으로 검색해 주세요.', 'gps.outside': '현재 위치가 대한민국 밖으로 판정되었습니다.', 'sh.fromGps': '내 위치 기준', 'sh.fromEmd': '동 중심 기준', 'sh.title': '표시할 시설', 'sh.mode': '표시 방식', 'sh.mode.icons': '아이콘', 'sh.mode.heat': '히트맵', 'sh.mode.area': '구역별', 'shheat.pop': '켜진 시설 {list} — {n}곳', 'grid.3d.t': '3D 모드에서 위험 격자를 기둥으로 세웁니다 (값이 클수록 높이)', 'risk.river': '{s} 수위 {lv} ({m}m)', 'risk.river.g1': '주의보 초과', 'risk.river.g2': '경보 초과', 'risk.river.g3': '심각 단계', 'legend.heatk': '시설 밀도', 'legend.heat.l1': '드묾', 'legend.heat.l2': '보통', 'legend.heat.l3': '많음', 'legend.heat.l4': '밀집', 'legend.heatk.s': '{list} 켜진 시설이 몰릴수록 파랑→라임→주황→빨강 — 화면 기준 상대 등급입니다. 구역별 실제 개수는 구역별 모드에서.', 'legend.heat': '시설 수', 'legend.heat.u.sgg': '시군구별', 'legend.heat.u.emd': '읍면동별', 'legend.heat.n': '{lo}–{hi}곳', 'legend.heat.n1': '{n}곳', 'legend.heat.np': '{n}곳 이상', 'legend.heat.s': '{list} 켜진 시설의 구역별 실제 개수입니다 — 시·도만 고르면 시군구별, 시군구를 고르면 읍면동별로 세분화됩니다. 정확한 위치는 아이콘 모드에서.', 'sh.nearest': '가까운 곳 (종류별 1곳)', 'near.flood': '호우·침수·태풍 때는 지하 민방위 대피시설을 빼고 임시주거시설·주민센터를 안내합니다.', 'sh.desig': '지정 시설입니다. 지금 열려 있는지는 주민센터에 확인하세요.', 'res.scope': '자연재난(호우·태풍·대설·지진 등) 지원 제도를 기준으로 안내합니다. 산불·화재·사고 같은 사회재난은 제도가 달라 여기 금액이 그대로 적용되지 않습니다 — 주민센터에 확인하세요.', 'risk.flood0': '이 동 격자 {total}개에 기록된 침수 없음 — 기록이 없다는 뜻이지 안전하다는 뜻은 아닙니다', 'sh.walk': '도보 {n}분', 'sh.none': '5km 안에 표시할 시설이 없습니다',
   },
   en: {
+    'rep.gps': 'Also attach my location (public, rounded to about 100 m)', 'rep.del': 'Delete my report', 'rep.del.q': 'Delete this report?', 'link.privacy': 'Privacy policy', 'link.terms': 'Terms of use', 'device.t': 'Data on this device', 'device.btn': 'Clear all data on this device', 'device.q': 'This clears your profile, settings and cache on this device and turns off alerts. You will also lose the ability to delete your reports. Continue?',
     'doc.title': 'AidPage · Disaster assistance navigator, on one page', 'about.cd': 'Civil-defense shelter data is copied as-is from MOIS open data. For civil-defense emergencies such as air raids, follow the official Emergency Ready App and emergency alerts.', 'wel.xlat': 'Translated page — the Korean original prevails. Many programs require resident or foreigner registration in the affected area; confirm at the community center.', 'lang.rulesEn': '',
     'brand.sub': 'Disaster assistance navigator, on one page',
     'nav.nation': 'Korea',
@@ -221,7 +223,7 @@ export const getLang = () => lang;
 let seq = 0;   // setLang 호출 번호 — 늦게 끝난 이전 호출이 마지막 선택을 덮지 않게
 /* 사전·글꼴 지연 로드. 실패(오프라인에서 첫 선택 등)하면 영어로 떨어뜨리되, 글꼴은 성공했을 때만 붙인다 */
 async function load(l) {
-  if (!DICT[l]) { try { DICT[l] = (await import(`./i18n/${l}.js?v=20261102a`)).default; } catch (e) { console.warn('i18n load failed', l, e); return 'en'; } }
+  if (!DICT[l]) { try { DICT[l] = (await import(`./i18n/${l}.js?v=20261102b`)).default; } catch (e) { console.warn('i18n load failed', l, e); return 'en'; } }
   if (FONT[l] && !document.getElementById('font-' + l)) { const k = document.createElement('link'); k.id = 'font-' + l; k.rel = 'stylesheet'; k.href = `https://fonts.googleapis.com/css2?family=${FONT[l]}:wght@400;500;700&display=swap`; document.head.appendChild(k); }
   return l;
 }

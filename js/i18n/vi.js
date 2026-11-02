@@ -799,4 +799,5 @@ export default {
   'acc2.allhz': 'Đường đến cả 3 nơi gần nhất đều có ghi nhận ngập hoặc hầm chui. Di chuyển sớm trước khi mưa sẽ an toàn hơn.',
   'acc2.snap': 'Vị trí này cách đường khoảng {m} m nên thời gian đi bộ chỉ là ước tính.',
   'acc2.ts': 'Nếu ở gần biển: điểm sơ tán sóng thần {name} — đi bộ {fast} phút (đi chậm {slow} phút). Sau động đất mạnh, hãy lên chỗ cao trước khi nghĩ đến cơ sở cho người bị thiệt hại.',
+'rep.gps': 'Đính kèm tọa độ vị trí (công khai, làm tròn khoảng 100 m)', 'rep.del': 'Xóa tin báo của tôi', 'rep.del.q': 'Xóa tin báo này?', 'link.privacy': 'Chính sách quyền riêng tư', 'link.terms': 'Điều khoản sử dụng', 'device.t': 'Dữ liệu trên thiết bị này', 'device.btn': 'Xóa toàn bộ dữ liệu trên thiết bị này', 'device.q': 'Thao tác này xóa hồ sơ, cài đặt và bộ nhớ đệm trên thiết bị này và tắt thông báo. Bạn cũng sẽ không thể xóa tin báo của mình nữa. Tiếp tục?',
 };

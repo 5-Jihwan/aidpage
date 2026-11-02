@@ -29,6 +29,10 @@ export async function reply(utter, params, ctx) {
   if (found && found.ambiguous) return out(`"${found.name}"은(는) 여러 시·도에 있어요. 어디의 ${found.name}인가요?`, found.options.map(o => `${o.sidoShort} ${o.name}`));
   let region = found;
   if (!region && ctx.uid) region = await getUser(ctx);
+  if (wants('unregister')) {
+    if (ctx.uid) await delUser(ctx);
+    return out('내 동네 등록을 지웠어요. 저장돼 있던 동네 정보도 함께 삭제했습니다.', QR);
+  }
   if (wants('register')) {
     if (!found) return out('등록할 동네를 함께 말해 주세요. 예) "내 동네 등록 관악구"', QR);
     if (ctx.uid) await setUser(ctx, found);
@@ -44,6 +48,7 @@ export async function reply(utter, params, ctx) {
   return help(true);
 }
 const KW = {
+  unregister: ['등록 해제', '등록해제', '등록 삭제', '동네 삭제', '동네 지우기'],
   register: ['등록', '저장', '기억'],
   help: ['도움', '도움말', '메뉴', '안녕', '시작', '뭐 해', '뭐해', '사용법'],
   support: ['지원', '지원금', '신고', '보상', '의연금', '보험', '피해', '복구'],
@@ -151,6 +156,7 @@ const siteCard = r => card('AidPage에서 자세히', r ? `${label(r)} 지도 ·
 /* ---------- 저장·캐시 ---------- */
 async function hash(s) { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s + '|aidpage-kakao')); return [...new Uint8Array(d)].slice(0, 12).map(x => x.toString(16).padStart(2, '0')).join(''); }
 async function getUser(ctx) { try { return await ctx.env.CACHE.get('kk:u:' + ctx.uid, 'json'); } catch (e) { return null; } }
+async function delUser(ctx) { try { await ctx.env.CACHE.delete('kk:u:' + ctx.uid); } catch (e) { /* KV 한도 초과 시 TTL로 지워진다 */ } }
 async function setUser(ctx, r) { const v = { code: r.code, name: r.name, sido: r.sido, sidoName: r.sidoName, sidoShort: r.sidoShort }; await ctx.env.CACHE.put('kk:u:' + ctx.uid, JSON.stringify(v), { expirationTtl: TTL.user }); }
 async function cachedJSON(env, key, ttl, url) {
   try { const hit = await env.CACHE.get(key, 'json'); if (hit) return hit; } catch (e) { /* */ }

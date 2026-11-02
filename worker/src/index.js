@@ -39,6 +39,7 @@ export default {
         case '/reports': return json(await reports(url, env), 200, cors);
         case '/report': return json(await report(req, env, ip), 200, cors);
         case '/report/flag': return json(await flag(req, env, ip), 200, cors);
+        case '/report/delete': return json(await reportDelete(req, env), 200, cors);
         case '/stat': return json(await stat(req, env), 200, cors);
         case '/stat/summary': return json(await statSummary(req, env), 200, cors);
         case '/push/vapid': return json({ status: 'ok', key: env.VAPID_PUB || '' }, 200, cors);
@@ -181,8 +182,15 @@ async function report(req, env, ip) {
   const lon = +b.lon, lat = +b.lat, hasPt = Number.isFinite(lon) && Number.isFinite(lat) && lon > 124 && lon < 132 && lat > 33 && lat < 39;
   const item = { id: Math.random().toString(36).slice(2, 10), t: Date.now(), kind, text, emd: /^\d{10}$/.test(String(b.emd || '')) ? String(b.emd) : null, lon: hasPt ? +lon.toFixed(3) : null, lat: hasPt ? +lat.toFixed(3) : null };
   // 10-15(docs/64 #17): 상한 확인·저장을 DO 안에서 한 번에 — KV 읽기→쓰기 사이 동시 요청이 서로 덮던 것
-  const r = await store(env).addReport(sgg, item, await hashIp(ip, env), REPORT);
-  return r.status === 'ok' ? { status: 'ok', item: { ...item, flags: 0 } } : r;
+  const del = crypto.randomUUID().replace(/-/g, '');
+  const r = await store(env).addReport(sgg, item, await hashIp(ip, env), REPORT, await sha256hex(del));
+  return r.status === 'ok' ? { status: 'ok', item: { ...item, flags: 0 }, del } : r;
+}
+async function reportDelete(req, env) {
+  let b; try { b = await req.json(); } catch { return { status: 'error:400' }; }
+  const sgg = String(b.sgg || ''), id = String(b.id || ''), del = String(b.del || '');
+  if (req.method !== 'POST' || !/^\d{5}$/.test(sgg) || !/^[a-z0-9]{6,10}$/.test(id) || !/^[0-9a-f]{32}$/.test(del)) return { status: 'error:400' };
+  return store(env).deleteReport(sgg, id, await sha256hex(del));
 }
 async function flag(req, env, ip) {
   let b; try { b = await req.json(); } catch { return { status: 'error:400' }; }
@@ -198,7 +206,7 @@ const hashIp = async (ip, env) => (await sha256hex(ip + '|' + (env.IP_SALT || en
    알림 내용은 SW가 push 수신 시 alerts.json을 새로 읽어 구성한다.
    따라서 서버는 "지금 다시 봐" 신호만 전달하며 개인정보를 발송하지 않는다.
    구독 저장: KV psub:<sha256(endpoint)> = { endpoint, sgg, sido, t } (TTL 180일,
-   재구독 시 갱신). keys(p256dh/auth)는 향후 페이로드 push 대비로만 보관. */
+   재구독 시 갱신). */
 const PUSH_TTL = 180 * 86400;
 
 async function subKey(endpoint) { return 'psub:' + await sha256hex(endpoint); }
@@ -209,7 +217,7 @@ async function pushSub(req, env) {
   if (req.method !== 'POST') return { status: 'error:405' };
   const b = await req.json().catch(() => null);
   if (!b || !b.endpoint || !PUSH_HOSTS.test(b.endpoint) || String(b.endpoint).length > 1000) return { status: 'error:bad_sub' };
-  const rec = { endpoint: b.endpoint, keys: b.keys || null,
+  const rec = { endpoint: b.endpoint,
                 sgg: String(b.sgg || '').slice(0, 5), sido: String(b.sido || '').slice(0, 2),
                 t: now() };
   await env.CACHE.put(await subKey(b.endpoint), JSON.stringify(rec), { expirationTtl: PUSH_TTL, metadata: { sgg: rec.sgg, sido: rec.sido } });

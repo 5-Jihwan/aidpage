@@ -799,4 +799,5 @@ export default {
   'acc2.allhz': 'Le chemin vers chacun des 3 lieux les plus proches comporte un historique d’inondation ou un passage souterrain. Il est plus sûr de partir tôt, avant la pluie.',
   'acc2.snap': 'Ce point est à environ {m} m du chemin : les temps de marche sont approximatifs.',
   'acc2.ts': 'Si vous êtes près de la côte : lieu d’évacuation tsunami {name} — {fast} min à pied ({slow} min lentement). Après un fort séisme, gagnez d’abord les hauteurs, avant de rejoindre un hébergement pour sinistrés.',
+'rep.gps': 'Joindre aussi ma position (publique, arrondie à environ 100 m)', 'rep.del': 'Supprimer mon signalement', 'rep.del.q': 'Supprimer ce signalement ?', 'link.privacy': 'Politique de confidentialité', 'link.terms': 'Conditions d’utilisation', 'device.t': 'Données sur cet appareil', 'device.btn': 'Effacer toutes les données de cet appareil', 'device.q': 'Cela efface votre profil, vos réglages et le cache de cet appareil et désactive les alertes. Vous ne pourrez plus supprimer vos signalements. Continuer ?',
 };

@@ -28,9 +28,9 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="stylesheet" href="css/style.css?v=20261102a">
-<link rel="stylesheet" href="css/style_more.css?v=20261102a">
-<link rel="stylesheet" href="css/style_fx.css?v=20261102a">
+<link rel="stylesheet" href="css/style.css?v=20261102b">
+<link rel="stylesheet" href="css/style_more.css?v=20261102b">
+<link rel="stylesheet" href="css/style_fx.css?v=20261102b">
 </head>
 <body>
 
@@ -94,12 +94,14 @@
 <aside class="drawer" id="drawer" aria-label="설정" hidden>
   <div class="drawer-head"><b data-i18n="drawer.title">설정</b><button type="button" class="icon-btn" id="drawerX" aria-label="닫기">×</button></div>
   <section class="drawer-sec"><h4 data-i18n="drawer.more">더 보기</h4><button type="button" class="drawer-link" data-tab="about" data-i18n="tab.about">방법·한계</button><a class="drawer-link kakao-link" data-kakao="friend" href="#" target="_blank" rel="noopener" hidden data-i18n="kakao.add">💬 카카오톡 채널 추가</a><a class="drawer-link" href="https://github.com/5-Jihwan/aidpage" target="_blank" rel="noopener">GitHub</a><div class="fine" data-i18n="drawer.note">지원 찾기 답변은 이 브라우저 안에서 계산합니다. 서버에 저장되는 것은 방법·한계 탭에 적었습니다.</div><div class="fine mono" id="appVer"></div></section>
+  <section class="drawer-sec"><a class="drawer-link" href="privacy.html" data-i18n="link.privacy">개인정보 처리방침</a><a class="drawer-link" href="terms.html" data-i18n="link.terms">이용안내</a></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.lang">언어</h4><div class="lang pill" role="group" aria-label="언어 / Language"></div></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.size">글씨 크기</h4><div class="size pill" role="group" aria-label="글씨 크기"><button class="size-btn" data-size="normal" data-i18n="size.normal">보통</button><button class="size-btn" data-size="big" data-i18n="size.big">큰 글씨</button></div>
     <label class="drawer-row"><input type="checkbox" id="btnContrast"><span data-i18n="size.contrast.t">글자와 배경 대비를 높입니다</span></label></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.push">재난 알림</h4>
     <label class="drawer-row"><input type="checkbox" id="btnPush"><span data-i18n="push.t">내 동네에 특보·재난문자가 오면 알림을 받습니다</span></label>
     <small class="fine" id="pushHint" data-i18n="push.hint">동네를 먼저 선택하면 켤 수 있어요. 알림에는 개인정보가 담기지 않습니다.</small></section>
+  <section class="drawer-sec"><h4 data-i18n="device.t">이 기기의 데이터</h4><button type="button" class="drawer-link" id="btnClearDevice" data-i18n="device.btn">이 기기 데이터 모두 지우기</button></section>
   <section class="drawer-sec"><h4 data-i18n="drawer.profile">우리 집 (입력은 이 기기에만 저장)</h4>
     <div class="prof">
       <label><span data-i18n="prof.floor">사는 층</span><select id="pfFloor"><option value="">—</option><option value="semi" data-i18n="prof.floor.semi">반지하·지하</option><option value="low" data-i18n="prof.floor.low">1~2층</option><option value="mid" data-i18n="prof.floor.mid">3층 이상</option><option value="high" data-i18n="prof.floor.high">고층(10층 이상)</option></select></label>
@@ -304,6 +306,6 @@
 </main>
 
 <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
-<script type="module" src="js/app.js?v=20261102a"></script>
+<script type="module" src="js/app.js?v=20261102b"></script>
 </body>
 </html>

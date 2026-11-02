@@ -1,12 +1,12 @@
 /* 탭·패널·PWA·프로필·토스트·푸시·글자 크기·언어·상황·첫 화면 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang, setLang, LANGS, langName } from './i18n.js?v=20261102b';
-import { getVapid, pushSub, pushUnsub, stat } from './api.js?v=20260914b';
-import { $, $$, MQ_MOBILE, evaluate, setRulesLang, state } from './app.js?v=20261102b';
-import { renderResult, renderRulesTable, renderSiteStats, syncWizardLoc } from './app_wizard.js?v=20261102b';
-import { adminNameField, landmarkNameField, localizeLabels, locateMe, map, panelW, syncGrid3D } from './app_map.js?v=20261102b';
-import { nameOf, renderRegion, renderTip } from './app_panel.js?v=20261102b';
-import { getHome, initShelterUI, renderAll, saveShelterKinds, syncGrid } from './app_layers.js?v=20261102b';
-import { _fxSig, applyWxLayer, resetFxDismiss, suggest } from './app_wx.js?v=20261102b';
+import { t, getLang, setLang, LANGS, langName } from './i18n.js?v=20261102d';
+import { getVapid, pushSub, pushUnsub, stat } from './api.js?v=20261102d';
+import { $, $$, MQ_MOBILE, evaluate, setRulesLang, state } from './app.js?v=20261102d';
+import { renderResult, renderRulesTable, renderSiteStats, syncWizardLoc } from './app_wizard.js?v=20261102d';
+import { adminNameField, landmarkNameField, localizeLabels, locateMe, map, panelW, syncGrid3D } from './app_map.js?v=20261102d';
+import { nameOf, renderRegion, renderTip } from './app_panel.js?v=20261102d';
+import { getHome, initShelterUI, renderAll, saveShelterKinds, syncGrid } from './app_layers.js?v=20261102d';
+import { _fxSig, applyWxLayer, resetFxDismiss, suggest } from './app_wx.js?v=20261102d';
 
 export function setTab(tab) {
   state.tab = tab;
@@ -169,12 +169,36 @@ export function pushIDB(val) {
 
 export function b64uToU8(s) { const b = atob(s.replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); }
 
+export function initClearDevice() {
+  const b = $('#btnClearDevice'); if (!b) return;
+  b.addEventListener('click', async () => {
+    if (!confirm(t('device.q'))) return;
+    b.disabled = true;
+    try {
+      const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+      const sub = reg && reg.pushManager ? await reg.pushManager.getSubscription() : null;
+      if (sub) { await pushUnsub({ endpoint: sub.endpoint }).catch(() => {}); await sub.unsubscribe().catch(() => {}); }
+      if (window.caches) await Promise.all((await caches.keys()).map(k => caches.delete(k)));
+    } catch { /* 지울 수 있는 것부터 지운다 */ }
+    Object.keys(localStorage).filter(k => k.startsWith('safepic.')).forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear(); indexedDB.deleteDatabase('aidpage-push');
+    location.href = location.pathname;
+  });
+}
+
 export function initPush() {
   const cb = $('#btnPush'); if (!cb) return;
   const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   if (!supported) { cb.disabled = true; return; }
   navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription())
-    .then(sub => { cb.checked = !!sub; }).catch(() => {});
+    .then(async sub => {
+      cb.checked = !!sub;
+      // 서버 기록은 180일 뒤 사라진다 — 체크만 켜진 채 알림이 끊기지 않게 일주일에 한 번 다시 등록
+      const last = +(localStorage.getItem('safepic.pushSync') || 0);
+      if (!sub || Date.now() - last < 7 * 86400000) return;
+      const region = await pushIDB();
+      if (region && region.sgg) { await pushSub({ endpoint: sub.endpoint, sgg: region.sgg, sido: region.sido }); localStorage.setItem('safepic.pushSync', String(Date.now())); }
+    }).catch(() => {});
   cb.addEventListener('change', async () => {
     cb.disabled = true;
     try {
@@ -188,13 +212,13 @@ export function initPush() {
         const n = nameOf();
         const region = { sgg: state.sgg, sido: state.sgg.slice(0, 2), sggName: n.sggName || '', sidoName: n.sidoName || '' };
         await pushIDB(region);
-        const j = sub.toJSON();
-        const r = await pushSub({ endpoint: sub.endpoint, keys: j.keys, sgg: region.sgg, sido: region.sido });
+        const r = await pushSub({ endpoint: sub.endpoint, sgg: region.sgg, sido: region.sido });
         if (r.status !== 'ok') { await sub.unsubscribe().catch(() => {}); toast(t('push.fail')); cb.checked = false; return; }
         toast(t('push.on', { r: n.sggName || '' }));
       } else {
         const sub = await reg.pushManager.getSubscription();
         if (sub) { await pushUnsub({ endpoint: sub.endpoint }).catch(() => {}); await sub.unsubscribe().catch(() => {}); }
+        await pushIDB(null);
         toast(t('push.off'));
       }
     } catch { toast(t('push.fail')); cb.checked = false; }

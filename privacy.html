@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개인정보 처리방침 · AidPage</title>
+<style>
+:root{--bg:#f7f8fa;--fg:#1c2733;--mute:#566573;--line:#d8dee4;--accent:#2f5bd0}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.75 Pretendard,"Malgun Gothic",system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.1rem;margin:32px 0 8px}
+p{margin:0 0 10px}.mute{color:var(--mute);font-size:.92rem}a{color:var(--accent)}
+.wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.93rem}th,td{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}th{background:#eef1f5}
+hr{border:0;border-top:1px solid var(--line);margin:40px 0}
+</style>
+</head>
+<body><main>
+<p class="mute"><a href="index.html">← AidPage</a> · <a href="#en">English</a></p>
+<h1>개인정보 처리방침</h1>
+<p class="mute">시행 2026-11-02 · AidPage는 개인이 비영리로 운영하는 재난 지원제도 안내 사이트입니다.</p>
+
+<p>AidPage는 회원가입이 없고 이름·전화번호를 받지 않습니다. 지원 찾기 답변은 이 브라우저 안에서 계산하며 서버로 보내지 않습니다. 아래 표가 서버에 남는 전부입니다.</p>
+
+<h2>1. 서버에 저장하는 것 (Cloudflare)</h2>
+<div class="wrap"><table>
+<tr><th>기능</th><th>저장 항목</th><th>보관</th><th>공개 여부</th></tr>
+<tr><td>주민 제보</td><td>글, 종류, 시각, 시·군·구, 읍·면·동, 좌표(선택, 약 100 m 단위), 해시한 IP</td><td>7일 뒤 삭제</td><td>해시한 IP 외에는 누구나 볼 수 있음</td></tr>
+<tr><td>푸시 알림</td><td>구독 주소, 시·군·구, 시·도</td><td>180일 또는 해제할 때까지</td><td>비공개</td></tr>
+<tr><td>카카오 채널</td><td>해시한 사용자 키, 등록한 동네</td><td>180일 또는 "등록 해제"할 때까지. 대화 원문은 저장하지 않음</td><td>비공개</td></tr>
+<tr><td>사용 집계</td><td>방문·화면·문항 이벤트 이름과 날짜, 시·도 단위 지역. IP와 입력 내용은 넣지 않음</td><td>기한 없음</td><td>방문 수 공개, 연구에 통계로 쓰일 수 있음</td></tr>
+</table></div>
+
+<h2>2. 기기에만 저장하는 것</h2>
+<p>프로필, 최근 동네, 언어·글씨 크기·지도 설정, 내가 쓴 제보를 지우는 토큰은 이 기기의 브라우저 저장소에 있습니다. 앱 화면과 자료는 오프라인 사용을 위해 캐시됩니다. 이 사이트는 쿠키를 쓰지 않습니다. 설정 서랍의 "이 기기 데이터 모두 지우기"로 지울 수 있습니다.</p>
+<p>지원 찾기 결과의 공유 링크에는 선택한 피해·가구 항목이 주소에 담깁니다. 장애, 기초수급 같은 항목이 포함될 수 있으니 링크를 보낼 때 주의해 주세요.</p>
+
+<h2>3. 외부 서비스에 전달되는 것</h2>
+<div class="wrap"><table>
+<tr><th>서비스</th><th>용도</th><th>전달되는 것</th></tr>
+<tr><td>GitHub Pages</td><td>사이트 제공</td><td>접속 IP 등 통상적 접속 정보</td></tr>
+<tr><td>Cloudflare</td><td>API, 저장</td><td>접속 IP, 요청한 시·군·구 코드</td></tr>
+<tr><td>OpenFreeMap, AWS S3</td><td>지도·지형</td><td>접속 IP, 보고 있는 지도 구역</td></tr>
+<tr><td>unpkg, jsDelivr, Google Fonts</td><td>지도 프로그램, 글꼴</td><td>접속 IP</td></tr>
+<tr><td>브라우저 푸시 서비스</td><td>알림</td><td>알림을 켰을 때 구독 정보</td></tr>
+<tr><td>카카오</td><td>채널 챗봇</td><td>채널을 쓸 때 카카오가 전달하는 사용자 키와 메시지</td></tr>
+</table></div>
+<p>위 서비스 일부는 국외에서 운영됩니다. 각 서비스의 보관 기간은 해당 서비스의 정책을 따릅니다.</p>
+
+<h2>4. 위치</h2>
+<p>"내 위치"를 쓰면 GPS로 동네를 찾지만 GPS 원좌표는 서버로 보내지 않습니다. 주민 제보에 좌표 첨부를 선택한 경우에만 약 100 m 단위로 반올림해 저장하고 공개합니다.</p>
+
+<h2>5. 지우는 방법</h2>
+<p>제보: 쓴 기기에서 "내 제보 지우기". 알림: 설정에서 끄면 서버 기록도 지웁니다. 카카오: 채널에서 "등록 해제". 기기: "이 기기 데이터 모두 지우기". 다른 기기에서 쓴 제보나 나를 언급한 제보는 아래 문의로 알려 주세요.</p>
+
+<h2>6. 어린이</h2>
+<p>만 14세 미만 어린이는 제보를 올리지 말고 보호자와 함께 이용해 주세요. 나이를 확인하는 절차는 없습니다.</p>
+
+<h2>7. 문의와 변경</h2>
+<p>문의: <a href="https://github.com/5-Jihwan/aidpage/issues/new/choose">GitHub 이슈</a>. 이슈는 공개되니 개인정보를 적지 마세요. 이 방침이 바뀌면 이 페이지의 시행일을 고치고 <a href="https://5-jihwan.github.io/aidpage-notes/">패치노트</a>에 남깁니다.</p>
+
+<hr id="en">
+<h1>Privacy policy</h1>
+<p class="mute">Effective 2026-11-02. AidPage is a non-profit site run by an individual. The Korean version prevails.</p>
+<p>There are no accounts, and we do not ask for names or phone numbers. Support-finder answers are calculated in your browser and are not sent to our server.</p>
+<h2>Stored on the server (Cloudflare)</h2>
+<div class="wrap"><table>
+<tr><th>Feature</th><th>Data</th><th>Kept</th><th>Public</th></tr>
+<tr><td>Resident reports</td><td>Text, type, time, district, neighborhood, optional location rounded to about 100 m, hashed IP</td><td>Deleted after 7 days</td><td>All except the hashed IP</td></tr>
+<tr><td>Push alerts</td><td>Subscription address, district, province</td><td>180 days or until turned off</td><td>No</td></tr>
+<tr><td>KakaoTalk channel</td><td>Hashed user key, registered area. Messages are not stored</td><td>180 days or until "등록 해제"</td><td>No</td></tr>
+<tr><td>Usage counts</td><td>Event names, dates and province. No IP or inputs</td><td>No limit</td><td>Visit counts; may be used as research statistics</td></tr>
+</table></div>
+<h2>On your device</h2>
+<p>Your profile, recent areas, settings and report deletion tokens stay in browser storage, and the app is cached for offline use. We do not use cookies. Use "Clear all data on this device" in settings to remove them. Share links contain the items you selected, which can include disability or welfare status, so take care when sending them.</p>
+<h2>Third parties</h2>
+<p>GitHub Pages, Cloudflare, OpenFreeMap, AWS S3, unpkg, jsDelivr, Google Fonts, browser push services and Kakao receive your IP address or the data needed for their function. Some operate outside Korea. Map services also receive the area you view.</p>
+<h2>Deletion and contact</h2>
+<p>Delete reports from the device that wrote them, turn alerts off in settings, or send "등록 해제" on KakaoTalk. For anything else, open a <a href="https://github.com/5-Jihwan/aidpage/issues/new/choose">GitHub issue</a>. Issues are public, so do not include personal data. Children under 14 should use the site with a guardian and should not post reports.</p>
+</main></body></html>

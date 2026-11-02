@@ -1,12 +1,12 @@
 // AidPage — app.js (ES module, no build step)
-import { t, getLang, applyStatic } from './i18n.js?v=20261102b';
-import { stat } from './api.js?v=20260914b';
-import { initMap, map } from './app_map.js?v=20261102b';
-import { activeShelterKinds, getHome, initHome, initLegendDrag, renderAll, renderHome, renderLegend, resetNation, selectEmd } from './app_layers.js?v=20261102b';
-import { escapeHTML, renderCrumb, renderTip } from './app_panel.js?v=20261102b';
-import { applyRulesLang, buildLangButtons, initCards, initLang, initPWA, initPanel, initProfile, initPush, initSize, initWelcome, reportError, setTab } from './app_ui.js?v=20261102b';
-import { applyShare, initWizard, lawDoc, lawRefEn, renderRulesTable, renderSiteStats, statVisit, syncWizardLoc } from './app_wizard.js?v=20261102b';
-import { initSearch, initWxSel } from './app_wx.js?v=20261102b';
+import { t, getLang, applyStatic } from './i18n.js?v=20261102d';
+import { stat } from './api.js?v=20261102d';
+import { initMap, map } from './app_map.js?v=20261102d';
+import { activeShelterKinds, getHome, initHome, initLegendDrag, renderAll, renderHome, renderLegend, resetNation, selectEmd } from './app_layers.js?v=20261102d';
+import { escapeHTML, renderCrumb, renderTip } from './app_panel.js?v=20261102d';
+import { applyRulesLang, buildLangButtons, initCards, initLang, initPWA, initClearDevice, initPanel, initProfile, initPush, initSize, initWelcome, reportError, setTab } from './app_ui.js?v=20261102d';
+import { applyShare, initWizard, lawDoc, lawRefEn, renderRulesTable, renderSiteStats, statVisit, syncWizardLoc } from './app_wizard.js?v=20261102d';
+import { initSearch, initWxSel } from './app_wx.js?v=20261102d';
 
 export let setRulesLang = () => {}, loadRules = null, evaluate = null, formatKRW = n => (n || 0).toLocaleString('ko-KR') + '원';
 
@@ -108,7 +108,7 @@ addEventListener('afterprint', () => $$('details.acc, details.disc').forEach(d =
   // 계측 리스너는 부팅 시 1회만 — renderResult 안에 두면 렌더마다 중복 등록돼 비콘이 다발로 나간다(09-02 자체 검증에서 적발)
   addEventListener('beforeprint', () => stat('print'), { once: true });
   document.addEventListener('click', e => { const a = e.target.closest('a[data-stat]'); if (a) stat(a.dataset.stat); }, true);
-  buildLangButtons(); initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPush(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
+  buildLangButtons(); initCards(); initWelcome(); initWizard(); initSearch(); initPanel(); initLang(); initSize(); initPush(); initClearDevice(); initPWA(); initWxSel(); initHome(); initProfile(); initLegendDrag();
   statVisit();
   setTimeout(renderSiteStats, 6000); // 소개 탭을 열기 전에 미리 받아 둔다(요약 API 1~5초)
   // 지금 도는 앱 버전 — "구버전 캐시인가?"를 사용자가 서랍에서 10초 만에 확인

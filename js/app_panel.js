@@ -1,14 +1,14 @@
 /* 실시간 조회·지역 패널·오늘 할 일·보험·제보·재난문자·팁·응급실 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang } from './i18n.js?v=20261102b';
-import { cells as gridCells } from './grid.js?v=20261102b';
-import { getReports, postReport, flagReport, getER } from './api.js?v=20260914b';
-import { nearest as nearestShelters } from './shelters.js?v=20261102b';
-import { $, $$, state } from './app.js?v=20261102b';
-import { featuresWhere, map, openPopup, pipFeature, speak } from './app_map.js?v=20261102b';
-import { renderNearest, resetNation, saveShelterKinds, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261102b';
-import { getProfile } from './app_ui.js?v=20261102b';
-import { applyDrawerFx, applyFolds, closeRegionDrawer, openRegionDrawer, regionMod, renderRegionSummary, renderSitBar } from './app_wizard.js?v=20261102b';
-import { applyAlertFx } from './app_wx.js?v=20261102b';
+import { t, getLang } from './i18n.js?v=20261102d';
+import { cells as gridCells } from './grid.js?v=20261102d';
+import { getReports, postReport, flagReport, deleteReport, getER } from './api.js?v=20261102d';
+import { nearest as nearestShelters } from './shelters.js?v=20261102d';
+import { $, $$, state } from './app.js?v=20261102d';
+import { featuresWhere, map, openPopup, pipFeature, speak } from './app_map.js?v=20261102d';
+import { renderNearest, resetNation, saveShelterKinds, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261102d';
+import { getProfile } from './app_ui.js?v=20261102d';
+import { applyDrawerFx, applyFolds, closeRegionDrawer, openRegionDrawer, regionMod, renderRegionSummary, renderSitBar } from './app_wizard.js?v=20261102d';
+import { applyAlertFx } from './app_wx.js?v=20261102d';
 
 export let _nameMemo = null;
 
@@ -212,17 +212,28 @@ export function renderInsurance() {
 
 export const REPORT_KINDS = ['shelter_closed', 'drain', 'road', 'water', 'other'];
 
+// 내가 쓴 제보의 삭제 토큰 — 이 기기에만 둔다
+const myReports = () => { try { return JSON.parse(localStorage.getItem('safepic.myReports')) || {}; } catch { return {}; } };
+const saveMyReports = m => { try { localStorage.setItem('safepic.myReports', JSON.stringify(m)); } catch { /* 저장 불가면 삭제 버튼만 없다 */ } };
+
 export async function renderReports() {
   const box = $('#reportBox'); if (!box) return;
   if (!state.sgg) { box.hidden = true; return; }
   const sgg = state.sgg; box.hidden = false;
-  const form = `<form class="rep-form" id="repForm"><select name="kind" required>${REPORT_KINDS.map(k => `<option value="${k}">${t('rep.k.' + k)}</option>`).join('')}</select><input name="text" maxlength="140" minlength="4" required placeholder="${t('rep.ph')}"><button type="submit" class="btn btn-primary btn-sm">${t('rep.send')}</button></form><small class="fine">${t('rep.rules')}</small>`;
+  const form = `<form class="rep-form" id="repForm"><select name="kind" required>${REPORT_KINDS.map(k => `<option value="${k}">${t('rep.k.' + k)}</option>`).join('')}</select><input name="text" maxlength="140" minlength="4" required placeholder="${t('rep.ph')}"><button type="submit" class="btn btn-primary btn-sm">${t('rep.send')}</button>${state.gps && state.gps.emd === state.emd ? `<label class="fine rep-gps"><input type="checkbox" name="gps"> ${t('rep.gps')}</label>` : ''}</form><small class="fine">${t('rep.rules')}</small>`;
   box.innerHTML = `<h3>${t('rep.title')} <small class="muted">${nameOf().sggName}</small></h3><div id="repList" class="muted" style="font-size:.9rem">…</div>${form}`;
   const list = $('#repList');
   const paint = items => {
     if (!items.length) { list.innerHTML = `<div class="muted">${t('rep.none')}</div>`; return; }
-    list.innerHTML = items.map(r => `<div class="rep-item"><span class="rep-k">${t('rep.k.' + r.kind)}</span><span class="rep-t">${escapeHTML(r.text)}</span><small class="muted">${relTime(r.t)}${r.emd && state.idx.byEmd.get(r.emd) ? ' · ' + state.idx.byEmd.get(r.emd).name : ''}</small><button type="button" class="rep-flag" data-id="${r.id}" title="${t('rep.flag')}">⚑</button></div>`).join('');
+    list.innerHTML = items.map(r => `<div class="rep-item"><span class="rep-k">${t('rep.k.' + r.kind)}</span><span class="rep-t">${escapeHTML(r.text)}</span><small class="muted">${relTime(r.t)}${r.emd && state.idx.byEmd.get(r.emd) ? ' · ' + state.idx.byEmd.get(r.emd).name : ''}</small><button type="button" class="rep-flag" data-id="${r.id}" title="${t('rep.flag')}">⚑</button>${myReports()[r.id] ? `<button type="button" class="rep-flag rep-del" data-id="${r.id}">${t('rep.del')}</button>` : ''}</div>`).join('');
     $$('.rep-flag', list).forEach(b => b.addEventListener('click', async () => { b.disabled = true; const r = await flagReport(sgg, b.dataset.id); b.textContent = r.status === 'ok' ? '✓' : '⚑'; }));
+    $$('.rep-del', list).forEach(b => b.addEventListener('click', async () => {
+      if (!confirm(t('rep.del.q'))) return;
+      b.disabled = true; const m = myReports(), r = await deleteReport(sgg, b.dataset.id, m[b.dataset.id]);
+      if (r.status !== 'ok') { b.disabled = false; alert(t('rep.err')); return; }
+      delete m[b.dataset.id]; saveMyReports(m); delete state._repCache[sgg];
+      const again = await getReports(sgg); if (again.status === 'ok') paint(again.items);
+    }));
     paintReportMarkers(items);
   };
   state._repCache = state._repCache || {};
@@ -234,10 +245,10 @@ export async function renderReports() {
   $('#repForm').addEventListener('submit', async e => {
     e.preventDefault(); const f = e.target, btn = f.querySelector('button'); btn.disabled = true;
     // 지오프라이버시(docs/18 §5): 제보 핀 좌표는 약 100 m(소수 3자리)로 뭉개서 보낸다 — 집 위치가 특정되지 않게
-    const gps = state.gps && state.gps.emd === state.emd ? { lon: +state.gps.lon.toFixed(3), lat: +state.gps.lat.toFixed(3) } : {};
+    const gps = f.gps && f.gps.checked && state.gps && state.gps.emd === state.emd ? { lon: +state.gps.lon.toFixed(3), lat: +state.gps.lat.toFixed(3) } : {};
     const r = await postReport({ sgg, emd: state.emd, kind: f.kind.value, text: f.text.value, ...gps });
     btn.disabled = false;
-    if (r.status === 'ok') { f.reset(); const again = await getReports(sgg); if (again.status === 'ok') paint(again.items); }
+    if (r.status === 'ok') { if (r.del && r.item) { const m = myReports(); m[r.item.id] = r.del; saveMyReports(m); } f.reset(); const again = await getReports(sgg); if (again.status === 'ok') paint(again.items); }
     else alert(t(r.status === 'rate_limited' ? 'rep.limit' : r.message ? 'rep.nolink' : 'rep.err'));
   });
 }

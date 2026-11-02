@@ -50,7 +50,7 @@ test('표에 적힌 시설 종류가 모두 실제로 있음', () => {
 
 test('민방위 시설 말풍선에 물 재난 경고가 있음', async () => {
   const s = await src('shelters.js');
-  assert.ok(/cd: \{ ko: '⚠ 지하 시설/.test(s) && /p\.kind === 'civil_defense' \? `<div class="pop-warn">/.test(s));
+  assert.ok(DICT.ko['kind.note.cd'].startsWith('⚠ 지하 시설') && /p\.kind === 'civil_defense' \? `<div class="pop-warn">\$\{t\('kind\.note\.cd'\)\}/.test(s));
 });
 
 const vars = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
@@ -60,6 +60,14 @@ for (const c of langs) if (c !== 'en') dicts[c] = (await import(url('js', 'i18n'
 
 test('영어판이 한국어 키를 모두 덮음', () => {
   assert.deepEqual(Object.keys(DICT.ko).filter((k) => !(k in DICT.en)), []);
+});
+
+test('시설 이름과 지하 시설 경고가 모든 언어에 있음', () => {
+  const keys = [...KINDS.map((k) => `kind.${k.id}`), 'kind.note.cd', 'kind.note.desig'];
+  const bad = [];
+  for (const [c, d] of Object.entries({ ko: DICT.ko, ...dicts })) for (const k of keys) if (!d[k]) bad.push(`${c}:${k}`);
+  assert.deepEqual(bad, []);
+  for (const [c, d] of Object.entries(dicts)) if (c !== 'en') assert.notEqual(d['kind.note.cd'], DICT.en['kind.note.cd'], c);
 });
 
 test('번역문의 {자리표시}가 한국어와 같음(다르면 화면에 {n}이 그대로 보임)', () => {

@@ -18,7 +18,7 @@ import sys
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from shelters_common import addr_sido_wrong, reconcile  # noqa: E402
+from shelters_common import addr_sido_wrong, fire_name, reconcile  # noqa: E402
 
 P = lambda *a: os.path.join(ROOT, *a)  # noqa: E731
 
@@ -94,6 +94,10 @@ def selftest():
     f = fx(127.51, 36.1, "서울특별시 중구", "44710")                               # 지하차도: 이름만 겹친 주소
     assert reconcile("underpass", f) and f["properties"]["addr"] is None and f["properties"]["sgg"] == "44710"
     assert not reconcile("wildfire_hist", fx(127.51, 36.1, "서울특별시 중구", "44710"))  # 다른 층은 판단 근거 없음
+    assert fire_name("(청주동부소방서) (( Cheongjudongbu Fire Station ))") == "청주동부소방서"
+    assert fire_name("함양119안전센터(Hamyang fire station)") == "함양119안전센터"
+    assert fire_name("수원남부소방서(경기소방본부)") == "수원남부소방서"
+    assert fire_name("군산소방서 경암119안전센터") == "군산소방서 경암119안전센터"
     print("selftest OK")
 
 

@@ -366,6 +366,12 @@ def addr_sido_wrong(addr, sido_name):
     return bool(m) and not sido_name.startswith(ADDR_SIDO_NAME[m.group(1)])
 
 
+def fire_name(name: str) -> str:
+    """OSM 이름의 영문 병기·상위 기관 괄호를 뺀다. 괄호가 이름 전체면 그 안의 이름을 쓴다."""
+    n = re.sub(r"\(+[^()]*(?:[A-Za-z]|소방본부)[^()]*\)+", "", name).strip()
+    return re.fullmatch(r"\((.+)\)", n).group(1).strip() if re.fullmatch(r"\((.+)\)", n) else n
+
+
 def reconcile(kind, f):
     """좌표·주소·코드가 어긋난 행을 정리한다. False면 뺀다. 지오코딩은 하지 않으므로 좌표는 고치지 못하고, 근거가 없으면 버린다.
     10-31 전수 측정: 비상급수 214건은 코드만 틀림(좌표=주소), 지진 옥외대피장소 167건은 코드 없음, 급경사지 686건·임시주거시설 13건은 좌표가 엉뚱한 곳."""

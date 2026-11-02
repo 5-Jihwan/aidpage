@@ -362,7 +362,7 @@ def build_fire() -> list[dict]:
     osm_day = dt.date.fromtimestamp((CACHE / "osm_fire.json").stat().st_mtime).isoformat()
     for e in j.get("elements", []):
         t = e.get("tags", {})
-        name = clean(t.get("name"))
+        name = fire_name(clean(t.get("name")) or "")
         if t.get("amenity") != "fire_station" or not name or not FIRE_NAME.search(name) or FIRE_NOT.search(name):
             continue
         lon = to_float(e.get("lon") or (e.get("center") or {}).get("lon"))

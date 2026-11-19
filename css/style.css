@@ -415,7 +415,7 @@ html.big .cmp-sel{height:48px;font-size:1.05rem}
 @keyframes drawerIn{from{transform:translateX(-100%)}to{transform:none}}
 .drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px} .drawer-head b{font-family:var(--display);font-size:1.2rem}
 .drawer-sec{padding:12px 0;border-top:1px solid var(--line)} .drawer-sec h4{margin:0 0 8px;font-size:.85rem;color:var(--mute);font-family:var(--label);font-weight:500}
-.drawer .pill{display:inline-flex} .drawer .pill button{min-height:40px;padding:6px 14px;font-size:.95rem}
+.drawer .pill{display:inline-flex;flex-wrap:wrap;max-width:100%} .drawer .pill button{white-space:nowrap} .drawer .pill button{min-height:40px;padding:6px 14px;font-size:.95rem}
 .drawer-row{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:.95rem} .drawer-row input{width:22px;height:22px;accent-color:var(--accent)}
 .drawer-link{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 0;font-size:1rem;color:var(--ink);text-decoration:none}
 .drawer-link:hover{color:var(--accent)}

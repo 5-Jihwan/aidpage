@@ -744,7 +744,7 @@ export default {
   'todo.season.winter.ice': 'Buổi sáng đường đóng băng — cẩn thận cầu thang, đường dốc.',
   'todo.season.spring.fire': 'Mùa xuân khô hanh — không đốt bờ ruộng, đốt rác.',
   'todo.season.spring.dust': 'Bụi vàng, bụi mịn — khẩu trang, điểm tránh bụi mịn.',
-  'todo.season.autumn.typhoon': 'Mùa bão — cố định cửa sổ, biển hiệu; xem vị trí chỗ ở tạm.',
+  'todo.season.autumn.typhoon': 'Mùa bão — cố định cửa sổ, biển hiệu; xem vị trí chỗ ở tạm.', 'drawer.nav': 'Chuyển màn hình', 'evac.t': 'Nếu đang gặp nguy hiểm', 'evac.119': 'Nếu nguy hiểm đến tính mạng, hãy gọi 119 ngay.', 'evac.high': 'Nếu nước đang dâng, hãy rời tầng hầm, nhà bán hầm, hầm chui và bờ sông, di chuyển lên nơi cao.', 'evac.gps': '📍 Tìm nơi trú ẩn gần tôi', 'evac.or': 'Nơi trú ẩn được tìm theo khu phố. Bạn cũng có thể nhập tên phường (dong) vào ô tìm kiếm phía trên.', 'todo.season.autumn.fire': 'Mùa cảnh giác cháy rừng mùa thu (1/11–15/12) — không đốt lửa gần rừng.', 'todo.season.autumn.cold': 'Trước đợt rét đậm, hãy giữ ấm đồng hồ nước và kiểm tra nồi hơi sưởi.', 'res.money.late': 'Khoản hỗ trợ nếu khai báo đúng hạn',
   'todo.always.shelter': 'Hãy xem một lần nơi trú ẩn của khu mình ở đâu.',
   'todo.always.townhall': 'Bị thiệt hại thì đến trung tâm hành chính trong 10 ngày — hãy biết trước vị trí.',
   'install.msg': '📲 Thêm vào màn hình chính để xem thông tin khu mình ngay cả khi mất mạng.',

@@ -113,3 +113,9 @@ button,.card b,.chip,.sit-chip,.shgrp-t,.wxsel span,.sec-head,.drawer-link{font-
 .wx-fcst .fs b{font-family:var(--mono);font-size:.95rem;color:var(--ink)}
 .wx-fcst .fs .pop{color:var(--accent);min-height:1em}
 
+/* 11-19 위치 없이 '지금 대피 중'을 골랐을 때의 전국 공통 안내 */
+.evac-now{border:2px solid var(--warn,#b8442b);border-radius:14px;background:#fff;padding:14px 16px;margin:0 0 14px;display:flex;flex-direction:column;gap:10px}
+.evac-now[hidden]{display:none}
+.evac-now>b{font-family:var(--label);font-size:1.1rem;color:var(--warn,#b8442b)}
+.evac-now ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:1rem;line-height:1.5}
+.evac-now li .btn{margin-left:4px;vertical-align:middle}

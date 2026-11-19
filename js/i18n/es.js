@@ -744,7 +744,7 @@ export default {
   'todo.season.winter.ice': 'Hielo matutino: cuidado en escaleras y rampas.',
   'todo.season.spring.fire': 'Primavera seca: no queme bordes de campos ni basura.',
   'todo.season.spring.dust': 'Polvo amarillo y partículas finas: mascarilla y refugio con aire limpio.',
-  'todo.season.autumn.typhoon': 'Temporada de tifones: fije ventanas y letreros, ubique el alojamiento temporal.',
+  'todo.season.autumn.typhoon': 'Temporada de tifones: fije ventanas y letreros, ubique el alojamiento temporal.', 'drawer.nav': 'Ir a', 'evac.t': 'Si está en peligro ahora', 'evac.119': 'Si su vida corre peligro, llame al 119 de inmediato.', 'evac.high': 'Si el agua sube, salga de sótanos, semisótanos, pasos subterráneos y riberas, y vaya a un lugar alto.', 'evac.gps': '📍 Buscar refugios cerca de mí', 'evac.or': 'Los refugios se buscan por barrio. También puede escribir el nombre del barrio (dong) en el buscador de arriba.', 'todo.season.autumn.fire': 'Periodo de alerta de incendios forestales de otoño (1 nov–15 dic): no haga fuego cerca del monte.', 'todo.season.autumn.cold': 'Antes de la primera ola de frío, aísle el contador de agua y revise la caldera.', 'res.money.late': 'Ayuda si se declara dentro del plazo',
   'todo.always.shelter': 'Confirme una vez dónde está el refugio de su barrio.',
   'todo.always.townhall': 'Si sufre daños, centro comunitario en 10 días: sepa dónde está.',
   'install.msg': '📲 Añada la app a la pantalla de inicio para ver la información de su zona aunque no haya conexión.',

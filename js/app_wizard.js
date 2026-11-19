@@ -1,13 +1,13 @@
 /* 지역 서랍·접힘·방문 집계·지원 찾기 마법사·결과·근거 조문·복지서비스·인쇄·규칙표 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang, setLang } from './i18n.js?v=20261102b';
-import { meta as gridMeta, cells as gridCells } from './grid.js?v=20261102b';
+import { t, getLang, setLang } from './i18n.js?v=20261119a';
+import { meta as gridMeta, cells as gridCells } from './grid.js?v=20261119a';
 import { stat, getStatSummary } from './api.js?v=20260914b';
-import { collect as collectShelters, nearest as nearestShelters } from './shelters.js?v=20261102b';
-import { $, $$, MQ_MOBILE, evaluate, formatKRW, state } from './app.js?v=20261102b';
-import { escapeHTML, nameOf, rn, warnName, warningsFor } from './app_panel.js?v=20261102b';
-import { _simMod, activeShelterKinds, renderLegend, saveShelterKinds, selectEmd, selectSgg, selectSido, syncShelterLayers } from './app_layers.js?v=20261102b';
-import { OPEN, SITS, SIT_ICON, SIT_KEY, applySituation, onLangChanged, setTab } from './app_ui.js?v=20261102b';
-import { downloadICS, map, routeLinks, shareImage, speak } from './app_map.js?v=20261102b';
+import { collect as collectShelters, nearest as nearestShelters } from './shelters.js?v=20261119a';
+import { $, $$, MQ_MOBILE, evaluate, formatKRW, state } from './app.js?v=20261119a';
+import { escapeHTML, nameOf, rn, warnName, warningsFor } from './app_panel.js?v=20261119a';
+import { _simMod, activeShelterKinds, renderLegend, saveShelterKinds, selectEmd, selectSgg, selectSido, syncShelterLayers } from './app_layers.js?v=20261119a';
+import { OPEN, SITS, SIT_ICON, SIT_KEY, applySituation, onLangChanged, setTab } from './app_ui.js?v=20261119a';
+import { downloadICS, map, routeLinks, shareImage, speak } from './app_map.js?v=20261119a';
 
 export let _regionMod = null;
 
@@ -185,7 +185,7 @@ export function runResult() {
   stat(inp.proxy ? 'wiz_proxy' : 'wiz_self');
   if (!(res.matched_ids || []).length) stat('wiz_zero');
   if (inp.sgg) stat(`sub_sido_${String(inp.sgg).slice(0, 2)}`); // 시도 코드 2자리까지만 — 시군구 이하는 보내지 않는다
-  renderResult(res, inp); history.replaceState(null, '', encodeShare(inp));
+  renderResult(res, inp); history[state._autoNav || (history.state && history.state.res) ? 'replaceState' : 'pushState']({ tab: 'find', res: 1 }, '', encodeShare(inp));   // 결과에서 '뒤로' = 질문으로
 }
 
 export const _lawCache = {};
@@ -443,7 +443,7 @@ export function renderResult(res, inp) {
   const nm = nearMisses(inp); if (nm.length) stat('nearmiss_shown');
   const docsN = new Set([...(res.cash || []), ...(res.relief_fund || []), ...(res.apply || []), ...(res.insurance || [])].flatMap(r => r.docs || [])).size;
   // P1·P2: 당사자에겐 돈 한 줄. 건수·항목은 '자세히 보기' 안으로, 금액 상향 안내는 ⓘ 안으로
-  const moneyHTML = cashItems.length ? `<div class="money"><span>${t('res.money')}</span><b>${res.total_cash_krw ? t('res.got.sum', { amt: formatKRW(res.total_cash_krw) }) + (nUnpriced ? ' + α' : '') : t('res.money.tbd')}</b><button type="button" class="money-i" id="moneyI" aria-expanded="false" aria-controls="moneyPop" aria-label="${t('res.money.i')}">i</button></div><p class="money-pop" id="moneyPop" hidden>${t('res.cash.raise')}</p>` : '';
+  const moneyHTML = cashItems.length ? `<div class="money"><span>${t(dl && dl.days_left < 0 ? 'res.money.late' : 'res.money')}</span><b>${res.total_cash_krw ? t('res.got.sum', { amt: formatKRW(res.total_cash_krw) }) + (nUnpriced ? ' + α' : '') : t('res.money.tbd')}</b><button type="button" class="money-i" id="moneyI" aria-expanded="false" aria-controls="moneyPop" aria-label="${t('res.money.i')}">i</button></div><p class="money-pop" id="moneyPop" hidden>${t('res.cash.raise')}</p>` : '';
   const stepsHTML = v && v !== 'shelter' ? `<div class="steps">${['report', 'survey', 'pay', 'more'].map((k, i) => `<span class="${i === (v === 'nonews' ? 1 : 0) ? 'on' : ''}">${t('step.' + k)}</span>`).join('<i></i>')}</div>` : '';
   el.innerHTML = `
     <div class="print-head"><div><b>AidPage</b> ${t('brand.sub')}</div><div>${place} · ${inp.today} · ${t(inp.proxy ? 'print.proxy' : 'print.self')}</div></div>
@@ -453,7 +453,7 @@ export function renderResult(res, inp) {
     ${inp.foreign ? `<div class="result-block foreign"><h3>${t('fr.title')}</h3><p>${t('fr.ok')}</p><p>${t('fr.cash')}</p><p>${t('fr.emergency')}</p><p>${t('fr.check')}</p><div class="fr-call">📞 ${t('fr.call')}</div></div>` : ''}
     ${moneyHTML}
     ${acc('psych', t('res.psych'), '', psychHTML)}
-    <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><button type="button" class="btn btn-ghost" id="btnImg">🖼 ${t('res.img')}</button><a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a><span class="copied" id="copied"></span></div>
+    <div class="share-row"><button type="button" class="btn btn-primary" id="btnCopy">${t('res.copy')}</button><button type="button" class="btn btn-ghost" onclick="print()">${t('res.print')}</button><button type="button" class="btn btn-ghost" id="btnImg">🖼 ${t('res.img')}</button>${dl && dl.days_left < 0 ? '' : `<a class="btn btn-ghost" href="https://www.safekorea.go.kr" target="_blank" rel="noopener">${t('res.report')}</a>`}<span class="copied" id="copied"></span></div>
     ${acc('more', t('res.more'), t('res.more.s'), `${nGot ? acc('got', t('res.got'), gotSum, `<div class="result-block"><h3>${t('res.cash')}</h3><div class="total">${formatKRW(res.total_cash_krw || 0)}<small>${t('res.cash.s')}${res.total_cash_has_unpriced ? t('res.cash.unpriced') : ''}</small></div>${cashItems.map(itemHTML).join('') || `<div class="muted" style="font-size:.9rem">${t('res.cash.none')}</div>`}</div>${sec(t('res.auto'), res.auto)}${sec(t('res.apply'), res.apply)}${res.insurance && res.insurance.length ? sec(t('res.ins'), res.insurance) : ''}`, { solo: false }) : v === 'nonews' ? `<p class="muted first-hint">${t('first.nonews.hint')}</p>` : ''}
 
     ${(() => { const A = _simMod && _simMod.accessLines && _simMod.accessLines(); return A ? `<div class="result-block access"><h3>${t('acc.print')} <small class="muted">${escapeHTML(A.from)}</small></h3><ol>${A.rows.map(x => `<li>${escapeHTML(x)}</li>`).join('')}</ol><small class="muted">${t('acc.note')}</small></div>` : ''; })()}

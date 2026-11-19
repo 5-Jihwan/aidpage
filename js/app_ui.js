@@ -1,14 +1,15 @@
 /* 탭·패널·PWA·프로필·토스트·푸시·글자 크기·언어·상황·첫 화면 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang, setLang, LANGS, langName } from './i18n.js?v=20261102b';
+import { t, getLang, setLang, LANGS, langName } from './i18n.js?v=20261119a';
 import { getVapid, pushSub, pushUnsub, stat } from './api.js?v=20260914b';
-import { $, $$, MQ_MOBILE, evaluate, setRulesLang, state } from './app.js?v=20261102b';
-import { renderResult, renderRulesTable, renderSiteStats, syncWizardLoc } from './app_wizard.js?v=20261102b';
-import { adminNameField, landmarkNameField, localizeLabels, locateMe, map, panelW, syncGrid3D } from './app_map.js?v=20261102b';
-import { nameOf, renderRegion, renderTip } from './app_panel.js?v=20261102b';
-import { getHome, initShelterUI, renderAll, saveShelterKinds, syncGrid } from './app_layers.js?v=20261102b';
-import { _fxSig, applyWxLayer, resetFxDismiss, suggest } from './app_wx.js?v=20261102b';
+import { $, $$, MQ_MOBILE, evaluate, setRulesLang, state } from './app.js?v=20261119a';
+import { renderResult, renderRulesTable, renderSiteStats, syncWizardLoc } from './app_wizard.js?v=20261119a';
+import { adminNameField, landmarkNameField, localizeLabels, locateMe, map, panelW, syncGrid3D } from './app_map.js?v=20261119a';
+import { nameOf, renderRegion, renderTip } from './app_panel.js?v=20261119a';
+import { getHome, initShelterUI, renderAll, saveShelterKinds, syncGrid } from './app_layers.js?v=20261119a';
+import { _fxSig, applyWxLayer, resetFxDismiss, suggest } from './app_wx.js?v=20261119a';
 
 export function setTab(tab) {
+  if (!state._autoNav && !state._pop && tab !== state.tab) history.pushState({ tab }, '');   // 폰 '뒤로'가 사이트 밖으로 나가지 않게 화면 이동을 기록한다
   state.tab = tab;
   $$('.tab').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tab));
   const at = $('.tab.is-active'); if (at && at.scrollIntoView) at.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); // 폰: 활성 탭을 가운데로(오른쪽 페이드 밑에 걸치지 않게), 점프 대신 미끄러지게
@@ -19,6 +20,7 @@ export function setTab(tab) {
 }
 
 export function initPanel() {
+  addEventListener('popstate', e => { const s = e.state || {}; state._pop = true; try { setTab(s.tab || 'now'); } finally { state._pop = false; } const r = $('#result'); if (r) r.hidden = !(s.res && state.lastResult); });
   const p = $('#panel');
   const saved = +localStorage.getItem('safepic.panelW'); if (saved >= 320) document.documentElement.style.setProperty('--panel-w', saved + 'px');
   const rz = $('#panelResize'); let dragging = false;
@@ -315,6 +317,7 @@ export const AUTO = { evacuating: ['temp_housing', 'townhall', 'fire', 'water'],
 export const OPEN = { null: ['wx', 'near', 'er', 'grid'], past: ['near', 'ins', 'grid'], house_flood: ['near', 'wx', 'rep'], shop_flood: ['near', 'wx', 'rep'], evacuating: ['near', 'wx', 'rep', 'er'], before_rain: ['wx', 'grid', 'ins', 'near'], injury: ['er', 'near'], no_news: ['near'], heat_cold: ['near', 'wx'], proxy: ['near', 'wx'] };
 
 export function applySituation(sit, navigate) {
+  const ev = $('#evacNow'); if (ev) ev.hidden = true;
   state.sit = sit; if (sit) sessionStorage.setItem('safepic.sit', sit); else sessionStorage.removeItem('safepic.sit');
   state._foldOverride = {}; // 상황이 바뀌면 사용자가 손으로 접고 편 기록은 초기화
   const PP = getProfile();
@@ -322,7 +325,11 @@ export function applySituation(sit, navigate) {
   if (!navigate) { renderRegion(); return; }
   if (sit === 'proxy') { $('#wizard').reset(); $('#qProxy').checked = true; setTab('find'); syncWizardLoc(); return; }
   if (sit === 'past') { $('#wizard').reset(); $('#pastHint').hidden = false; setTab('find'); syncWizardLoc(); setTimeout(() => $('#qEnd').focus(), 200); return; }
-  if (sit === 'evacuating' || sit === 'before_rain') { $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden'); $('#searchInput').focus(); return; }
+  if (sit === 'evacuating' || sit === 'before_rain') {
+    if (navigate !== 'map' && state._welLoc) { state._welLoc(sit); return; }   // 상황 카드에서 왔으면 먼저 "어디세요?"(큰 내 위치 버튼)
+    $('#mapHint').textContent = t('hint.start'); $('#mapHint').classList.remove('is-hidden');
+    if (sit === 'evacuating' && ev) { ev.hidden = false; $('#panel').classList.remove('is-collapsed'); $('#panelScroll').scrollTop = 0; } else $('#searchInput').focus();   // 대피: 자판이 안내를 가리지 않게 검색 칸에 커서를 넣지 않는다
+    return; }
   applyPreset(sit); setTab('find'); syncWizardLoc();
   if (sit === 'no_news' || sit === 'heat_cold') setTimeout(() => $('#wizard').requestSubmit(), 50);
 }
@@ -346,12 +353,13 @@ export function initWelcome() {
   };
   const open = () => { w.hidden = false; pendingSit = null; show('groups'); };
   state._welOpen = open;
+  state._welLoc = sit => { w.hidden = false; toLoc(sit, 'groups'); };
   const toLoc = (sit, from) => { pendingSit = sit; locFrom = from; show('loc'); };
   /* 위치까지 답했거나 건너뜀 → 닫고 기존 동선으로. via: gps|sel(검색 선택)|map(직접 고르기)
      대피·대비는 위치가 정해지면 안내(검색 포커스)가 필요 없으므로 map일 때만 navigate */
   const launch = via => {
     const s = pendingSit; close();
-    if (s === 'evacuating' || s === 'before_rain') applySituation(s, via === 'map');
+    if (s === 'evacuating' || s === 'before_rain') applySituation(s, via === 'map' && 'map');
     else applySituation(s, true);
   };
   const GROUP_SIT = { evac: 'evacuating', prep: 'before_rain', proxy: 'proxy' };
@@ -375,6 +383,7 @@ export function initWelcome() {
   $('#welGps').addEventListener('click', () => { launch('gps'); (state._coreP || Promise.resolve()).then(() => locateMe()); });
   $('#welLocSkip').addEventListener('click', () => launch('map'));
   $('#welSkip').addEventListener('click', () => close('sheet'));
+  const eg = $('#evacGps'); if (eg) eg.addEventListener('click', () => (state._coreP || Promise.resolve()).then(() => locateMe()));
   /* 오버레이 안 지역 검색 — 본검색과 같은 suggest(), 목록은 카드 아래 정적 배치 */
   const inp = $('#welSearch'), list = $('#welSearchList'); let items = [];
   const render = () => { list.innerHTML = items.map((it, i) => `<li data-i="${i}"><span>${it.name}</span><small>${it.path}</small></li>`).join(''); list.hidden = !items.length; };

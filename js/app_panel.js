@@ -1,14 +1,14 @@
 /* 실시간 조회·지역 패널·오늘 할 일·보험·제보·재난문자·팁·응급실 — 10-14 app.js에서 분리(500줄 규칙). */
-import { t, getLang } from './i18n.js?v=20261102b';
-import { cells as gridCells } from './grid.js?v=20261102b';
+import { t, getLang } from './i18n.js?v=20261119a';
+import { cells as gridCells } from './grid.js?v=20261119a';
 import { getReports, postReport, flagReport, getER } from './api.js?v=20260914b';
-import { nearest as nearestShelters } from './shelters.js?v=20261102b';
-import { $, $$, state } from './app.js?v=20261102b';
-import { featuresWhere, map, openPopup, pipFeature, speak } from './app_map.js?v=20261102b';
-import { renderNearest, resetNation, saveShelterKinds, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261102b';
-import { getProfile } from './app_ui.js?v=20261102b';
-import { applyDrawerFx, applyFolds, closeRegionDrawer, openRegionDrawer, regionMod, renderRegionSummary, renderSitBar } from './app_wizard.js?v=20261102b';
-import { applyAlertFx } from './app_wx.js?v=20261102b';
+import { nearest as nearestShelters } from './shelters.js?v=20261119a';
+import { $, $$, state } from './app.js?v=20261119a';
+import { featuresWhere, map, openPopup, pipFeature, speak } from './app_map.js?v=20261119a';
+import { renderNearest, resetNation, saveShelterKinds, selectEmd, selectSgg, selectSido } from './app_layers.js?v=20261119a';
+import { getProfile } from './app_ui.js?v=20261119a';
+import { applyDrawerFx, applyFolds, closeRegionDrawer, openRegionDrawer, regionMod, renderRegionSummary, renderSitBar } from './app_wizard.js?v=20261119a';
+import { applyAlertFx } from './app_wx.js?v=20261119a';
 
 export let _nameMemo = null;
 
@@ -138,7 +138,8 @@ export function todoItems() {
   if (m >= 6 && m <= 9) { add('season.summer.water', 'heat', null, whySeason); add('season.summer.drain', null, null, whySeason); }
   else if (m === 12 || m <= 2) { add('season.winter.taps', 'cold', null, whySeason); add('season.winter.ice', null, null, whySeason); }
   else if (m >= 3 && m <= 5) { add('season.spring.fire', null, null, whySeason); add('season.spring.dust', 'dust', null, whySeason); }
-  else { add('season.autumn.typhoon', 'temp_housing', null, whySeason); }
+  else if (m === 10) { add('season.autumn.typhoon', 'temp_housing', null, whySeason); }
+  else { add('season.autumn.fire', null, null, whySeason); add('season.autumn.cold', null, null, whySeason); }
   add('always.shelter', floodContext(ws) ? 'temp_housing' : 'civil_defense', null, whyAlways); add('always.townhall', 'townhall', null, whyAlways);
   return out.slice(0, 3);
 }

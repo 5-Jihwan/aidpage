@@ -147,3 +147,8 @@ date,event,count
 2026-11-08,visit,1
 2026-11-09,visit,2
 2026-11-14,visit,1
+2026-11-18,nearmiss_shown,5
+2026-11-18,visit,5
+2026-11-18,welfare_shown,5
+2026-11-18,wiz_self,5
+2026-11-18,wizard_submit,5

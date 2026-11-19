@@ -9,7 +9,7 @@ description: AidPage 공공 API 수집 층 작업법. scripts/fetch_*.py, live_*
 - `scripts/live_common.py`: 키, HTTP, 호출 예산, 체감온도. `_calls`는 이 모듈 전역 하나뿐이고 다른 모듈은 `lc._calls`로 읽고 쓴다.
 - `scripts/live_alerts.py`, `live_obs.py`: `fetch_live.py`가 불러 쓰는 특보·관측 수집.
 - `scripts/fetch_daily.py`: 법령 본문 수집과 개정 감지.
-- `.github/workflows/live.yml`: 10분마다 깨어나 평시엔 30분 슬롯만 수집하고, `data/live/.hot`이 있으면 매 10분 수집한다. 제한 시간 15분.
+- `.github/workflows/live.yml`: 10분마다 깨어나 평시엔 30분 슬롯만 수집하고, `data/live/.hot`이 있으면 매 10분 수집한다. 제한 시간 15분. GitHub 예약 실행은 하루 3~5회만 실제로 돌기 때문에(2026-11-19 실행 기록), Cloudflare 워커 예약(`worker/src/wake.js`, 10분마다)이 같은 규칙으로 `workflow_dispatch`를 보내 깨운다. 워커 비밀값 `GH_DISPATCH_TOKEN`이 없으면 깨우지 않는다.
 - `.github/workflows/daily.yml`: 하루 한 번(`20 19 * * *`, UTC) 법령·통계·행정구역 점검.
 
 ## 새 수집을 붙일 때

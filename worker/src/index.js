@@ -10,13 +10,15 @@
 
 import { kakaoSkill } from './kakao.js';
 export { Store } from './store.js';
-const VERSION = '0.3.4';
+import { wakeLive } from './wake.js';
+const VERSION = '0.3.5';
 const store = env => env.STORE.get(env.STORE.idFromName('global'));   // 10-15: 집계·제보 = Durable Object(store.js)
 const TTL = { news: 3600, law: 86400, radar: 600, er: 180 };
 const RATE = { perMin: 30 };
 const ER_DAILY_MAX = 150;  // E-Gen 일 1,000건 중 Actions 수집(~750건)을 빼고 워커 몫
 
 export default {
+  async scheduled(ev, env, ctx) { ctx.waitUntil(wakeLive(env).then(r => console.log('wake', r)).catch(e => console.log('wake fail', String(e)))); },
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const origin = req.headers.get('Origin') || '';
@@ -31,7 +33,7 @@ export default {
 
     try {
       switch (url.pathname) {
-        case '/health': return json({ status: 'ok', version: VERSION, updated: now(), has: { bigkinds: !!env.BIGKINDS_KEY, law: !!env.LAW_OC, kma: !!env.KMA_APIHUB_KEY, serp: !!env.SERPAPI_KEY, egen: !!env.DATA_GO_KR_KEY } }, 200, cors);
+        case '/health': return json({ status: 'ok', version: VERSION, updated: now(), has: { bigkinds: !!env.BIGKINDS_KEY, law: !!env.LAW_OC, kma: !!env.KMA_APIHUB_KEY, serp: !!env.SERPAPI_KEY, egen: !!env.DATA_GO_KR_KEY, wake: !!env.GH_DISPATCH_TOKEN } }, 200, cors);
         case '/news': return json(await news(url, env), 200, cors);
         case '/er': return json(await er(url, env), 200, cors);
         case '/law': return json(await law(url, env), 200, cors);
